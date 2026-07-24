@@ -2,7 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Currency;
+use App\Models\Tenant;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,11 +16,20 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call(CurrencySeeder::class);
+        $this->call(UserSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $tenant = Tenant::query()->firstOrCreate([
+            'name' => 'Test Tenant',
+        ], [
+            'locale' => 'pt',
         ]);
+
+        $allCurrencyIds = Currency::query()->orderBy('code')->pluck('id')->all();
+
+        $tenant->locale = 'pt';
+        $tenant->save();
+        $tenant->syncCurrencyActivations($allCurrencyIds);
+        $tenant->ensureCurrencyAssets($allCurrencyIds);
     }
 }

@@ -1,0 +1,146 @@
+<?php
+
+namespace App\Http\Controllers\Transaction;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Transaction\UpdateTransactionRequest;
+use App\Models\Transaction;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
+
+class UpdateTransactionController extends Controller
+{
+    public function __invoke(UpdateTransactionRequest $request, string $transaction): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $transaction = Transaction::query()->findOrFail((int) $transaction);
+
+        if ($transaction->type === 'recurring') {
+            $recurrenceScope = $validated['recurrence_scope'] ?? 'all';
+
+            if ($recurrenceScope === 'one') {
+                return $this->updateSingleOccurrence($transaction, $validated);
+            }
+
+            if ($recurrenceScope === 'forward') {
+                return $this->updateCurrentAndFollowing($transaction, $validated);
+            }
+        }
+
+        $transaction->fill($this->payload($validated, $transaction));
+        $transaction->save();
+
+        return to_route('transactions.index', [
+            'period' => CarbonImmutable::parse($transaction->effective_date->toDateString())->format('Y-m'),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function payload(array $validated, Transaction $transaction): array
+    {
+        $scheduleType = $validated['type'];
+
+        return [
+            'account_id' => $validated['account_id'] ?? null,
+            'currency_id' => $validated['currency_id'],
+            'movement_type' => $validated['movement_type'],
+            'type' => $scheduleType,
+            'installment_frequency' => $validated['installment_frequency'] ?? null,
+            'installments_total' => $validated['installments_total'] ?? null,
+            'installment_number' => $validated['installment_number'] ?? null,
+            'series_uuid' => in_array($scheduleType, ['recurring', 'installment'], true)
+                ? ($transaction->series_uuid ?? (string) Str::uuid())
+                : null,
+            'effective_date' => $validated['effective_date'],
+            'effective_until' => $validated['effective_until'] ?? null,
+            'adjustment_month' => $validated['adjustment_month'] ?? null,
+            'amount' => $validated['amount'],
+            'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
+            'description' => $validated['description'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function updateSingleOccurrence(Transaction $transaction, array $validated): RedirectResponse
+    {
+        $occurrenceDate = CarbonImmutable::createFromFormat('Y-m-d', $validated['occurrence_date'] ?? $validated['effective_date']);
+        $seriesUuid = $transaction->series_uuid ?? (string) Str::uuid();
+
+        if ($transaction->series_uuid === null) {
+            $transaction->update([
+                'series_uuid' => $seriesUuid,
+            ]);
+        }
+
+        Transaction::query()->create([
+            'tenant_id' => $transaction->tenant_id,
+            'account_id' => $validated['account_id'] ?? $transaction->account_id,
+            'currency_id' => $validated['currency_id'],
+            'movement_type' => $validated['movement_type'],
+            'type' => 'recurring',
+            'installment_frequency' => null,
+            'installments_total' => null,
+            'installment_number' => null,
+            'series_uuid' => $seriesUuid,
+            'effective_date' => $transaction->effective_date->toDateString(),
+            'effective_until' => null,
+            'adjustment_month' => $occurrenceDate->toDateString(),
+            'amount' => $validated['amount'],
+            'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
+            'description' => $validated['description'],
+        ]);
+
+        return to_route('transactions.index', [
+            'period' => $occurrenceDate->format('Y-m'),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function updateCurrentAndFollowing(Transaction $transaction, array $validated): RedirectResponse
+    {
+        $occurrenceDate = CarbonImmutable::createFromFormat('Y-m-d', $validated['occurrence_date'] ?? $validated['effective_date']);
+        $effectiveUntil = $occurrenceDate->subDay()->toDateString();
+        $seriesUuid = $transaction->series_uuid ?? (string) Str::uuid();
+
+        if ($transaction->series_uuid === null) {
+            $transaction->update([
+                'series_uuid' => $seriesUuid,
+            ]);
+        }
+
+        $transaction->update([
+            'effective_until' => $effectiveUntil,
+        ]);
+
+        $newSeries = Transaction::query()->create([
+            'tenant_id' => $transaction->tenant_id,
+            'account_id' => $validated['account_id'] ?? $transaction->account_id,
+            'currency_id' => $validated['currency_id'],
+            'movement_type' => $validated['movement_type'],
+            'type' => 'recurring',
+            'installment_frequency' => null,
+            'installments_total' => null,
+            'installment_number' => null,
+            'series_uuid' => $seriesUuid,
+            'effective_date' => $occurrenceDate->toDateString(),
+            'effective_until' => null,
+            'adjustment_month' => null,
+            'amount' => $validated['amount'],
+            'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
+            'description' => $validated['description'],
+        ]);
+
+        return to_route('transactions.index', [
+            'period' => $newSeries->effective_date->format('Y-m'),
+        ]);
+    }
+}
