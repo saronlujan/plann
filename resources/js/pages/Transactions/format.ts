@@ -3,8 +3,14 @@
  *
  * Amounts arrive from the backend as plain decimal strings (e.g. "-1700.00")
  * to avoid floating-point drift, so parsing happens here at the presentation edge.
+ * Set `signed` to prefix positive values with "+" (used in the amount column).
  */
-export function formatCurrency(amount: string | number, symbol: string, locale = 'pt-BR'): string {
+export function formatCurrency(
+    amount: string | number,
+    symbol: string,
+    options: { signed?: boolean; locale?: string } = {},
+): string {
+    const { signed = false, locale = 'pt-BR' } = options;
     const value = typeof amount === 'number' ? amount : Number.parseFloat(amount);
     const safeValue = Number.isFinite(value) ? value : 0;
 
@@ -13,9 +19,9 @@ export function formatCurrency(amount: string | number, symbol: string, locale =
         maximumFractionDigits: 2,
     }).format(Math.abs(safeValue));
 
-    const sign = safeValue < 0 ? '-' : '';
+    const sign = safeValue < 0 ? '-' : signed && safeValue > 0 ? '+' : '';
 
-    return `${sign}${symbol} ${formatted}`;
+    return `${sign}${symbol} ${formatted}`;
 }
 
 /**

@@ -44,10 +44,10 @@ class StoreTransactionRequest extends FormRequest
                     ->where('tenant_id', $tenantId)),
             ],
             'effective_date' => ['required', 'date_format:Y-m-d'],
-            'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999999999.99'],
-            'adjustment_amount' => ['nullable', 'numeric', 'gte:0'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999999999.99'],
+            'adjustment_amount' => ['nullable', 'numeric', 'decimal:0,2', 'gte:0'],
             'adjustment_month' => ['nullable', 'date_format:Y-m-d'],
-            'interest_amount' => ['nullable', 'numeric', 'gte:0'],
+            'interest_amount' => ['nullable', 'numeric', 'decimal:0,2', 'gte:0'],
             'installment_frequency' => [
                 Rule::requiredIf($isInstallment),
                 'nullable',

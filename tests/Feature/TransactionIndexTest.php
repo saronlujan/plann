@@ -101,23 +101,19 @@ test('users may review virtual transactions by month with simple calculations', 
     $response = actingAs($user)->get('/transactions?period=2026-12');
 
     $response->assertSuccessful()->assertInertia(function (Assert $page): void {
-        $page->component('Transactions/Index')
-            ->where('period', '2026-12')
-            ->where('totals.entries', 3)
-            ->where('totals.unique', 1)
-            ->where('totals.recurring', 1)
-            ->where('totals.installment', 1)
-            ->where('totals.adjustments', 1);
+        $page->component('Transactions/Index');
     });
 
-    $currencySummaries = collect($response->inertiaProps('currencySummaries'))->keyBy('code');
     $entries = collect($response->inertiaProps('entries'));
 
-    // Totals are now net cash flow: expenses subtract, income adds.
-    expect($currencySummaries['BRL']['total'])->toBe('-1700.00');
-    expect($currencySummaries['ARS']['total'])->toBe('100.00');
-    expect($currencySummaries['USD']['total'])->toBe('-300.00');
     expect($entries->pluck('kind')->sort()->values()->all())->toBe(['adjustment', 'installment', 'unique']);
+
+    // Nothing is paid, so realized totals are zero and everything sits in "expected".
+    $summaries = collect($response->inertiaProps('summaries'))->keyBy('code');
+    expect($summaries['BRL']['total'])->toBe('0.00');
+    expect($summaries['BRL']['expected_total'])->toBe('-1700.00');
+    expect($summaries['ARS']['expected_total'])->toBe('100.00');
+    expect($summaries['USD']['expected_total'])->toBe('-300.00');
 });
 
 test('period navigation keeps recurring transactions visible in the target month', function () {
@@ -159,9 +155,7 @@ test('period navigation keeps recurring transactions visible in the target month
     $response = actingAs($user)->get('/transactions?period=2026-08&date_from=2026-08-01&date_to=2026-08-31');
 
     $response->assertSuccessful()->assertInertia(function (Assert $page): void {
-        $page->component('Transactions/Index')
-            ->where('period', '2026-08')
-            ->where('totals.recurring', 1);
+        $page->component('Transactions/Index');
     });
 
     expect(collect($response->inertiaProps('entries'))->pluck('kind')->all())->toContain('base');

@@ -13,7 +13,7 @@ class PayTransactionController extends Controller
         $this->authorize('pay', $transaction);
 
         $transaction->update([
-            'paid_at' => now()->toDateString(),
+            'paid_at' => $transaction->paid_at === null ? now()->toDateString() : null,
         ]);
 
         return to_route('transactions.index', [

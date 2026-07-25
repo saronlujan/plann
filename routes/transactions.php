@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Transaction\DeleteTransactionController;
 use App\Http\Controllers\Transaction\IndexTransactionController;
 use App\Http\Controllers\Transaction\PayTransactionController;
 use App\Http\Controllers\Transaction\StoreTransactionController;
@@ -10,3 +11,4 @@ Route::get('/transactions', IndexTransactionController::class)->name('transactio
 Route::post('/transactions', StoreTransactionController::class)->name('transactions.store');
 Route::patch('/transactions/{transaction}', UpdateTransactionController::class)->name('transactions.update');
 Route::patch('/transactions/{transaction}/pay', PayTransactionController::class)->name('transactions.pay');
+Route::delete('/transactions/{transaction}', DeleteTransactionController::class)->name('transactions.destroy');

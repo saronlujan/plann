@@ -80,38 +80,62 @@ class TransactionProjector
     }
 
     /**
-     * Build net cash-flow totals per currency (income positive, expense negative).
+     * Build realized and expected income/expense totals per currency.
+     *
+     * "Realized" only counts paid entries; "expected" counts every projected entry.
+     * Currencies without entries in the period are omitted.
      *
      * @param  Collection<int, Currency>  $currencies
      * @param  Collection<int, array<string, mixed>>  $entries
      * @return Collection<int, array<string, mixed>>
      */
-    public function currencySummaries(Collection $currencies, Collection $entries): Collection
+    public function summaries(Collection $currencies, Collection $entries): Collection
     {
         return $currencies
             ->sortBy('code')
             ->values()
-            ->map(function ($currency) use ($entries): array {
+            ->map(function ($currency) use ($entries): ?array {
                 $currencyEntries = $entries->where('currency_code', $currency->code);
 
-                $total = '0.00';
-
-                foreach ($currencyEntries as $entry) {
-                    $signed = $entry['movement_type'] === TransactionMovementType::Income->value
-                        ? (string) $entry['amount']
-                        : bcmul((string) $entry['amount'], '-1', 2);
-
-                    $total = bcadd($total, $signed, 2);
+                if ($currencyEntries->isEmpty()) {
+                    return null;
                 }
+
+                $incomePaid = $this->sumMovement($currencyEntries, TransactionMovementType::Income, onlyPaid: true);
+                $expensePaid = $this->sumMovement($currencyEntries, TransactionMovementType::Expense, onlyPaid: true);
+                $incomeAll = $this->sumMovement($currencyEntries, TransactionMovementType::Income, onlyPaid: false);
+                $expenseAll = $this->sumMovement($currencyEntries, TransactionMovementType::Expense, onlyPaid: false);
 
                 return [
                     'code' => $currency->code,
                     'name' => $currency->name,
                     'symbol' => $currency->symbol,
-                    'entries' => $currencyEntries->count(),
-                    'total' => $total,
+                    'income' => $incomePaid,
+                    'expenses' => $expensePaid,
+                    'total' => bcsub($incomePaid, $expensePaid, 2),
+                    'expected_income' => $incomeAll,
+                    'expected_expense' => $expenseAll,
+                    'expected_total' => bcsub($incomeAll, $expenseAll, 2),
                 ];
-            });
+            })
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $entries
+     */
+    private function sumMovement(Collection $entries, TransactionMovementType $movement, bool $onlyPaid): string
+    {
+        return $entries
+            ->filter(function (array $entry) use ($movement, $onlyPaid): bool {
+                if ($entry['movement_type'] !== $movement->value) {
+                    return false;
+                }
+
+                return $onlyPaid ? $entry['paid_at'] !== null : true;
+            })
+            ->reduce(fn (string $carry, array $entry): string => bcadd($carry, (string) $entry['amount'], 2), '0.00');
     }
 
     /**

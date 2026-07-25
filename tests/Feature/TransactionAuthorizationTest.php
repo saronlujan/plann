@@ -69,6 +69,65 @@ it('does not let a tenant update another tenant transaction', function () {
     expect($victim['transaction']->fresh()?->description)->toBe('Internet');
 });
 
+it('resolves route-bound transactions from the middleware tenant context', function () {
+    $data = makeTenantWithTransaction('middleware-binding@example.com');
+
+    // Simulate a real request: the tenant context is not pre-set, it must be
+    // established by EnsureTenantContext before route-model binding runs.
+    app(TenantContext::class)->clear();
+
+    actingAs($data['user'])
+        ->patch('/transactions/'.$data['transaction']->id.'/pay')
+        ->assertRedirect();
+
+    expect($data['transaction']->fresh()?->paid_at)->not->toBeNull();
+
+    app(TenantContext::class)->clear();
+
+    actingAs($data['user'])
+        ->patch('/transactions/'.$data['transaction']->id, [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => 'Editado',
+            'currency_id' => $data['currency']->id,
+            'account_id' => $data['account']->id,
+            'effective_date' => '2026-07-10',
+            'amount' => 10,
+        ])
+        ->assertRedirect();
+
+    expect($data['transaction']->fresh()?->description)->toBe('Editado');
+
+    app(TenantContext::class)->clear();
+
+    actingAs($data['user'])
+        ->delete('/transactions/'.$data['transaction']->id)
+        ->assertRedirect();
+
+    expect(Transaction::query()->whereKey($data['transaction']->id)->exists())->toBeFalse();
+});
+
+it('lets a tenant delete its own transaction', function () {
+    $data = makeTenantWithTransaction('delete-own@example.com');
+
+    actingAs($data['user'])
+        ->delete('/transactions/'.$data['transaction']->id)
+        ->assertRedirect();
+
+    expect(Transaction::query()->whereKey($data['transaction']->id)->exists())->toBeFalse();
+});
+
+it('does not let a tenant delete another tenant transaction', function () {
+    $victim = makeTenantWithTransaction('victim-delete@example.com');
+    $attacker = makeTenantWithTransaction('attacker-delete@example.com');
+
+    actingAs($attacker['user'])
+        ->delete('/transactions/'.$victim['transaction']->id)
+        ->assertNotFound();
+
+    expect($victim['transaction']->fresh())->not->toBeNull();
+});
+
 it('does not let a tenant mark another tenant transaction as paid', function () {
     $victim = makeTenantWithTransaction('victim-pay@example.com');
     $attacker = makeTenantWithTransaction('attacker-pay@example.com');
@@ -95,6 +154,22 @@ it('rejects storing a transaction against another tenant account', function () {
             'amount' => 100,
         ])
         ->assertSessionHasErrors('account_id');
+});
+
+it('rejects amounts with more than two decimal places', function () {
+    $data = makeTenantWithTransaction('decimal-amount@example.com');
+
+    actingAs($data['user'])
+        ->post('/transactions', [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => 'Fração inválida',
+            'currency_id' => $data['currency']->id,
+            'account_id' => $data['account']->id,
+            'effective_date' => '2026-07-10',
+            'amount' => 19.999,
+        ])
+        ->assertSessionHasErrors('amount');
 });
 
 it('rejects installment counts above the allowed maximum', function () {

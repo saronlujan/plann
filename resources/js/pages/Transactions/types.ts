@@ -32,12 +32,16 @@ export type TransactionFilters = {
     date_to: string;
 };
 
-export type TransactionTotals = {
-    entries: number;
-    unique: number;
-    recurring: number;
-    installment: number;
-    adjustments: number;
+export type TransactionSummary = {
+    code: string;
+    name: string;
+    symbol: string;
+    income: string;
+    expenses: string;
+    total: string;
+    expected_income: string;
+    expected_expense: string;
+    expected_total: string;
 };
 
 export type TransactionEntry = {

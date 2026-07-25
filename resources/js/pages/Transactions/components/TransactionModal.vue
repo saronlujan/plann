@@ -68,27 +68,6 @@ const recurrenceScopeOptions: Option[] = [
     { value: 'forward', label: 'Esta e as futuras' },
 ];
 
-const movementStyles: Record<string, { dot: string; ring: string; text: string; border: string }> = {
-    expense: {
-        dot: 'bg-red-500',
-        ring: 'border-red-500 bg-red-500/10 ring-2 ring-red-500/20',
-        text: 'text-red-700 dark:text-red-300',
-        border: 'border-red-200 dark:border-red-900',
-    },
-    income: {
-        dot: 'bg-emerald-500',
-        ring: 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20',
-        text: 'text-emerald-700 dark:text-emerald-300',
-        border: 'border-emerald-200 dark:border-emerald-900',
-    },
-    transfer: {
-        dot: 'bg-sky-500',
-        ring: 'border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/20',
-        text: 'text-sky-700 dark:text-sky-300',
-        border: 'border-sky-200 dark:border-sky-900',
-    },
-};
-
 function todayIsoDate(): string {
     const now = new Date();
 
@@ -275,22 +254,14 @@ watch(hasAttachment, (enabled) => {
                                 v-for="option in movementTypeOptions"
                                 :key="option.value"
                                 type="button"
-                                variant="outline"
+                                :variant="form.movement_type === option.value ? 'default' : 'outline'"
                                 role="radio"
                                 :aria-checked="form.movement_type === option.value"
                                 :aria-label="option.label"
                                 class="h-9 w-full justify-center px-3 py-1 text-sm"
-                                :class="[
-                                    movementStyles[option.value]?.border,
-                                    movementStyles[option.value]?.text,
-                                    form.movement_type === option.value ? movementStyles[option.value]?.ring : '',
-                                ]"
                                 @click="form.movement_type = option.value"
                             >
-                                <span class="inline-flex items-center gap-2">
-                                    <span class="size-2 rounded-full" :class="movementStyles[option.value]?.dot"></span>
-                                    {{ option.label }}
-                                </span>
+                                {{ option.label }}
                             </Button>
                         </div>
                         <FormError :message="form.errors.movement_type" />

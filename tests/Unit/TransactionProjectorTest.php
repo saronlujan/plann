@@ -57,8 +57,13 @@ it('expands installments and computes net currency totals in isolation', functio
     expect($entries)->toHaveCount(2);
     expect($entries->pluck('kind')->sort()->values()->all())->toBe(['installment', 'unique']);
 
-    $summaries = $projector->currencySummaries(collect([$currency]), $entries);
+    $summaries = $projector->summaries(collect([$currency]), $entries);
+    $brl = $summaries->firstWhere('code', 'BRL');
 
-    // Net cash flow: 250 income - 100 expense = 150.
-    expect($summaries->firstWhere('code', 'BRL')['total'])->toBe('150.00');
+    // Nothing is paid yet, so realized totals are zero.
+    expect($brl['total'])->toBe('0.00');
+    // Expected reflects every projected entry: 250 income - 100 expense = 150.
+    expect($brl['expected_income'])->toBe('250.00');
+    expect($brl['expected_expense'])->toBe('100.00');
+    expect($brl['expected_total'])->toBe('150.00');
 });
