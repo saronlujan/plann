@@ -16,11 +16,13 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('account_id')->constrained()->nullOnDelete();
             $table->foreignId('currency_id')->constrained()->restrictOnDelete();
-            $table->enum('movement_type', ['income', 'expense'])->nullable();
-            $table->enum('type', ['unique', 'recurring', 'installment']);
-            $table->enum('installment_frequency', ['weekly', 'biweekly', 'monthly'])->nullable();
+            $table->string('movement_type')->nullable();
+            $table->string('type');
+            $table->string('installment_frequency')->nullable();
             $table->unsignedSmallInteger('installments_total')->nullable();
             $table->unsignedSmallInteger('installment_number')->nullable();
+            $table->decimal('interest_amount', 10, 2)->nullable();
+            $table->string('attachment_path')->nullable();
             $table->uuid('series_uuid')->nullable()->index();
             $table->date('effective_date')->index();
             $table->date('paid_at')->nullable()->index();

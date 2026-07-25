@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Transaction;
 
+use App\Enums\TransactionInstallmentFrequency;
+use App\Enums\TransactionMovementType;
+use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Currency;
@@ -39,7 +42,7 @@ class IndexTransactionController extends Controller
             ->get();
 
         $adjustedRecurringPeriods = $transactions
-            ->filter(fn (Transaction $transaction): bool => $transaction->type === 'recurring' && $transaction->adjustment_month !== null)
+            ->filter(fn (Transaction $transaction): bool => $transaction->type === TransactionType::Recurring && $transaction->adjustment_month !== null)
             ->groupBy(fn (Transaction $transaction): string => sprintf('%s:%s', $transaction->series_uuid ?? $transaction->id, $transaction->adjustment_month->format('Y-m')));
 
         $entries = $this->buildEntries($transactions, $period, $adjustedRecurringPeriods)
@@ -163,7 +166,7 @@ class IndexTransactionController extends Controller
         $entries = collect();
 
         foreach ($transactions as $transaction) {
-            if ($transaction->type === 'unique') {
+            if ($transaction->type === TransactionType::Unique) {
                 if ($transaction->effective_date->betweenIncluded($periodStart, $periodEnd)) {
                     $entries->push($this->mapUniqueEntry($transaction, $periodStart));
                 }
@@ -171,7 +174,7 @@ class IndexTransactionController extends Controller
                 continue;
             }
 
-            if ($transaction->type === 'recurring' && $transaction->adjustment_month === null) {
+            if ($transaction->type === TransactionType::Recurring && $transaction->adjustment_month === null) {
                 $adjustmentKey = sprintf('%s:%s', $transaction->series_uuid ?? $transaction->id, $period->format('Y-m'));
 
                 if ($adjustedRecurringPeriods->has($adjustmentKey)) {
@@ -188,13 +191,13 @@ class IndexTransactionController extends Controller
                 continue;
             }
 
-            if ($transaction->type === 'recurring' && $transaction->adjustment_month?->isSameMonth($period)) {
+            if ($transaction->type === TransactionType::Recurring && $transaction->adjustment_month?->isSameMonth($period)) {
                 $entries->push($this->mapAdjustmentEntry($transaction, $period));
 
                 continue;
             }
 
-            if ($transaction->type === 'installment') {
+            if ($transaction->type === TransactionType::Installment) {
                 $entries = $entries->merge($this->buildInstallmentEntries($transaction, $periodStart, $periodEnd));
             }
         }
@@ -224,7 +227,7 @@ class IndexTransactionController extends Controller
                     'kind' => 'installment',
                     'type' => 'installment',
                     'schedule_type' => 'installment',
-                    'movement_type' => $transaction->movement_type ?? 'expense',
+                    'movement_type' => $transaction->movement_type?->value ?? TransactionMovementType::Expense->value,
                     'label' => sprintf('%s - parcela %d/%d', $transaction->description, $installmentNumber, $transaction->installments_total),
                     'currency_code' => $transaction->currency->code,
                     'currency_symbol' => $transaction->currency->symbol,
@@ -236,7 +239,7 @@ class IndexTransactionController extends Controller
                     'amount' => $this->formatMoney($transaction->amount),
                     'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
                     'description' => $transaction->description,
-                    'installment_frequency' => $transaction->installment_frequency,
+                    'installment_frequency' => $transaction->installment_frequency?->value,
                     'installments_total' => $transaction->installments_total,
                     'installment_number' => $installmentNumber,
                     'source' => $this->resolveSourceLabel($transaction),
@@ -244,8 +247,11 @@ class IndexTransactionController extends Controller
             }
 
             $occurrenceDate = match ($transaction->installment_frequency) {
-                'weekly' => $occurrenceDate->addWeek(),
-                'biweekly' => $occurrenceDate->addWeeks(2),
+                TransactionInstallmentFrequency::Weekly => $occurrenceDate->addWeek(),
+                TransactionInstallmentFrequency::Biweekly => $occurrenceDate->addWeeks(2),
+                TransactionInstallmentFrequency::Bimonthly => $occurrenceDate->addMonthsNoOverflow(2),
+                TransactionInstallmentFrequency::Semiannual => $occurrenceDate->addMonthsNoOverflow(6),
+                TransactionInstallmentFrequency::Annual => $occurrenceDate->addYear(),
                 default => $occurrenceDate->addMonthNoOverflow(),
             };
         }
@@ -264,9 +270,9 @@ class IndexTransactionController extends Controller
             'transaction_id' => $transaction->id,
             'date' => $date,
             'kind' => 'unique',
-            'type' => 'unique',
-            'schedule_type' => 'unique',
-            'movement_type' => $transaction->movement_type ?? 'expense',
+            'type' => TransactionType::Unique->value,
+            'schedule_type' => TransactionType::Unique->value,
+            'movement_type' => $transaction->movement_type?->value ?? TransactionMovementType::Expense->value,
             'label' => $transaction->description,
             'currency_code' => $transaction->currency->code,
             'currency_symbol' => $transaction->currency->symbol,
@@ -279,7 +285,7 @@ class IndexTransactionController extends Controller
             'amount' => $this->formatMoney($transaction->amount),
             'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
             'description' => $transaction->description,
-            'installment_frequency' => $transaction->installment_frequency,
+            'installment_frequency' => $transaction->installment_frequency?->value,
             'installments_total' => $transaction->installments_total,
             'installment_number' => $transaction->installment_number,
             'source' => $this->resolveSourceLabel($transaction),
@@ -297,9 +303,9 @@ class IndexTransactionController extends Controller
             'transaction_id' => $transaction->id,
             'date' => $date,
             'kind' => 'base',
-            'type' => 'recurring',
-            'schedule_type' => 'recurring',
-            'movement_type' => $transaction->movement_type ?? 'expense',
+            'type' => TransactionType::Recurring->value,
+            'schedule_type' => TransactionType::Recurring->value,
+            'movement_type' => $transaction->movement_type?->value ?? TransactionMovementType::Expense->value,
             'label' => sprintf('%s - recorrência', $transaction->description),
             'currency_code' => $transaction->currency->code,
             'currency_symbol' => $transaction->currency->symbol,
@@ -312,7 +318,7 @@ class IndexTransactionController extends Controller
             'amount' => $this->formatMoney($transaction->amount),
             'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
             'description' => $transaction->description,
-            'installment_frequency' => $transaction->installment_frequency,
+            'installment_frequency' => $transaction->installment_frequency?->value,
             'installments_total' => $transaction->installments_total,
             'installment_number' => $transaction->installment_number,
             'source' => $this->resolveSourceLabel($transaction),
@@ -328,9 +334,9 @@ class IndexTransactionController extends Controller
             'transaction_id' => $transaction->id,
             'date' => $date,
             'kind' => 'adjustment',
-            'type' => 'recurring',
-            'schedule_type' => 'recurring',
-            'movement_type' => $transaction->movement_type ?? 'expense',
+            'type' => TransactionType::Recurring->value,
+            'schedule_type' => TransactionType::Recurring->value,
+            'movement_type' => $transaction->movement_type?->value ?? TransactionMovementType::Expense->value,
             'label' => sprintf('%s - ajuste %s', $transaction->description, $period->format('m/Y')),
             'currency_code' => $transaction->currency->code,
             'currency_symbol' => $transaction->currency->symbol,
@@ -343,7 +349,7 @@ class IndexTransactionController extends Controller
             'amount' => $this->formatMoney($transaction->amount),
             'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
             'description' => $transaction->description,
-            'installment_frequency' => $transaction->installment_frequency,
+            'installment_frequency' => $transaction->installment_frequency?->value,
             'installments_total' => $transaction->installments_total,
             'installment_number' => $transaction->installment_number,
             'source' => $this->resolveSourceLabel($transaction),
@@ -357,8 +363,8 @@ class IndexTransactionController extends Controller
     {
         return [
             'transaction_id' => $transaction->id,
-            'movement_type' => $transaction->movement_type ?? 'expense',
-            'schedule_type' => $transaction->type,
+            'movement_type' => $transaction->movement_type?->value ?? TransactionMovementType::Expense->value,
+            'schedule_type' => $transaction->type->value,
             'currency_id' => $transaction->currency_id,
             'account_id' => $transaction->account_id,
             'effective_date' => $transaction->effective_date->toDateString(),
@@ -366,7 +372,7 @@ class IndexTransactionController extends Controller
             'adjustment_month' => $transaction->adjustment_month?->toDateString(),
             'description' => $transaction->description,
             'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
-            'installment_frequency' => $transaction->installment_frequency,
+            'installment_frequency' => $transaction->installment_frequency?->value,
             'installments_total' => $transaction->installments_total,
             'installment_number' => $transaction->installment_number,
         ];

@@ -1,99 +1,67 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Button } from '@/components/ui/button';
+import Card from '@/components/ui/card/Card.vue';
+import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import TransactionModal from './components/TransactionModal.vue';
-import TransactionsFilters from './components/TransactionsFilters.vue';
-import TransactionsHeader from './components/TransactionsHeader.vue';
-import TransactionsSummary from './components/TransactionsSummary.vue';
-import TransactionsTable from './components/TransactionsTable.vue';
-import type { TransactionPageProps } from './types';
-import { useTransactionPage } from './useTransactionPage';
 
-const props = defineProps<TransactionPageProps>();
-const {
-    period,
-    periodDisplay,
-    periodPrevious,
-    periodNext,
-    filters,
-    kindOptions,
-    currencyOptions,
-    entries,
-    totals,
-} = props;
+type CurrencyOption = {
+    id: number;
+    code: string;
+    name: string;
+    symbol: string;
+};
 
-const {
-    transactionForm,
-    selectedScheduleType,
-    filteredAccountOptions,
-    reportCurrency,
-    actualIncome,
-    actualExpense,
-    actualTotal,
-    expectedIncome,
-    expectedExpense,
-    expectedTotal,
-    isTransactionModalOpen,
-    editingTransactionId,
-    openTransactionModal,
-    openEditTransactionModal,
-    closeTransactionModal,
-    submitTransaction,
-    payTransaction,
-} = useTransactionPage(props);
+type AccountOption = {
+    id: number;
+    name: string;
+    currency_id: number;
+};
 
-function formatMoney(amount: number): string {
-    return `${reportCurrency.value.symbol}${amount.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    })}`;
-}
+type TransactionsPageProps = {
+    currencyOptions: CurrencyOption[];
+    accountOptions: AccountOption[];
+};
+
+const props = defineProps<TransactionsPageProps>();
+const createTransactionOpen = ref(false);
 </script>
 
 <template>
-    <Head title="Lançamentos" />
+    <Head title="Transactions" />
 
-    <main class="min-h-screen bg-[#070707] text-slate-100">
-        <div class="mx-auto flex min-h-screen w-full max-w-280 flex-col gap-6 px-4 py-4 lg:px-6">
-            <TransactionsHeader :on-add-transaction="openTransactionModal" />
+    <DefaultLayout>
+        <main class="flex flex-col p-3 md:p-5">
+            <div class="mt-2 mb-5 flex w-full md:mt-0">
+                <div class="flex flex-1 items-center justify-between gap-5">
+                    <div class="flex items-start gap-2">
+                        <div class="flex flex-col">
+                            <h1 class="text-lg font-semibold md:text-xl">Your Transactions</h1>
+                            <span class="hidden text-sm text-zinc-400 md:block dark:text-zinc-500">
+                                View and manage your transactions.
+                            </span>
+                        </div>
+                    </div>
 
-            <TransactionsFilters
-                :period="period"
-                :period-display="periodDisplay"
-                :period-previous="periodPrevious"
-                :period-next="periodNext"
-                :filters="filters"
-                :kind-options="kindOptions"
-            />
+                    <div class="flex items-center gap-3">
+                        <Button class="shrink-0" @click="createTransactionOpen = true">
+                            Add transaction
+                        </Button>
+                        <TransactionModal
+                            v-model:open="createTransactionOpen"
+                            :currency-options="props.currencyOptions"
+                            :account-options="props.accountOptions"
+                        />
+                    </div>
+                </div>
+            </div>
 
-            <TransactionsTable
-                :entries="entries"
-                :period-display="periodDisplay"
-                :adjustments-count="totals.adjustments"
-                @edit="openEditTransactionModal"
-                @pay="payTransaction"
-            />
-
-            <TransactionsSummary
-                :currency-code="reportCurrency.code"
-                :period-display="periodDisplay"
-                :actual-income="formatMoney(actualIncome)"
-                :actual-expense="formatMoney(actualExpense)"
-                :actual-total="formatMoney(actualTotal)"
-                :expected-income="formatMoney(expectedIncome)"
-                :expected-expense="formatMoney(expectedExpense)"
-                :expected-total="formatMoney(expectedTotal)"
-            />
-
-            <TransactionModal
-                :is-open="isTransactionModalOpen"
-                :editing-transaction-id="editingTransactionId"
-                :transaction-form="transactionForm"
-                :selected-schedule-type="selectedScheduleType"
-                :currency-options="currencyOptions"
-                :filtered-account-options="filteredAccountOptions"
-                @close="closeTransactionModal"
-                @submit="submitTransaction"
-            />
-        </div>
-    </main>
+            <Card>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                    Use the button above to start creating transactions. The list will come next.
+                </p>
+            </Card>
+        </main>
+    </DefaultLayout>
 </template>

@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Transaction;
 
+use App\Enums\TransactionRecurrenceScope;
+use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
 use App\Models\Transaction;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class UpdateTransactionController extends Controller
@@ -16,20 +20,21 @@ class UpdateTransactionController extends Controller
         $validated = $request->validated();
 
         $transaction = Transaction::query()->findOrFail((int) $transaction);
+        $attachmentPath = $this->storeAttachment($request->file('attachment')) ?? $transaction->attachment_path;
 
-        if ($transaction->type === 'recurring') {
-            $recurrenceScope = $validated['recurrence_scope'] ?? 'all';
+        if ($transaction->type === TransactionType::Recurring) {
+            $recurrenceScope = TransactionRecurrenceScope::from($validated['recurrence_scope'] ?? TransactionRecurrenceScope::All->value);
 
-            if ($recurrenceScope === 'one') {
-                return $this->updateSingleOccurrence($transaction, $validated);
+            if ($recurrenceScope === TransactionRecurrenceScope::One) {
+                return $this->updateSingleOccurrence($transaction, $validated, $attachmentPath);
             }
 
-            if ($recurrenceScope === 'forward') {
-                return $this->updateCurrentAndFollowing($transaction, $validated);
+            if ($recurrenceScope === TransactionRecurrenceScope::Forward) {
+                return $this->updateCurrentAndFollowing($transaction, $validated, $attachmentPath);
             }
         }
 
-        $transaction->fill($this->payload($validated, $transaction));
+        $transaction->fill($this->payload($validated, $transaction, $attachmentPath));
         $transaction->save();
 
         return to_route('transactions.index', [
@@ -41,7 +46,7 @@ class UpdateTransactionController extends Controller
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    private function payload(array $validated, Transaction $transaction): array
+    private function payload(array $validated, Transaction $transaction, ?string $attachmentPath): array
     {
         $scheduleType = $validated['type'];
 
@@ -53,7 +58,9 @@ class UpdateTransactionController extends Controller
             'installment_frequency' => $validated['installment_frequency'] ?? null,
             'installments_total' => $validated['installments_total'] ?? null,
             'installment_number' => $validated['installment_number'] ?? null,
-            'series_uuid' => in_array($scheduleType, ['recurring', 'installment'], true)
+            'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
+            'attachment_path' => $attachmentPath,
+            'series_uuid' => in_array($scheduleType, [TransactionType::Recurring->value, TransactionType::Installment->value], true)
                 ? ($transaction->series_uuid ?? (string) Str::uuid())
                 : null,
             'effective_date' => $validated['effective_date'],
@@ -68,7 +75,7 @@ class UpdateTransactionController extends Controller
     /**
      * @param  array<string, mixed>  $validated
      */
-    private function updateSingleOccurrence(Transaction $transaction, array $validated): RedirectResponse
+    private function updateSingleOccurrence(Transaction $transaction, array $validated, ?string $attachmentPath): RedirectResponse
     {
         $occurrenceDate = CarbonImmutable::createFromFormat('Y-m-d', $validated['occurrence_date'] ?? $validated['effective_date']);
         $seriesUuid = $transaction->series_uuid ?? (string) Str::uuid();
@@ -84,10 +91,12 @@ class UpdateTransactionController extends Controller
             'account_id' => $validated['account_id'] ?? $transaction->account_id,
             'currency_id' => $validated['currency_id'],
             'movement_type' => $validated['movement_type'],
-            'type' => 'recurring',
+            'type' => TransactionType::Recurring->value,
             'installment_frequency' => null,
             'installments_total' => null,
             'installment_number' => null,
+            'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
+            'attachment_path' => $attachmentPath,
             'series_uuid' => $seriesUuid,
             'effective_date' => $transaction->effective_date->toDateString(),
             'effective_until' => null,
@@ -105,7 +114,7 @@ class UpdateTransactionController extends Controller
     /**
      * @param  array<string, mixed>  $validated
      */
-    private function updateCurrentAndFollowing(Transaction $transaction, array $validated): RedirectResponse
+    private function updateCurrentAndFollowing(Transaction $transaction, array $validated, ?string $attachmentPath): RedirectResponse
     {
         $occurrenceDate = CarbonImmutable::createFromFormat('Y-m-d', $validated['occurrence_date'] ?? $validated['effective_date']);
         $effectiveUntil = $occurrenceDate->subDay()->toDateString();
@@ -126,10 +135,12 @@ class UpdateTransactionController extends Controller
             'account_id' => $validated['account_id'] ?? $transaction->account_id,
             'currency_id' => $validated['currency_id'],
             'movement_type' => $validated['movement_type'],
-            'type' => 'recurring',
+            'type' => TransactionType::Recurring->value,
             'installment_frequency' => null,
             'installments_total' => null,
             'installment_number' => null,
+            'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
+            'attachment_path' => $attachmentPath,
             'series_uuid' => $seriesUuid,
             'effective_date' => $occurrenceDate->toDateString(),
             'effective_until' => null,
@@ -142,5 +153,14 @@ class UpdateTransactionController extends Controller
         return to_route('transactions.index', [
             'period' => $newSeries->effective_date->format('Y-m'),
         ]);
+    }
+
+    private function storeAttachment(?UploadedFile $attachment): ?string
+    {
+        if ($attachment === null) {
+            return null;
+        }
+
+        return Storage::disk('public')->putFile('transactions/attachments', $attachment);
     }
 }

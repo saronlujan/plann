@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\TransactionInstallmentFrequency;
+use App\Enums\TransactionMovementType;
+use App\Enums\TransactionType;
 use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\TransactionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +27,8 @@ class Transaction extends Model
         'installment_frequency',
         'installments_total',
         'installment_number',
+        'interest_amount',
+        'attachment_path',
         'series_uuid',
         'effective_date',
         'paid_at',
@@ -35,10 +40,14 @@ class Transaction extends Model
     ];
 
     protected $casts = [
+        'movement_type' => TransactionMovementType::class,
+        'type' => TransactionType::class,
+        'installment_frequency' => TransactionInstallmentFrequency::class,
         'effective_date' => 'date',
         'paid_at' => 'date',
         'effective_until' => 'date',
         'adjustment_month' => 'date',
+        'interest_amount' => 'decimal:2',
         'amount' => 'decimal:2',
         'adjustment_amount' => 'decimal:2',
     ];

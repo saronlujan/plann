@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TransactionType;
 use App\Models\Account;
 use App\Models\Currency;
 use App\Models\Tenant;
@@ -46,5 +47,7 @@ test('a recurring transaction keeps one master row and allows monthly adjustment
     expect(Transaction::query()->where('series_uuid', $seriesUuid)->count())->toBe(2);
     expect($master->amount)->toBe('1500.00');
     expect($exception->amount)->toBe('1700.00');
+    expect($master->type)->toBe(TransactionType::Recurring);
+    expect($exception->type)->toBe(TransactionType::Recurring);
     expect($exception->adjustment_month?->format('Y-m'))->toBe('2026-12');
 });

@@ -1,242 +1,445 @@
 <script setup lang="ts">
-import { toRef } from 'vue';
-import type { AccountOption, CurrencyOption, TransactionFormState } from '../types';
+import { useForm } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+import { Button } from '@/components/ui/button';
+import DatePicker from '@/components/ui/date-picker/DatePicker.vue';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Form, FormCard, FormError, FormGroup, FormLabel } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
+import { Switch } from '@/components/ui/switch';
+import { store as storeTransaction } from '../../../routes/transactions';
+
+type CurrencyOption = {
+    id: number;
+    code: string;
+    name: string;
+    symbol: string;
+};
+
+type AccountOption = {
+    id: number;
+    name: string;
+    currency_id: number;
+};
 
 const props = defineProps<{
-    isOpen: boolean;
-    editingTransactionId: number | null;
-    transactionForm: TransactionFormState & {
-        errors: Record<string, string | undefined>;
-        processing: boolean;
-        clearErrors: () => void;
-        post: (...args: any[]) => void;
-        patch: (...args: any[]) => void;
-    };
-    selectedScheduleType: 'unique' | 'recurring' | 'installment';
+    open: boolean;
     currencyOptions: CurrencyOption[];
-    filteredAccountOptions: AccountOption[];
+    accountOptions: AccountOption[];
 }>();
 
-const transactionForm = toRef(props, 'transactionForm');
-
-defineEmits<{
-    close: [];
-    submit: [];
+const emit = defineEmits<{
+    'update:open': [value: boolean];
 }>();
+
+const dialogOpen = computed({
+    get: () => props.open,
+    set: (value: boolean) => {
+        emit('update:open', value);
+    },
+});
+
+const today = new Date();
+const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+
+const defaultCurrencyId = computed(() => props.currencyOptions[0]?.id.toString() ?? '');
+const defaultAccountId = computed(() => {
+    const firstCurrencyId = defaultCurrencyId.value;
+
+    return (
+        props.accountOptions
+            .find((account) => account.currency_id.toString() === firstCurrencyId)
+            ?.id.toString() ??
+        props.accountOptions[0]?.id.toString() ??
+        ''
+    );
+});
+
+const form = useForm({
+    movement_type: 'expense',
+    type: 'unique',
+    description: '',
+    currency_id: defaultCurrencyId.value,
+    account_id: defaultAccountId.value,
+    destination_account_id: '',
+    effective_date: localDate,
+    amount: '',
+    adjustment_amount: '0',
+    adjustment_month: '',
+    interest_amount: '',
+    installment_frequency: 'monthly',
+    installments_total: '',
+    installment_number: '',
+    effective_until: '',
+    attachment: null as File | null,
+});
+
+const hasAttachment = ref(false);
+
+const transactionTypeOptions = [
+    { label: 'Única', value: 'unique' },
+    { label: 'Recorrente', value: 'recurring' },
+    { label: 'Parcelada', value: 'installment' },
+];
+
+const transferLabel = 'Transferência';
+
+const installmentFrequencyOptions = [
+    { label: 'Semanal', value: 'weekly' },
+    { label: 'Quinzenal', value: 'biweekly' },
+    { label: 'Mensal', value: 'monthly' },
+    { label: 'Bimestral', value: 'bimonthly' },
+    { label: 'Semestral', value: 'semiannual' },
+    { label: 'Anual', value: 'annual' },
+];
+
+const filteredAccountOptions = computed(() =>
+    props.accountOptions.filter((account) => account.currency_id.toString() === form.currency_id),
+);
+
+const destinationAccountOptions = computed(() =>
+    filteredAccountOptions.value.filter((account) => account.id.toString() !== form.account_id),
+);
+
+const isInstallmentType = computed(() => form.type === 'installment');
+const isTransferMovement = computed(() => form.movement_type === 'transfer');
+const accountLabel = computed(() => (isTransferMovement.value ? 'Conta de origem' : 'Conta'));
+
+function closeModal(): void {
+    emit('update:open', false);
+    form.reset();
+    form.clearErrors();
+    hasAttachment.value = false;
+}
+
+function submitTransaction(): void {
+    form.post(storeTransaction().url, {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeModal();
+        },
+    });
+}
+
+watch(
+    () => form.currency_id,
+    () => {
+        const nextAccountId = filteredAccountOptions.value[0]?.id.toString() ?? '';
+
+        if (
+            nextAccountId !== '' &&
+            !filteredAccountOptions.value.some(
+                (account) => account.id.toString() === form.account_id,
+            )
+        ) {
+            form.account_id = nextAccountId;
+        }
+    },
+);
+
+watch(
+    () => [form.movement_type, form.account_id, form.currency_id],
+    () => {
+        if (isTransferMovement.value && form.type !== 'unique') {
+            form.type = 'unique';
+        }
+
+        if (!isTransferMovement.value) {
+            form.destination_account_id = '';
+
+            return;
+        }
+
+        const nextDestinationAccountId = destinationAccountOptions.value[0]?.id.toString() ?? '';
+
+        if (
+            nextDestinationAccountId !== '' &&
+            !destinationAccountOptions.value.some(
+                (account) => account.id.toString() === form.destination_account_id,
+            )
+        ) {
+            form.destination_account_id = nextDestinationAccountId;
+        }
+    },
+    { immediate: true },
+);
+
+watch(hasAttachment, (enabled) => {
+    if (!enabled) {
+        form.attachment = null;
+    }
+});
 </script>
 
 <template>
-    <div
-        v-if="isOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm"
-    >
-        <div
-            class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#0d0d0f] p-6 shadow-[0_32px_100px_rgba(0,0,0,0.55)]"
-        >
-            <div class="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
-                <div>
-                    <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                        New transaction
-                    </p>
-                    <h3 class="mt-1 text-2xl font-semibold text-white">
-                        {{ editingTransactionId ? 'Editar lançamento' : 'Inserir lançamento' }}
-                    </h3>
-                </div>
+    <Dialog v-model:open="dialogOpen">
+        <DialogContent class="sm:max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>Nova transação</DialogTitle>
+                <DialogDescription>
+                    Preencha os dados básicos para criar uma transação.
+                </DialogDescription>
+            </DialogHeader>
 
-                <button
-                    type="button"
-                    class="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
-                    @click="$emit('close')"
-                >
-                    ✕
-                </button>
-            </div>
-
-            <form class="mt-6 space-y-5" @submit.prevent="$emit('submit')">
+            <Form class="space-y-5" @submit.prevent="submitTransaction">
                 <div class="grid gap-4 md:grid-cols-2">
-                    <label class="space-y-2 md:col-span-2">
-                        <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                            Description
-                        </p>
-                        <input
-                            v-model="transactionForm.description"
-                            type="text"
-                            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-500"
-                            placeholder="Aluguel, salário, parcela..."
-                        />
-                    </label>
+                    <FormGroup class="md:col-span-1">
+                        <FormLabel>Tipo de transação</FormLabel>
+                        <div class="grid grid-cols-3 gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="h-9 w-full justify-center border-red-200 px-3 py-1 text-sm text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+                                :class="
+                                    form.movement_type === 'expense'
+                                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/20'
+                                        : ''
+                                "
+                                @click="form.movement_type = 'expense'"
+                            >
+                                <span class="inline-flex items-center gap-2">
+                                    <span class="size-2 rounded-full bg-red-500"></span>
+                                    Despesa
+                                </span>
+                            </Button>
 
-                    <label class="space-y-2">
-                        <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                            Transaction type
-                        </p>
-                        <select
-                            v-model="transactionForm.movement_type"
-                            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                        >
-                            <option value="expense" class="bg-slate-900">Expense</option>
-                            <option value="income" class="bg-slate-900">Income</option>
-                        </select>
-                    </label>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="h-9 w-full justify-center border-emerald-200 px-3 py-1 text-sm text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                                :class="
+                                    form.movement_type === 'income'
+                                        ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                                        : ''
+                                "
+                                @click="form.movement_type = 'income'"
+                            >
+                                <span class="inline-flex items-center gap-2">
+                                    <span class="size-2 rounded-full bg-emerald-500"></span>
+                                    Receita
+                                </span>
+                            </Button>
 
-                    <label class="space-y-2">
-                        <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                            Schedule
-                        </p>
-                        <select
-                            v-model="transactionForm.type"
-                            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                        >
-                            <option value="unique" class="bg-slate-900">Unique</option>
-                            <option value="recurring" class="bg-slate-900">Recurring</option>
-                            <option value="installment" class="bg-slate-900">Installment</option>
-                        </select>
-                    </label>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="h-9 w-full justify-center border-sky-200 px-3 py-1 text-sm text-sky-700 hover:bg-sky-50 hover:text-sky-800 dark:border-sky-900 dark:text-sky-300 dark:hover:bg-sky-950/40"
+                                :class="
+                                    form.movement_type === 'transfer'
+                                        ? 'border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/20'
+                                        : ''
+                                "
+                                @click="form.movement_type = 'transfer'"
+                            >
+                                <span class="inline-flex items-center gap-2">
+                                    <span class="size-2 rounded-full bg-sky-500"></span>
+                                    {{ transferLabel }}
+                                </span>
+                            </Button>
+                        </div>
+                        <FormError :message="form.errors.movement_type" />
+                    </FormGroup>
 
-                    <label
-                        v-if="editingTransactionId !== null && transactionForm.type === 'recurring'"
-                        class="space-y-2 md:col-span-2"
-                    >
-                        <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                            Apply changes to
-                        </p>
-                        <select
-                            v-model="transactionForm.recurrence_scope"
-                            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                        >
-                            <option value="one" class="bg-slate-900">Only this occurrence</option>
-                            <option value="forward" class="bg-slate-900">
-                                This and following occurrences
-                            </option>
-                            <option value="all" class="bg-slate-900">All occurrences</option>
-                        </select>
-                    </label>
+                    <FormGroup class="md:col-span-1">
+                        <FormLabel>Tipo</FormLabel>
+                        <NativeSelect v-model="form.type" name="type">
+                            <NativeSelectOption value="">Selecione o tipo</NativeSelectOption>
+                            <NativeSelectOption
+                                v-for="option in transactionTypeOptions"
+                                :key="option.value"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </NativeSelectOption>
+                        </NativeSelect>
+                        <FormError :message="form.errors.type" />
+                    </FormGroup>
 
-                    <label class="space-y-2">
-                        <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                            Currency
-                        </p>
-                        <select
-                            v-model="transactionForm.currency_id"
-                            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                        >
-                            <option value="" class="bg-slate-900">Select currency</option>
-                            <option
+                    <FormGroup>
+                        <FormLabel>Moeda</FormLabel>
+                        <NativeSelect v-model="form.currency_id" name="currency_id">
+                            <NativeSelectOption value="">Selecione a moeda</NativeSelectOption>
+                            <NativeSelectOption
                                 v-for="currency in currencyOptions"
                                 :key="currency.id"
-                                :value="currency.id"
-                                class="bg-slate-900"
+                                :value="currency.id.toString()"
                             >
-                                {{ currency.code }} - {{ currency.symbol }}
-                            </option>
-                        </select>
-                    </label>
+                                {{ currency.code }} - {{ currency.name }}
+                            </NativeSelectOption>
+                        </NativeSelect>
+                        <FormError :message="form.errors.currency_id" />
+                    </FormGroup>
 
-                    <label class="space-y-2">
-                        <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                            Account
-                        </p>
-                        <select
-                            v-model="transactionForm.account_id"
-                            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                        >
-                            <option value="" class="bg-slate-900">Select account</option>
-                            <option
+                    <FormGroup>
+                        <FormLabel>{{ accountLabel }}</FormLabel>
+                        <NativeSelect v-model="form.account_id" name="account_id">
+                            <NativeSelectOption value="">Selecione a conta</NativeSelectOption>
+                            <NativeSelectOption
                                 v-for="account in filteredAccountOptions"
                                 :key="account.id"
-                                :value="account.id"
-                                class="bg-slate-900"
+                                :value="account.id.toString()"
                             >
                                 {{ account.name }}
-                            </option>
-                        </select>
-                    </label>
+                            </NativeSelectOption>
+                        </NativeSelect>
+                        <FormError :message="form.errors.account_id" />
+                    </FormGroup>
 
-                    <label class="space-y-2">
-                        <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                            Date
-                        </p>
-                        <input
-                            v-model="transactionForm.effective_date"
-                            type="date"
-                            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                        />
-                    </label>
+                    <FormGroup v-if="isTransferMovement">
+                        <FormLabel>Conta de destino</FormLabel>
+                        <NativeSelect
+                            v-model="form.destination_account_id"
+                            name="destination_account_id"
+                        >
+                            <NativeSelectOption value=""
+                                >Selecione a conta de destino</NativeSelectOption
+                            >
+                            <NativeSelectOption
+                                v-for="account in destinationAccountOptions"
+                                :key="account.id"
+                                :value="account.id.toString()"
+                            >
+                                {{ account.name }}
+                            </NativeSelectOption>
+                        </NativeSelect>
+                        <FormError :message="form.errors.destination_account_id" />
+                    </FormGroup>
 
-                    <input
-                        v-if="editingTransactionId !== null"
-                        v-model="transactionForm.occurrence_date"
-                        type="hidden"
-                        name="occurrence_date"
-                    />
+                    <FormGroup>
+                        <DatePicker v-model="form.effective_date" label="Data efetiva" />
+                        <FormError :message="form.errors.effective_date" />
+                    </FormGroup>
 
-                    <label class="space-y-2">
-                        <p class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                            Amount
-                        </p>
-                        <input
-                            v-model="transactionForm.amount"
+                    <FormGroup>
+                        <FormLabel>Valor</FormLabel>
+                        <Input
+                            v-model="form.amount"
                             type="number"
                             step="0.01"
                             min="0"
-                            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                            name="amount"
+                            placeholder="0.00"
                         />
-                    </label>
+                        <FormError :message="form.errors.amount" />
+                    </FormGroup>
 
-                    <div
-                        v-if="
-                            selectedScheduleType === 'recurring' ||
-                            selectedScheduleType === 'installment'
-                        "
-                        class="grid gap-4 md:col-span-2 md:grid-cols-2"
-                    >
-                        <label class="space-y-2">
-                            <p
-                                class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase"
-                            >
-                                Adjustment month
-                            </p>
-                            <input
-                                v-model="transactionForm.adjustment_month"
-                                type="date"
-                                class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                            />
-                        </label>
+                    <FormGroup>
+                        <FormLabel>Juros da conta</FormLabel>
+                        <Input
+                            v-model="form.interest_amount"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="interest_amount"
+                            placeholder="0.00"
+                        />
+                        <FormError :message="form.errors.interest_amount" />
+                    </FormGroup>
 
-                        <label class="space-y-2">
-                            <p
-                                class="text-xs font-semibold tracking-[0.28em] text-slate-400 uppercase"
-                            >
-                                Adjustment amount
-                            </p>
-                            <input
-                                v-model="transactionForm.adjustment_amount"
+                    <FormGroup class="md:col-span-2">
+                        <FormLabel>Descrição</FormLabel>
+                        <Input
+                            v-model="form.description"
+                            type="text"
+                            name="description"
+                            placeholder="Describe the transaction"
+                        />
+                        <FormError :message="form.errors.description" />
+                    </FormGroup>
+
+                    <FormGroup class="md:col-span-2">
+                        <div
+                            class="flex items-center justify-between gap-3 rounded-lg border border-dashed px-3 py-2"
+                        >
+                            <div class="space-y-0.5">
+                                <FormLabel class="text-sm">Adicionar anexo?</FormLabel>
+                                <p class="text-xs text-muted-foreground">
+                                    Marque para anexar um arquivo a esta transação.
+                                </p>
+                            </div>
+                            <Switch v-model="hasAttachment" />
+                        </div>
+                    </FormGroup>
+                </div>
+
+                <FormCard
+                    v-if="isInstallmentType && !isTransferMovement"
+                    title="Parcelamento"
+                    subtitle="Informe a quantidade de parcelas e o período de cobrança."
+                >
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <FormGroup>
+                            <FormLabel>Quantidade de parcelas</FormLabel>
+                            <Input
+                                v-model="form.installments_total"
                                 type="number"
-                                step="0.01"
-                                min="0"
-                                class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                                min="1"
+                                name="installments_total"
+                                placeholder="12"
                             />
-                        </label>
-                    </div>
-                </div>
+                            <FormError :message="form.errors.installments_total" />
+                        </FormGroup>
 
-                <div class="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
-                    <button
-                        type="button"
-                        class="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
-                        @click="$emit('close')"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        class="rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
-                        :disabled="transactionForm.processing"
-                    >
-                        {{ editingTransactionId ? 'Update transaction' : 'Save transaction' }}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+                        <FormGroup>
+                            <FormLabel>Período</FormLabel>
+                            <NativeSelect
+                                v-model="form.installment_frequency"
+                                name="installment_frequency"
+                            >
+                                <NativeSelectOption value=""
+                                    >Selecione o período</NativeSelectOption
+                                >
+                                <NativeSelectOption
+                                    v-for="option in installmentFrequencyOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </NativeSelectOption>
+                            </NativeSelect>
+                            <FormError :message="form.errors.installment_frequency" />
+                        </FormGroup>
+                    </div>
+                </FormCard>
+
+                <FormCard
+                    v-if="hasAttachment"
+                    title="Anexo"
+                    subtitle="Adicione um arquivo de apoio para esta transação."
+                >
+                    <FormGroup>
+                        <FormLabel>Arquivo</FormLabel>
+                        <Input
+                            :model-value="form.attachment"
+                            @update:model-value="(value) => (form.attachment = value)"
+                            type="file"
+                            name="attachment"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            {{ form.attachment?.name ?? 'Nenhum arquivo selecionado' }}
+                        </p>
+                        <FormError :message="form.errors.attachment" />
+                    </FormGroup>
+                </FormCard>
+
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="closeModal"> Cancelar </Button>
+                    <Button type="submit" :disabled="form.processing">
+                        {{ form.processing ? 'Salvando...' : 'Salvar transação' }}
+                    </Button>
+                </DialogFooter>
+            </Form>
+        </DialogContent>
+    </Dialog>
 </template>

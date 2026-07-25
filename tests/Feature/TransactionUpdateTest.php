@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\TransactionMovementType;
+use App\Enums\TransactionType;
 use App\Models\Account;
 use App\Models\Currency;
 use App\Models\Tenant;
@@ -67,8 +69,8 @@ it('updates a transaction from the edit modal', function () {
     $transaction->refresh();
 
     expect($transaction->description)->toBe('Internet corporate');
-    expect($transaction->movement_type)->toBe('income');
-    expect($transaction->type)->toBe('recurring');
+    expect($transaction->movement_type)->toBe(TransactionMovementType::Income);
+    expect($transaction->type)->toBe(TransactionType::Recurring);
     expect($transaction->amount)->toBe('500.00');
 });
 

@@ -1,13 +1,13 @@
 import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { i18nVue } from 'laravel-vue-i18n';
-import { createApp, createSSRApp, h } from 'vue';
+import { createApp, createSSRApp, h, type DefineComponent } from 'vue';
 import LocaleSync from '@/components/layout/AppLocaleSync.vue';
 import { Toaster } from '@/components/ui/sonner';
 import 'vue-sonner/style.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-const pages = import.meta.glob('./pages/**/*.vue');
+const pages = import.meta.glob<{ default: DefineComponent }>('./pages/**/*.vue');
 const langFiles = import.meta.glob('../../lang/php_*.json');
 const langFilesEager = import.meta.glob('../../lang/php_*.json', { eager: true });
 
@@ -42,17 +42,19 @@ function getInitialLocale(initialLocale?: string): string {
 }
 
 createInertiaApp({
-    resolve: async (name) => {
+    resolve: (name) => {
         const page = pages[`./pages/${name}.vue`];
 
         if (!page) {
             throw new Error(`Unable to resolve page: ${name}`);
         }
 
-        return page();
+        return page().then((module) => module.default);
     },
     setup({ el, App, props, plugin }) {
-        const initialLocale = getInitialLocale(props.initialPage.props.locale);
+        const initialLocale = getInitialLocale(
+            (props.initialPage.props as { locale?: string }).locale,
+        );
         const vueApp = import.meta.env.SSR
             ? createSSRApp({
                   render: () => h('div', [h(App, props), h(LocaleSync)]),

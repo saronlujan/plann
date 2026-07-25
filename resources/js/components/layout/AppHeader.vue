@@ -3,8 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { Settings } from 'lucide-vue-next';
 import LocaleSelector from '@/components/LocaleSelector.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { accounts, contacts, dashboard, logout } from '@/routes';
-import settings from '@/routes/settings';
+import { contacts, dashboard, logout, preferences, settings } from '@/routes';
 import transactions from '@/routes/transactions';
 import {
     DropdownMenu,
@@ -47,13 +46,8 @@ import {
                         </Link>
                     </li>
                     <li>
-                        <Link :href="accounts().url" class="transition hover:text-zinc-500">
-                            {{ $t('common.navbar.accounts') }}
-                        </Link>
-                    </li>
-                    <li>
                         <Link
-                            :href="settings.index().url"
+                            :href="settings().url"
                             class="flex items-center gap-1 transition hover:text-zinc-500"
                         >
                             <Settings class="h-5 w-5" />
@@ -67,16 +61,16 @@ import {
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <Avatar class="size-9">
-                            <AvatarImage src="https://github.com/shadcn.png" alt="Saron Lujan" />
+                            <AvatarImage
+                                src="https://avatars.githubusercontent.com/u/7363056?v=4"
+                                alt="Saron Lujan"
+                            />
                             <AvatarFallback>{{ 'SL' }}</AvatarFallback>
                         </Avatar>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent class="w-52" align="end">
                         <DropdownMenuItem as-child>
-                            <Link
-                                :href="settings.index().url"
-                                class="flex w-full items-center gap-2"
-                            >
+                            <Link :href="preferences.url()" class="flex w-full items-center gap-2">
                                 <span>{{ $t('common.profile.preferences') }}</span>
                             </Link>
                         </DropdownMenuItem>

@@ -29,6 +29,8 @@ class TransactionFactory extends Factory
             'installment_frequency' => null,
             'installments_total' => null,
             'installment_number' => null,
+            'interest_amount' => null,
+            'attachment_path' => null,
             'series_uuid' => fake()->uuid(),
             'effective_date' => fake()->date(),
             'effective_until' => null,
