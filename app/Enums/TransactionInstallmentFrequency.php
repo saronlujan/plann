@@ -15,4 +15,16 @@ enum TransactionInstallmentFrequency: string
     case Semiannual = 'semiannual';
 
     case Annual = 'annual';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Weekly => 'Semanal',
+            self::Biweekly => 'Quinzenal',
+            self::Monthly => 'Mensal',
+            self::Bimonthly => 'Bimestral',
+            self::Semiannual => 'Semestral',
+            self::Annual => 'Anual',
+        };
+    }
 }

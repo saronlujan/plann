@@ -15,26 +15,41 @@ import { Form, FormCard, FormError, FormGroup, FormLabel } from '@/components/ui
 import { Input } from '@/components/ui/input';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Switch } from '@/components/ui/switch';
-import { store as storeTransaction } from '../../../routes/transactions';
+import transactions from '@/routes/transactions';
+import type { AccountOption, CurrencyOption, Option, TransactionEntry } from '../types';
 
-type CurrencyOption = {
-    id: number;
-    code: string;
-    name: string;
-    symbol: string;
+type TransactionFormData = {
+    movement_type: string;
+    type: string;
+    description: string;
+    currency_id: string;
+    account_id: string;
+    destination_account_id: string;
+    effective_date: string;
+    effective_until: string;
+    amount: string;
+    interest_amount: string;
+    installment_frequency: string;
+    installments_total: string;
+    recurrence_scope: string;
+    occurrence_date: string;
+    attachment: File | null;
 };
 
-type AccountOption = {
-    id: number;
-    name: string;
-    currency_id: number;
-};
-
-const props = defineProps<{
-    open: boolean;
-    currencyOptions: CurrencyOption[];
-    accountOptions: AccountOption[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        open: boolean;
+        currencyOptions: CurrencyOption[];
+        accountOptions: AccountOption[];
+        movementTypeOptions: Option[];
+        scheduleTypeOptions: Option[];
+        frequencyOptions: Option[];
+        entry?: TransactionEntry | null;
+    }>(),
+    {
+        entry: null,
+    },
+);
 
 const emit = defineEmits<{
     'update:open': [value: boolean];
@@ -42,66 +57,99 @@ const emit = defineEmits<{
 
 const dialogOpen = computed({
     get: () => props.open,
-    set: (value: boolean) => {
-        emit('update:open', value);
-    },
+    set: (value: boolean) => emit('update:open', value),
 });
 
-const today = new Date();
-const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
+const isEdit = computed(() => props.entry != null);
+
+const recurrenceScopeOptions: Option[] = [
+    { value: 'all', label: 'Toda a série' },
+    { value: 'one', label: 'Somente esta ocorrência' },
+    { value: 'forward', label: 'Esta e as futuras' },
+];
+
+const movementStyles: Record<string, { dot: string; ring: string; text: string; border: string }> = {
+    expense: {
+        dot: 'bg-red-500',
+        ring: 'border-red-500 bg-red-500/10 ring-2 ring-red-500/20',
+        text: 'text-red-700 dark:text-red-300',
+        border: 'border-red-200 dark:border-red-900',
+    },
+    income: {
+        dot: 'bg-emerald-500',
+        ring: 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20',
+        text: 'text-emerald-700 dark:text-emerald-300',
+        border: 'border-emerald-200 dark:border-emerald-900',
+    },
+    transfer: {
+        dot: 'bg-sky-500',
+        ring: 'border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/20',
+        text: 'text-sky-700 dark:text-sky-300',
+        border: 'border-sky-200 dark:border-sky-900',
+    },
+};
+
+function todayIsoDate(): string {
+    const now = new Date();
+
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
 
 const defaultCurrencyId = computed(() => props.currencyOptions[0]?.id.toString() ?? '');
 const defaultAccountId = computed(() => {
     const firstCurrencyId = defaultCurrencyId.value;
 
     return (
-        props.accountOptions
-            .find((account) => account.currency_id.toString() === firstCurrencyId)
-            ?.id.toString() ??
+        props.accountOptions.find((account) => account.currency_id.toString() === firstCurrencyId)?.id.toString() ??
         props.accountOptions[0]?.id.toString() ??
         ''
     );
 });
 
-const form = useForm({
-    movement_type: 'expense',
-    type: 'unique',
-    description: '',
-    currency_id: defaultCurrencyId.value,
-    account_id: defaultAccountId.value,
-    destination_account_id: '',
-    effective_date: localDate,
-    amount: '',
-    adjustment_amount: '0',
-    adjustment_month: '',
-    interest_amount: '',
-    installment_frequency: 'monthly',
-    installments_total: '',
-    installment_number: '',
-    effective_until: '',
-    attachment: null as File | null,
-});
+function buildInitialValues(): TransactionFormData {
+    const entry = props.entry;
 
+    if (entry) {
+        return {
+            movement_type: entry.movement_type,
+            type: entry.schedule_type,
+            description: entry.description,
+            currency_id: entry.currency_id.toString(),
+            account_id: entry.account_id?.toString() ?? '',
+            destination_account_id: '',
+            effective_date: entry.effective_date,
+            effective_until: entry.effective_until ?? '',
+            amount: entry.amount,
+            interest_amount: '',
+            installment_frequency: entry.installment_frequency ?? 'monthly',
+            installments_total: entry.installments_total?.toString() ?? '',
+            recurrence_scope: 'all',
+            occurrence_date: entry.date,
+            attachment: null as File | null,
+        };
+    }
+
+    return {
+        movement_type: 'expense',
+        type: 'unique',
+        description: '',
+        currency_id: defaultCurrencyId.value,
+        account_id: defaultAccountId.value,
+        destination_account_id: '',
+        effective_date: todayIsoDate(),
+        effective_until: '',
+        amount: '',
+        interest_amount: '',
+        installment_frequency: 'monthly',
+        installments_total: '',
+        recurrence_scope: 'all',
+        occurrence_date: todayIsoDate(),
+        attachment: null as File | null,
+    };
+}
+
+const form = useForm(buildInitialValues());
 const hasAttachment = ref(false);
-
-const transactionTypeOptions = [
-    { label: 'Única', value: 'unique' },
-    { label: 'Recorrente', value: 'recurring' },
-    { label: 'Parcelada', value: 'installment' },
-];
-
-const transferLabel = 'Transferência';
-
-const installmentFrequencyOptions = [
-    { label: 'Semanal', value: 'weekly' },
-    { label: 'Quinzenal', value: 'biweekly' },
-    { label: 'Mensal', value: 'monthly' },
-    { label: 'Bimestral', value: 'bimonthly' },
-    { label: 'Semestral', value: 'semiannual' },
-    { label: 'Anual', value: 'annual' },
-];
 
 const filteredAccountOptions = computed(() =>
     props.accountOptions.filter((account) => account.currency_id.toString() === form.currency_id),
@@ -112,24 +160,50 @@ const destinationAccountOptions = computed(() =>
 );
 
 const isInstallmentType = computed(() => form.type === 'installment');
+const isRecurringType = computed(() => form.type === 'recurring');
 const isTransferMovement = computed(() => form.movement_type === 'transfer');
 const accountLabel = computed(() => (isTransferMovement.value ? 'Conta de origem' : 'Conta'));
+const dialogTitle = computed(() => (isEdit.value ? 'Editar transação' : 'Nova transação'));
 
 function closeModal(): void {
     emit('update:open', false);
-    form.reset();
-    form.clearErrors();
-    hasAttachment.value = false;
 }
 
 function submitTransaction(): void {
-    form.post(storeTransaction().url, {
+    const options = {
         preserveScroll: true,
-        onSuccess: () => {
-            closeModal();
+        forceFormData: true,
+        onSuccess: () => closeModal(),
+        onError: () => {
+            // Validation errors are surfaced inline through form.errors.
         },
-    });
+    };
+
+    if (isEdit.value && props.entry) {
+        form
+            .transform((data) => ({ ...data, _method: 'patch' }))
+            .post(transactions.update(props.entry.transaction_id).url, options);
+
+        return;
+    }
+
+    form.transform((data) => data).post(transactions.store().url, options);
 }
+
+watch(
+    () => [props.open, props.entry] as const,
+    ([open]) => {
+        if (!open) {
+            return;
+        }
+
+        form.defaults(buildInitialValues());
+        form.reset();
+        form.clearErrors();
+        hasAttachment.value = false;
+    },
+    { immediate: true },
+);
 
 watch(
     () => form.currency_id,
@@ -138,9 +212,7 @@ watch(
 
         if (
             nextAccountId !== '' &&
-            !filteredAccountOptions.value.some(
-                (account) => account.id.toString() === form.account_id,
-            )
+            !filteredAccountOptions.value.some((account) => account.id.toString() === form.account_id)
         ) {
             form.account_id = nextAccountId;
         }
@@ -171,7 +243,6 @@ watch(
             form.destination_account_id = nextDestinationAccountId;
         }
     },
-    { immediate: true },
 );
 
 watch(hasAttachment, (enabled) => {
@@ -185,9 +256,9 @@ watch(hasAttachment, (enabled) => {
     <Dialog v-model:open="dialogOpen">
         <DialogContent class="sm:max-w-2xl">
             <DialogHeader>
-                <DialogTitle>Nova transação</DialogTitle>
+                <DialogTitle>{{ dialogTitle }}</DialogTitle>
                 <DialogDescription>
-                    Preencha os dados básicos para criar uma transação.
+                    Preencha os dados básicos para {{ isEdit ? 'atualizar' : 'criar' }} uma transação.
                 </DialogDescription>
             </DialogHeader>
 
@@ -195,55 +266,30 @@ watch(hasAttachment, (enabled) => {
                 <div class="grid gap-4 md:grid-cols-2">
                     <FormGroup class="md:col-span-1">
                         <FormLabel>Tipo de transação</FormLabel>
-                        <div class="grid grid-cols-3 gap-2">
+                        <div
+                            role="radiogroup"
+                            aria-label="Tipo de transação"
+                            class="grid grid-cols-3 gap-2"
+                        >
                             <Button
+                                v-for="option in movementTypeOptions"
+                                :key="option.value"
                                 type="button"
                                 variant="outline"
-                                class="h-9 w-full justify-center border-red-200 px-3 py-1 text-sm text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
-                                :class="
-                                    form.movement_type === 'expense'
-                                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/20'
-                                        : ''
-                                "
-                                @click="form.movement_type = 'expense'"
+                                role="radio"
+                                :aria-checked="form.movement_type === option.value"
+                                :aria-label="option.label"
+                                class="h-9 w-full justify-center px-3 py-1 text-sm"
+                                :class="[
+                                    movementStyles[option.value]?.border,
+                                    movementStyles[option.value]?.text,
+                                    form.movement_type === option.value ? movementStyles[option.value]?.ring : '',
+                                ]"
+                                @click="form.movement_type = option.value"
                             >
                                 <span class="inline-flex items-center gap-2">
-                                    <span class="size-2 rounded-full bg-red-500"></span>
-                                    Despesa
-                                </span>
-                            </Button>
-
-                            <Button
-                                type="button"
-                                variant="outline"
-                                class="h-9 w-full justify-center border-emerald-200 px-3 py-1 text-sm text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                                :class="
-                                    form.movement_type === 'income'
-                                        ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20'
-                                        : ''
-                                "
-                                @click="form.movement_type = 'income'"
-                            >
-                                <span class="inline-flex items-center gap-2">
-                                    <span class="size-2 rounded-full bg-emerald-500"></span>
-                                    Receita
-                                </span>
-                            </Button>
-
-                            <Button
-                                type="button"
-                                variant="outline"
-                                class="h-9 w-full justify-center border-sky-200 px-3 py-1 text-sm text-sky-700 hover:bg-sky-50 hover:text-sky-800 dark:border-sky-900 dark:text-sky-300 dark:hover:bg-sky-950/40"
-                                :class="
-                                    form.movement_type === 'transfer'
-                                        ? 'border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/20'
-                                        : ''
-                                "
-                                @click="form.movement_type = 'transfer'"
-                            >
-                                <span class="inline-flex items-center gap-2">
-                                    <span class="size-2 rounded-full bg-sky-500"></span>
-                                    {{ transferLabel }}
+                                    <span class="size-2 rounded-full" :class="movementStyles[option.value]?.dot"></span>
+                                    {{ option.label }}
                                 </span>
                             </Button>
                         </div>
@@ -251,11 +297,11 @@ watch(hasAttachment, (enabled) => {
                     </FormGroup>
 
                     <FormGroup class="md:col-span-1">
-                        <FormLabel>Tipo</FormLabel>
-                        <NativeSelect v-model="form.type" name="type">
+                        <FormLabel for="tx-type">Tipo</FormLabel>
+                        <NativeSelect id="tx-type" v-model="form.type" name="type" :disabled="isTransferMovement">
                             <NativeSelectOption value="">Selecione o tipo</NativeSelectOption>
                             <NativeSelectOption
-                                v-for="option in transactionTypeOptions"
+                                v-for="option in scheduleTypeOptions"
                                 :key="option.value"
                                 :value="option.value"
                             >
@@ -266,8 +312,8 @@ watch(hasAttachment, (enabled) => {
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel>Moeda</FormLabel>
-                        <NativeSelect v-model="form.currency_id" name="currency_id">
+                        <FormLabel for="tx-currency">Moeda</FormLabel>
+                        <NativeSelect id="tx-currency" v-model="form.currency_id" name="currency_id">
                             <NativeSelectOption value="">Selecione a moeda</NativeSelectOption>
                             <NativeSelectOption
                                 v-for="currency in currencyOptions"
@@ -281,8 +327,8 @@ watch(hasAttachment, (enabled) => {
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel>{{ accountLabel }}</FormLabel>
-                        <NativeSelect v-model="form.account_id" name="account_id">
+                        <FormLabel for="tx-account">{{ accountLabel }}</FormLabel>
+                        <NativeSelect id="tx-account" v-model="form.account_id" name="account_id">
                             <NativeSelectOption value="">Selecione a conta</NativeSelectOption>
                             <NativeSelectOption
                                 v-for="account in filteredAccountOptions"
@@ -296,14 +342,13 @@ watch(hasAttachment, (enabled) => {
                     </FormGroup>
 
                     <FormGroup v-if="isTransferMovement">
-                        <FormLabel>Conta de destino</FormLabel>
+                        <FormLabel for="tx-destination">Conta de destino</FormLabel>
                         <NativeSelect
+                            id="tx-destination"
                             v-model="form.destination_account_id"
                             name="destination_account_id"
                         >
-                            <NativeSelectOption value=""
-                                >Selecione a conta de destino</NativeSelectOption
-                            >
+                            <NativeSelectOption value="">Selecione a conta de destino</NativeSelectOption>
                             <NativeSelectOption
                                 v-for="account in destinationAccountOptions"
                                 :key="account.id"
@@ -321,40 +366,53 @@ watch(hasAttachment, (enabled) => {
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel>Valor</FormLabel>
+                        <FormLabel for="tx-amount">Valor</FormLabel>
                         <Input
+                            id="tx-amount"
                             v-model="form.amount"
                             type="number"
                             step="0.01"
                             min="0"
                             name="amount"
-                            placeholder="0.00"
+                            placeholder="0,00"
                         />
                         <FormError :message="form.errors.amount" />
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel>Juros da conta</FormLabel>
+                        <FormLabel for="tx-interest">Juros da conta</FormLabel>
                         <Input
+                            id="tx-interest"
                             v-model="form.interest_amount"
                             type="number"
                             step="0.01"
                             min="0"
                             name="interest_amount"
-                            placeholder="0.00"
+                            placeholder="0,00"
                         />
                         <FormError :message="form.errors.interest_amount" />
                     </FormGroup>
 
                     <FormGroup class="md:col-span-2">
-                        <FormLabel>Descrição</FormLabel>
+                        <FormLabel for="tx-description">Descrição</FormLabel>
                         <Input
+                            id="tx-description"
                             v-model="form.description"
                             type="text"
                             name="description"
-                            placeholder="Describe the transaction"
+                            placeholder="Descreva a transação"
                         />
                         <FormError :message="form.errors.description" />
+                    </FormGroup>
+
+                    <FormGroup v-if="isRecurringType" class="md:col-span-2">
+                        <FormLabel for="tx-effective-until">Repetir até (opcional)</FormLabel>
+                        <DatePicker
+                            v-model="form.effective_until"
+                            label="Repetir até"
+                            hint="Deixe em branco para uma recorrência sem fim."
+                        />
+                        <FormError :message="form.errors.effective_until" />
                     </FormGroup>
 
                     <FormGroup class="md:col-span-2">
@@ -362,15 +420,35 @@ watch(hasAttachment, (enabled) => {
                             class="flex items-center justify-between gap-3 rounded-lg border border-dashed px-3 py-2"
                         >
                             <div class="space-y-0.5">
-                                <FormLabel class="text-sm">Adicionar anexo?</FormLabel>
+                                <FormLabel for="tx-attachment-toggle" class="text-sm">Adicionar anexo?</FormLabel>
                                 <p class="text-xs text-muted-foreground">
                                     Marque para anexar um arquivo a esta transação.
                                 </p>
                             </div>
-                            <Switch v-model="hasAttachment" />
+                            <Switch id="tx-attachment-toggle" v-model="hasAttachment" />
                         </div>
                     </FormGroup>
                 </div>
+
+                <FormCard
+                    v-if="isEdit && isRecurringType"
+                    title="Escopo da recorrência"
+                    subtitle="Escolha quais ocorrências desta série serão afetadas."
+                >
+                    <FormGroup>
+                        <FormLabel for="tx-recurrence-scope">Aplicar alteração a</FormLabel>
+                        <NativeSelect id="tx-recurrence-scope" v-model="form.recurrence_scope" name="recurrence_scope">
+                            <NativeSelectOption
+                                v-for="option in recurrenceScopeOptions"
+                                :key="option.value"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </NativeSelectOption>
+                        </NativeSelect>
+                        <FormError :message="form.errors.recurrence_scope" />
+                    </FormGroup>
+                </FormCard>
 
                 <FormCard
                     v-if="isInstallmentType && !isTransferMovement"
@@ -379,11 +457,13 @@ watch(hasAttachment, (enabled) => {
                 >
                     <div class="grid gap-4 md:grid-cols-2">
                         <FormGroup>
-                            <FormLabel>Quantidade de parcelas</FormLabel>
+                            <FormLabel for="tx-installments-total">Quantidade de parcelas</FormLabel>
                             <Input
+                                id="tx-installments-total"
                                 v-model="form.installments_total"
                                 type="number"
                                 min="1"
+                                max="600"
                                 name="installments_total"
                                 placeholder="12"
                             />
@@ -391,16 +471,11 @@ watch(hasAttachment, (enabled) => {
                         </FormGroup>
 
                         <FormGroup>
-                            <FormLabel>Período</FormLabel>
-                            <NativeSelect
-                                v-model="form.installment_frequency"
-                                name="installment_frequency"
-                            >
-                                <NativeSelectOption value=""
-                                    >Selecione o período</NativeSelectOption
-                                >
+                            <FormLabel for="tx-frequency">Período</FormLabel>
+                            <NativeSelect id="tx-frequency" v-model="form.installment_frequency" name="installment_frequency">
+                                <NativeSelectOption value="">Selecione o período</NativeSelectOption>
                                 <NativeSelectOption
-                                    v-for="option in installmentFrequencyOptions"
+                                    v-for="option in frequencyOptions"
                                     :key="option.value"
                                     :value="option.value"
                                 >
@@ -418,10 +493,11 @@ watch(hasAttachment, (enabled) => {
                     subtitle="Adicione um arquivo de apoio para esta transação."
                 >
                     <FormGroup>
-                        <FormLabel>Arquivo</FormLabel>
+                        <FormLabel for="tx-attachment">Arquivo</FormLabel>
                         <Input
+                            id="tx-attachment"
                             :model-value="form.attachment"
-                            @update:model-value="(value) => (form.attachment = value)"
+                            @update:model-value="(value) => (form.attachment = value as File | null)"
                             type="file"
                             name="attachment"
                             accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
@@ -434,7 +510,7 @@ watch(hasAttachment, (enabled) => {
                 </FormCard>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" @click="closeModal"> Cancelar </Button>
+                    <Button type="button" variant="outline" @click="closeModal">Cancelar</Button>
                     <Button type="submit" :disabled="form.processing">
                         {{ form.processing ? 'Salvando...' : 'Salvar transação' }}
                     </Button>

@@ -6,15 +6,20 @@ const props = withDefaults(
     defineProps<{
         class?: HTMLAttributes['class'];
         message?: string | null;
+        for?: string;
     }>(),
     {
         message: null,
+        for: undefined,
     },
 );
 </script>
 
 <template>
-    <label :class="cn('text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70', props.class)">
+    <label
+        :for="props.for"
+        :class="cn('text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70', props.class)"
+    >
         <slot />
     </label>
 

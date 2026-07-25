@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { Settings } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { SettingsIcon } from '@lucide/vue';
+import { computed } from 'vue';
 import LocaleSelector from '@/components/LocaleSelector.vue';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { contacts, dashboard, logout, preferences, settings } from '@/routes';
 import transactions from '@/routes/transactions';
 import {
@@ -11,6 +12,19 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+const page = usePage<{ auth: { user: { name: string } | null } }>();
+
+const userName = computed(() => page.props.auth.user?.name ?? '');
+
+const userInitials = computed(() =>
+    userName.value
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('') || '?',
+);
 </script>
 
 <template>
@@ -48,9 +62,10 @@ import {
                     <li>
                         <Link
                             :href="settings().url"
+                            :aria-label="$t('common.navbar.settings')"
                             class="flex items-center gap-1 transition hover:text-zinc-500"
                         >
-                            <Settings class="h-5 w-5" />
+                            <SettingsIcon class="h-5 w-5" aria-hidden="true" />
                         </Link>
                     </li>
                 </ul>
@@ -60,13 +75,11 @@ import {
 
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
-                        <Avatar class="size-9">
-                            <AvatarImage
-                                src="https://avatars.githubusercontent.com/u/7363056?v=4"
-                                alt="Saron Lujan"
-                            />
-                            <AvatarFallback>{{ 'SL' }}</AvatarFallback>
-                        </Avatar>
+                        <button type="button" :aria-label="userName" class="rounded-full">
+                            <Avatar class="size-9">
+                                <AvatarFallback>{{ userInitials }}</AvatarFallback>
+                            </Avatar>
+                        </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent class="w-52" align="end">
                         <DropdownMenuItem as-child>

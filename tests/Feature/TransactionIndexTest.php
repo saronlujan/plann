@@ -32,6 +32,8 @@ test('users may review virtual transactions by month with simple calculations', 
 
     app(TenantContext::class)->setTenantId($tenant->id);
 
+    $tenant->syncCurrencyActivations($currencies->pluck('id')->all());
+
     Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $currencies['BRL']->id,
@@ -111,9 +113,10 @@ test('users may review virtual transactions by month with simple calculations', 
     $currencySummaries = collect($response->inertiaProps('currencySummaries'))->keyBy('code');
     $entries = collect($response->inertiaProps('entries'));
 
-    expect($currencySummaries['BRL']['total'])->toBe('1700.00');
+    // Totals are now net cash flow: expenses subtract, income adds.
+    expect($currencySummaries['BRL']['total'])->toBe('-1700.00');
     expect($currencySummaries['ARS']['total'])->toBe('100.00');
-    expect($currencySummaries['USD']['total'])->toBe('300.00');
+    expect($currencySummaries['USD']['total'])->toBe('-300.00');
     expect($entries->pluck('kind')->sort()->values()->all())->toBe(['adjustment', 'installment', 'unique']);
 });
 

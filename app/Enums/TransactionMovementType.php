@@ -9,4 +9,13 @@ enum TransactionMovementType: string
     case Expense = 'expense';
 
     case Transfer = 'transfer';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Income => 'Receita',
+            self::Expense => 'Despesa',
+            self::Transfer => 'Transferência',
+        };
+    }
 }

@@ -33,7 +33,7 @@ const emit = defineEmits<{
     'update:modelValue': [value: string];
 }>();
 
-const formatter = new DateFormatter('en-US', {
+const formatter = new DateFormatter('pt-BR', {
     dateStyle: 'long',
 });
 
@@ -49,7 +49,7 @@ const calendarValue = computed({
 const buttonLabel = computed(() => {
     return calendarValue.value
         ? formatter.format(calendarValue.value.toDate(getLocalTimeZone()))
-        : 'Pick a date';
+        : 'Selecionar data';
 });
 
 const defaultPlaceholder = today(getLocalTimeZone());

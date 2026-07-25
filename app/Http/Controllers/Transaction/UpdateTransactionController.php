@@ -10,17 +10,20 @@ use App\Models\Transaction;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class UpdateTransactionController extends Controller
 {
-    public function __invoke(UpdateTransactionRequest $request, string $transaction): RedirectResponse
+    public function __invoke(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
     {
+        $this->authorize('update', $transaction);
+
         $validated = $request->validated();
 
-        $transaction = Transaction::query()->findOrFail((int) $transaction);
-        $attachmentPath = $this->storeAttachment($request->file('attachment')) ?? $transaction->attachment_path;
+        $newAttachment = $request->file('attachment');
+        $attachmentPath = $this->storeAttachment($newAttachment) ?? $transaction->attachment_path;
 
         if ($transaction->type === TransactionType::Recurring) {
             $recurrenceScope = TransactionRecurrenceScope::from($validated['recurrence_scope'] ?? TransactionRecurrenceScope::All->value);
@@ -34,11 +37,15 @@ class UpdateTransactionController extends Controller
             }
         }
 
+        $previousAttachment = $transaction->attachment_path;
+
         $transaction->fill($this->payload($validated, $transaction, $attachmentPath));
         $transaction->save();
 
+        $this->discardReplacedAttachment($newAttachment, $previousAttachment, $attachmentPath);
+
         return to_route('transactions.index', [
-            'period' => CarbonImmutable::parse($transaction->effective_date->toDateString())->format('Y-m'),
+            'period' => $transaction->effective_date->format('Y-m'),
         ]);
     }
 
@@ -80,31 +87,31 @@ class UpdateTransactionController extends Controller
         $occurrenceDate = CarbonImmutable::createFromFormat('Y-m-d', $validated['occurrence_date'] ?? $validated['effective_date']);
         $seriesUuid = $transaction->series_uuid ?? (string) Str::uuid();
 
-        if ($transaction->series_uuid === null) {
-            $transaction->update([
-                'series_uuid' => $seriesUuid,
-            ]);
-        }
+        DB::transaction(function () use ($transaction, $validated, $attachmentPath, $occurrenceDate, $seriesUuid): void {
+            if ($transaction->series_uuid === null) {
+                $transaction->update(['series_uuid' => $seriesUuid]);
+            }
 
-        Transaction::query()->create([
-            'tenant_id' => $transaction->tenant_id,
-            'account_id' => $validated['account_id'] ?? $transaction->account_id,
-            'currency_id' => $validated['currency_id'],
-            'movement_type' => $validated['movement_type'],
-            'type' => TransactionType::Recurring->value,
-            'installment_frequency' => null,
-            'installments_total' => null,
-            'installment_number' => null,
-            'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
-            'attachment_path' => $attachmentPath,
-            'series_uuid' => $seriesUuid,
-            'effective_date' => $transaction->effective_date->toDateString(),
-            'effective_until' => null,
-            'adjustment_month' => $occurrenceDate->toDateString(),
-            'amount' => $validated['amount'],
-            'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
-            'description' => $validated['description'],
-        ]);
+            Transaction::query()->create([
+                'tenant_id' => $transaction->tenant_id,
+                'account_id' => $validated['account_id'] ?? $transaction->account_id,
+                'currency_id' => $validated['currency_id'],
+                'movement_type' => $validated['movement_type'],
+                'type' => TransactionType::Recurring->value,
+                'installment_frequency' => null,
+                'installments_total' => null,
+                'installment_number' => null,
+                'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
+                'attachment_path' => $attachmentPath,
+                'series_uuid' => $seriesUuid,
+                'effective_date' => $transaction->effective_date->toDateString(),
+                'effective_until' => null,
+                'adjustment_month' => $occurrenceDate->toDateString(),
+                'amount' => $validated['amount'],
+                'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
+                'description' => $validated['description'],
+            ]);
+        });
 
         return to_route('transactions.index', [
             'period' => $occurrenceDate->format('Y-m'),
@@ -120,35 +127,35 @@ class UpdateTransactionController extends Controller
         $effectiveUntil = $occurrenceDate->subDay()->toDateString();
         $seriesUuid = $transaction->series_uuid ?? (string) Str::uuid();
 
-        if ($transaction->series_uuid === null) {
+        $newSeries = DB::transaction(function () use ($transaction, $validated, $attachmentPath, $occurrenceDate, $effectiveUntil, $seriesUuid): Transaction {
+            if ($transaction->series_uuid === null) {
+                $transaction->update(['series_uuid' => $seriesUuid]);
+            }
+
             $transaction->update([
-                'series_uuid' => $seriesUuid,
+                'effective_until' => $effectiveUntil,
             ]);
-        }
 
-        $transaction->update([
-            'effective_until' => $effectiveUntil,
-        ]);
-
-        $newSeries = Transaction::query()->create([
-            'tenant_id' => $transaction->tenant_id,
-            'account_id' => $validated['account_id'] ?? $transaction->account_id,
-            'currency_id' => $validated['currency_id'],
-            'movement_type' => $validated['movement_type'],
-            'type' => TransactionType::Recurring->value,
-            'installment_frequency' => null,
-            'installments_total' => null,
-            'installment_number' => null,
-            'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
-            'attachment_path' => $attachmentPath,
-            'series_uuid' => $seriesUuid,
-            'effective_date' => $occurrenceDate->toDateString(),
-            'effective_until' => null,
-            'adjustment_month' => null,
-            'amount' => $validated['amount'],
-            'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
-            'description' => $validated['description'],
-        ]);
+            return Transaction::query()->create([
+                'tenant_id' => $transaction->tenant_id,
+                'account_id' => $validated['account_id'] ?? $transaction->account_id,
+                'currency_id' => $validated['currency_id'],
+                'movement_type' => $validated['movement_type'],
+                'type' => TransactionType::Recurring->value,
+                'installment_frequency' => null,
+                'installments_total' => null,
+                'installment_number' => null,
+                'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
+                'attachment_path' => $attachmentPath,
+                'series_uuid' => $seriesUuid,
+                'effective_date' => $occurrenceDate->toDateString(),
+                'effective_until' => null,
+                'adjustment_month' => null,
+                'amount' => $validated['amount'],
+                'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
+                'description' => $validated['description'],
+            ]);
+        });
 
         return to_route('transactions.index', [
             'period' => $newSeries->effective_date->format('Y-m'),
@@ -162,5 +169,17 @@ class UpdateTransactionController extends Controller
         }
 
         return Storage::disk('public')->putFile('transactions/attachments', $attachment);
+    }
+
+    /**
+     * Remove the previously stored file once a new attachment has replaced it.
+     */
+    private function discardReplacedAttachment(?UploadedFile $newAttachment, ?string $previousAttachment, ?string $currentAttachment): void
+    {
+        if ($newAttachment === null || $previousAttachment === null || $previousAttachment === $currentAttachment) {
+            return;
+        }
+
+        Storage::disk('public')->delete($previousAttachment);
     }
 }
