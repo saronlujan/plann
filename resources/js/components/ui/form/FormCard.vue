@@ -16,7 +16,7 @@ const props = withDefaults(
 </script>
 
 <template>
-    <div :class="cn('flex flex-col gap-0 rounded-xl border border-zinc-100 bg-white dark:border-zinc-900 dark:bg-zinc-950', props.class)">
+    <div :class="cn('flex flex-col gap-0 rounded-xl border border-border bg-card text-card-foreground', props.class)">
         <div v-if="props.title" class="border-b border-neutral-100 p-3 md:p-5 dark:border-neutral-900">
             <h2 class="font-semibold">
                 {{ props.title }}

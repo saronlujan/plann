@@ -13,23 +13,33 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware(['web', 'guest'])
                 ->group(base_path('routes/login.php'));
 
-            Route::middleware(['web', 'auth'])
+            Route::middleware(['web', 'auth', 'subscribed'])
                 ->group(base_path('routes/dashboard.php'));
 
-            Route::middleware(['web', 'auth'])
+            Route::middleware(['web', 'auth', 'subscribed'])
                 ->group(base_path('routes/transactions.php'));
 
-            Route::middleware(['web', 'auth'])
+            Route::middleware(['web', 'auth', 'subscribed'])
                 ->group(base_path('routes/contacts.php'));
 
-            Route::middleware(['web', 'auth'])
+            Route::middleware(['web', 'auth', 'subscribed'])
                 ->group(base_path('routes/accounts.php'));
 
-            Route::middleware(['web', 'auth'])
+            Route::middleware(['web', 'auth', 'subscribed'])
                 ->group(base_path('routes/settings.php'));
+
+            // Billing and preferences stay reachable even when the trial lapses.
+            Route::middleware(['web', 'auth'])
+                ->group(base_path('routes/billing.php'));
 
             Route::middleware(['web', 'auth'])
                 ->group(base_path('routes/preferences.php'));
+
+            // TEMPORARY: dev-only helpers (e.g. force trial expiry) for Stripe testing.
+            if (! $this->app->environment('production')) {
+                Route::middleware(['web', 'auth'])
+                    ->group(base_path('routes/dev.php'));
+            }
         });
     }
 }

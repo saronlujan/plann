@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTenantSubscribed;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,15 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureTenantContext::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
+        $middleware->alias([
+            'subscribed' => EnsureTenantSubscribed::class,
+        ]);
+
+        // The Stripe webhook cannot carry a CSRF token.
+        $middleware->validateCsrfTokens(except: [
+            'stripe/*',
         ]);
 
         // Establish the tenant context before route-model binding runs, otherwise

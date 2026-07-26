@@ -57,7 +57,7 @@ const defaultPlaceholder = today(getLocalTimeZone());
 
 <template>
     <label class="block space-y-2">
-        <span class="text-sm font-medium text-zinc-700">{{ label }}</span>
+        <span class="text-sm font-medium text-foreground">{{ label }}</span>
 
         <Popover v-slot="{ close }">
             <PopoverTrigger as-child>
@@ -82,7 +82,7 @@ const defaultPlaceholder = today(getLocalTimeZone());
             </PopoverContent>
         </Popover>
 
-        <p v-if="hint" class="text-xs text-zinc-500">
+        <p v-if="hint" class="text-xs text-muted-foreground">
             {{ hint }}
         </p>
     </label>

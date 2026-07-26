@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<Props>(), {
         data-slot="card-description"
         :as="as"
         :as-child="asChild"
-        :class="cn('text-sm text-zinc-400', props.class)"
+        :class="cn('text-sm text-muted-foreground', props.class)"
     >
         <slot />
     </Primitive>

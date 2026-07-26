@@ -16,6 +16,19 @@ export type AccountOption = {
     currency_id: number;
 };
 
+export type CategoryOption = {
+    id: number;
+    name: string;
+    type: string;
+    color: string;
+};
+
+export type TagOption = {
+    id: number;
+    name: string;
+    color: string;
+};
+
 export type CurrencySummary = {
     code: string;
     name: string;
@@ -47,6 +60,8 @@ export type TransactionSummary = {
 export type TransactionEntry = {
     id: string;
     transaction_id: number;
+    category_id: number | null;
+    tag_ids: number[];
     date: string;
     kind: 'unique' | 'base' | 'adjustment' | 'installment';
     type: string;

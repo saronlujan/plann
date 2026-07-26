@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import DatePicker from '@/components/ui/date-picker/DatePicker.vue';
 import {
@@ -13,10 +13,25 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormCard, FormError, FormGroup, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
-import { Switch } from '@/components/ui/switch';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { colorHex } from '@/lib/labelColors';
+import { cn } from '@/lib/utils';
 import transactions from '@/routes/transactions';
-import type { AccountOption, CurrencyOption, Option, TransactionEntry } from '../types';
+import TagsSelect from './TagsSelect.vue';
+import type {
+    AccountOption,
+    CategoryOption,
+    CurrencyOption,
+    Option,
+    TagOption,
+    TransactionEntry,
+} from '../types';
 
 type TransactionFormData = {
     movement_type: string;
@@ -24,6 +39,8 @@ type TransactionFormData = {
     description: string;
     currency_id: string;
     account_id: string;
+    category_id: string;
+    tags: number[];
     destination_account_id: string;
     effective_date: string;
     effective_until: string;
@@ -44,10 +61,14 @@ const props = withDefaults(
         movementTypeOptions: Option[];
         scheduleTypeOptions: Option[];
         frequencyOptions: Option[];
+        categoryOptions: CategoryOption[];
+        tagOptions: TagOption[];
         entry?: TransactionEntry | null;
+        initialMovementType?: string;
     }>(),
     {
         entry: null,
+        initialMovementType: 'expense',
     },
 );
 
@@ -79,7 +100,9 @@ const defaultAccountId = computed(() => {
     const firstCurrencyId = defaultCurrencyId.value;
 
     return (
-        props.accountOptions.find((account) => account.currency_id.toString() === firstCurrencyId)?.id.toString() ??
+        props.accountOptions
+            .find((account) => account.currency_id.toString() === firstCurrencyId)
+            ?.id.toString() ??
         props.accountOptions[0]?.id.toString() ??
         ''
     );
@@ -95,6 +118,8 @@ function buildInitialValues(): TransactionFormData {
             description: entry.description,
             currency_id: entry.currency_id.toString(),
             account_id: entry.account_id?.toString() ?? '',
+            category_id: entry.category_id?.toString() ?? '',
+            tags: [...(entry.tag_ids ?? [])],
             destination_account_id: '',
             effective_date: entry.effective_date,
             effective_until: entry.effective_until ?? '',
@@ -109,11 +134,13 @@ function buildInitialValues(): TransactionFormData {
     }
 
     return {
-        movement_type: 'expense',
+        movement_type: props.initialMovementType,
         type: 'unique',
         description: '',
         currency_id: defaultCurrencyId.value,
         account_id: defaultAccountId.value,
+        category_id: '',
+        tags: [],
         destination_account_id: '',
         effective_date: todayIsoDate(),
         effective_until: '',
@@ -128,7 +155,6 @@ function buildInitialValues(): TransactionFormData {
 }
 
 const form = useForm(buildInitialValues());
-const hasAttachment = ref(false);
 
 const filteredAccountOptions = computed(() =>
     props.accountOptions.filter((account) => account.currency_id.toString() === form.currency_id),
@@ -141,8 +167,28 @@ const destinationAccountOptions = computed(() =>
 const isInstallmentType = computed(() => form.type === 'installment');
 const isRecurringType = computed(() => form.type === 'recurring');
 const isTransferMovement = computed(() => form.movement_type === 'transfer');
+
+// Categories carry an income/expense type, so only show the ones matching the
+// current movement. Transfers have no category.
+const filteredCategoryOptions = computed(() =>
+    props.categoryOptions.filter((category) => category.type === form.movement_type),
+);
+
 const accountLabel = computed(() => (isTransferMovement.value ? 'Conta de origem' : 'Conta'));
-const dialogTitle = computed(() => (isEdit.value ? 'Editar transação' : 'Nova transação'));
+const dialogTitle = computed(() => (isEdit.value ? 'Edit Transaction' : 'New Transaction'));
+
+// Solid color at the top of the modal, one per movement type. Softer (darker,
+// less saturated) shades in dark mode so it doesn't glare.
+const movementHeaderClass = computed(() => {
+    switch (form.movement_type) {
+        case 'income':
+            return 'bg-emerald-500 dark:bg-emerald-800';
+        case 'transfer':
+            return 'bg-sky-500 dark:bg-sky-800';
+        default:
+            return 'bg-red-500 dark:bg-red-800';
+    }
+});
 
 function closeModal(): void {
     emit('update:open', false);
@@ -159,9 +205,10 @@ function submitTransaction(): void {
     };
 
     if (isEdit.value && props.entry) {
-        form
-            .transform((data) => ({ ...data, _method: 'patch' }))
-            .post(transactions.update(props.entry.transaction_id).url, options);
+        form.transform((data) => ({ ...data, _method: 'patch' })).post(
+            transactions.update(props.entry.transaction_id).url,
+            options,
+        );
 
         return;
     }
@@ -170,7 +217,7 @@ function submitTransaction(): void {
 }
 
 watch(
-    () => [props.open, props.entry] as const,
+    () => [props.open, props.entry, props.initialMovementType] as const,
     ([open]) => {
         if (!open) {
             return;
@@ -179,7 +226,6 @@ watch(
         form.defaults(buildInitialValues());
         form.reset();
         form.clearErrors();
-        hasAttachment.value = false;
     },
     { immediate: true },
 );
@@ -191,7 +237,9 @@ watch(
 
         if (
             nextAccountId !== '' &&
-            !filteredAccountOptions.value.some((account) => account.id.toString() === form.account_id)
+            !filteredAccountOptions.value.some(
+                (account) => account.id.toString() === form.account_id,
+            )
         ) {
             form.account_id = nextAccountId;
         }
@@ -224,110 +272,135 @@ watch(
     },
 );
 
-watch(hasAttachment, (enabled) => {
-    if (!enabled) {
-        form.attachment = null;
-    }
-});
+// Drop a selected category that no longer matches the chosen movement type.
+watch(
+    () => form.movement_type,
+    () => {
+        if (
+            form.category_id !== '' &&
+            !filteredCategoryOptions.value.some(
+                (category) => category.id.toString() === form.category_id,
+            )
+        ) {
+            form.category_id = '';
+        }
+    },
+);
 </script>
 
 <template>
     <Dialog v-model:open="dialogOpen">
-        <DialogContent class="sm:max-w-2xl">
-            <DialogHeader>
-                <DialogTitle>{{ dialogTitle }}</DialogTitle>
-                <DialogDescription>
-                    Preencha os dados básicos para {{ isEdit ? 'atualizar' : 'criar' }} uma transação.
-                </DialogDescription>
-            </DialogHeader>
+        <DialogContent
+            class="overflow-hidden border-none p-0 **:data-[slot=dialog-close]:text-white **:data-[slot=dialog-close]:hover:bg-white/20 sm:max-w-2xl"
+        >
+            <div :class="cn('px-6 pt-6 pb-4', movementHeaderClass)">
+                <DialogHeader>
+                    <DialogTitle class="text-2xl text-white">{{ dialogTitle }}</DialogTitle>
+                </DialogHeader>
 
-            <Form class="space-y-5" @submit.prevent="submitTransaction">
+                <div
+                    role="radiogroup"
+                    aria-label="Tipo de transação"
+                    class="mt-3 grid grid-cols-3 gap-2"
+                >
+                    <button
+                        v-for="option in movementTypeOptions"
+                        :key="option.value"
+                        type="button"
+                        role="radio"
+                        :aria-checked="form.movement_type === option.value"
+                        :aria-label="option.label"
+                        :class="
+                            cn(
+                                'rounded-md px-3 py-1.5 text-sm font-medium transition',
+                                form.movement_type === option.value
+                                    ? 'bg-white text-zinc-900 shadow-sm'
+                                    : 'bg-white/20 text-white hover:bg-white/30',
+                            )
+                        "
+                        @click="form.movement_type = option.value"
+                    >
+                        {{ option.label }}
+                    </button>
+                </div>
+                <FormError :message="form.errors.movement_type" class="mt-1 text-white/90" />
+            </div>
+
+            <Form class="space-y-5 px-6 pb-6" @submit.prevent="submitTransaction">
                 <div class="grid gap-4 md:grid-cols-2">
                     <FormGroup class="md:col-span-1">
-                        <FormLabel>Tipo de transação</FormLabel>
-                        <div
-                            role="radiogroup"
-                            aria-label="Tipo de transação"
-                            class="grid grid-cols-3 gap-2"
-                        >
-                            <Button
-                                v-for="option in movementTypeOptions"
-                                :key="option.value"
-                                type="button"
-                                :variant="form.movement_type === option.value ? 'default' : 'outline'"
-                                role="radio"
-                                :aria-checked="form.movement_type === option.value"
-                                :aria-label="option.label"
-                                class="h-9 w-full justify-center px-3 py-1 text-sm"
-                                @click="form.movement_type = option.value"
-                            >
-                                {{ option.label }}
-                            </Button>
-                        </div>
-                        <FormError :message="form.errors.movement_type" />
-                    </FormGroup>
-
-                    <FormGroup class="md:col-span-1">
                         <FormLabel for="tx-type">Tipo</FormLabel>
-                        <NativeSelect id="tx-type" v-model="form.type" name="type" :disabled="isTransferMovement">
-                            <NativeSelectOption value="">Selecione o tipo</NativeSelectOption>
-                            <NativeSelectOption
-                                v-for="option in scheduleTypeOptions"
-                                :key="option.value"
-                                :value="option.value"
-                            >
-                                {{ option.label }}
-                            </NativeSelectOption>
-                        </NativeSelect>
+                        <Select v-model="form.type" :disabled="isTransferMovement">
+                            <SelectTrigger id="tx-type">
+                                <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="option in scheduleTypeOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormError :message="form.errors.type" />
                     </FormGroup>
 
                     <FormGroup>
                         <FormLabel for="tx-currency">Moeda</FormLabel>
-                        <NativeSelect id="tx-currency" v-model="form.currency_id" name="currency_id">
-                            <NativeSelectOption value="">Selecione a moeda</NativeSelectOption>
-                            <NativeSelectOption
-                                v-for="currency in currencyOptions"
-                                :key="currency.id"
-                                :value="currency.id.toString()"
-                            >
-                                {{ currency.code }} - {{ currency.name }}
-                            </NativeSelectOption>
-                        </NativeSelect>
+                        <Select v-model="form.currency_id">
+                            <SelectTrigger id="tx-currency">
+                                <SelectValue placeholder="Selecione a moeda" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="currency in currencyOptions"
+                                    :key="currency.id"
+                                    :value="currency.id.toString()"
+                                >
+                                    {{ currency.code }} - {{ currency.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormError :message="form.errors.currency_id" />
                     </FormGroup>
 
                     <FormGroup>
                         <FormLabel for="tx-account">{{ accountLabel }}</FormLabel>
-                        <NativeSelect id="tx-account" v-model="form.account_id" name="account_id">
-                            <NativeSelectOption value="">Selecione a conta</NativeSelectOption>
-                            <NativeSelectOption
-                                v-for="account in filteredAccountOptions"
-                                :key="account.id"
-                                :value="account.id.toString()"
-                            >
-                                {{ account.name }}
-                            </NativeSelectOption>
-                        </NativeSelect>
+                        <Select v-model="form.account_id">
+                            <SelectTrigger id="tx-account">
+                                <SelectValue placeholder="Selecione a conta" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="account in filteredAccountOptions"
+                                    :key="account.id"
+                                    :value="account.id.toString()"
+                                >
+                                    {{ account.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormError :message="form.errors.account_id" />
                     </FormGroup>
 
                     <FormGroup v-if="isTransferMovement">
                         <FormLabel for="tx-destination">Conta de destino</FormLabel>
-                        <NativeSelect
-                            id="tx-destination"
-                            v-model="form.destination_account_id"
-                            name="destination_account_id"
-                        >
-                            <NativeSelectOption value="">Selecione a conta de destino</NativeSelectOption>
-                            <NativeSelectOption
-                                v-for="account in destinationAccountOptions"
-                                :key="account.id"
-                                :value="account.id.toString()"
-                            >
-                                {{ account.name }}
-                            </NativeSelectOption>
-                        </NativeSelect>
+                        <Select v-model="form.destination_account_id">
+                            <SelectTrigger id="tx-destination">
+                                <SelectValue placeholder="Selecione a conta de destino" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="account in destinationAccountOptions"
+                                    :key="account.id"
+                                    :value="account.id.toString()"
+                                >
+                                    {{ account.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormError :message="form.errors.destination_account_id" />
                     </FormGroup>
 
@@ -376,6 +449,55 @@ watch(hasAttachment, (enabled) => {
                         <FormError :message="form.errors.description" />
                     </FormGroup>
 
+                    <FormGroup v-if="!isTransferMovement">
+                        <FormLabel for="tx-category">Categoria</FormLabel>
+                        <Select
+                            v-model="form.category_id"
+                            :disabled="filteredCategoryOptions.length === 0"
+                        >
+                            <SelectTrigger id="tx-category">
+                                <SelectValue
+                                    :placeholder="
+                                        filteredCategoryOptions.length === 0
+                                            ? 'Nenhuma categoria cadastrada'
+                                            : 'Selecione a categoria'
+                                    "
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="category in filteredCategoryOptions"
+                                    :key="category.id"
+                                    :value="category.id.toString()"
+                                >
+                                    <span class="flex items-center gap-2">
+                                        <span
+                                            class="size-2.5 rounded-full"
+                                            :style="{ backgroundColor: colorHex(category.color) }"
+                                        />
+                                        {{ category.name }}
+                                    </span>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormError :message="form.errors.category_id" />
+                    </FormGroup>
+
+                    <FormGroup v-if="!isTransferMovement">
+                        <FormLabel>Tags</FormLabel>
+                        <TagsSelect
+                            v-model="form.tags"
+                            :options="tagOptions"
+                            :disabled="tagOptions.length === 0"
+                            :placeholder="
+                                tagOptions.length === 0
+                                    ? 'Nenhuma tag cadastrada'
+                                    : 'Selecione tags'
+                            "
+                        />
+                        <FormError :message="form.errors.tags" />
+                    </FormGroup>
+
                     <FormGroup v-if="isRecurringType" class="md:col-span-2">
                         <FormLabel for="tx-effective-until">Repetir até (opcional)</FormLabel>
                         <DatePicker
@@ -384,20 +506,6 @@ watch(hasAttachment, (enabled) => {
                             hint="Deixe em branco para uma recorrência sem fim."
                         />
                         <FormError :message="form.errors.effective_until" />
-                    </FormGroup>
-
-                    <FormGroup class="md:col-span-2">
-                        <div
-                            class="flex items-center justify-between gap-3 rounded-lg border border-dashed px-3 py-2"
-                        >
-                            <div class="space-y-0.5">
-                                <FormLabel for="tx-attachment-toggle" class="text-sm">Adicionar anexo?</FormLabel>
-                                <p class="text-xs text-muted-foreground">
-                                    Marque para anexar um arquivo a esta transação.
-                                </p>
-                            </div>
-                            <Switch id="tx-attachment-toggle" v-model="hasAttachment" />
-                        </div>
                     </FormGroup>
                 </div>
 
@@ -408,15 +516,20 @@ watch(hasAttachment, (enabled) => {
                 >
                     <FormGroup>
                         <FormLabel for="tx-recurrence-scope">Aplicar alteração a</FormLabel>
-                        <NativeSelect id="tx-recurrence-scope" v-model="form.recurrence_scope" name="recurrence_scope">
-                            <NativeSelectOption
-                                v-for="option in recurrenceScopeOptions"
-                                :key="option.value"
-                                :value="option.value"
-                            >
-                                {{ option.label }}
-                            </NativeSelectOption>
-                        </NativeSelect>
+                        <Select v-model="form.recurrence_scope">
+                            <SelectTrigger id="tx-recurrence-scope">
+                                <SelectValue placeholder="Selecione o escopo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="option in recurrenceScopeOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormError :message="form.errors.recurrence_scope" />
                     </FormGroup>
                 </FormCard>
@@ -428,7 +541,9 @@ watch(hasAttachment, (enabled) => {
                 >
                     <div class="grid gap-4 md:grid-cols-2">
                         <FormGroup>
-                            <FormLabel for="tx-installments-total">Quantidade de parcelas</FormLabel>
+                            <FormLabel for="tx-installments-total"
+                                >Quantidade de parcelas</FormLabel
+                            >
                             <Input
                                 id="tx-installments-total"
                                 v-model="form.installments_total"
@@ -443,47 +558,28 @@ watch(hasAttachment, (enabled) => {
 
                         <FormGroup>
                             <FormLabel for="tx-frequency">Período</FormLabel>
-                            <NativeSelect id="tx-frequency" v-model="form.installment_frequency" name="installment_frequency">
-                                <NativeSelectOption value="">Selecione o período</NativeSelectOption>
-                                <NativeSelectOption
-                                    v-for="option in frequencyOptions"
-                                    :key="option.value"
-                                    :value="option.value"
-                                >
-                                    {{ option.label }}
-                                </NativeSelectOption>
-                            </NativeSelect>
+                            <Select v-model="form.installment_frequency">
+                                <SelectTrigger id="tx-frequency">
+                                    <SelectValue placeholder="Selecione o período" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="option in frequencyOptions"
+                                        :key="option.value"
+                                        :value="option.value"
+                                    >
+                                        {{ option.label }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormError :message="form.errors.installment_frequency" />
                         </FormGroup>
                     </div>
                 </FormCard>
-
-                <FormCard
-                    v-if="hasAttachment"
-                    title="Anexo"
-                    subtitle="Adicione um arquivo de apoio para esta transação."
-                >
-                    <FormGroup>
-                        <FormLabel for="tx-attachment">Arquivo</FormLabel>
-                        <Input
-                            id="tx-attachment"
-                            :model-value="form.attachment"
-                            @update:model-value="(value) => (form.attachment = value as File | null)"
-                            type="file"
-                            name="attachment"
-                            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
-                        />
-                        <p class="text-xs text-muted-foreground">
-                            {{ form.attachment?.name ?? 'Nenhum arquivo selecionado' }}
-                        </p>
-                        <FormError :message="form.errors.attachment" />
-                    </FormGroup>
-                </FormCard>
-
                 <DialogFooter>
-                    <Button type="button" variant="outline" @click="closeModal">Cancelar</Button>
+                    <Button type="button" variant="outline" @click="closeModal">Cancel</Button>
                     <Button type="submit" :disabled="form.processing">
-                        {{ form.processing ? 'Salvando...' : 'Salvar transação' }}
+                        {{ form.processing ? 'Saving...' : 'Save' }}
                     </Button>
                 </DialogFooter>
             </Form>

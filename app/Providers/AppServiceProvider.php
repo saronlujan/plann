@@ -2,12 +2,17 @@
 
 namespace App\Providers;
 
+use App\Listeners\SyncTenantPlanFromStripe;
+use App\Models\Tenant;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Cashier\Cashier;
+use Laravel\Cashier\Events\WebhookReceived;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureDefaults(): void
     {
+        Cashier::useCustomerModel(Tenant::class);
+
+        Event::listen(WebhookReceived::class, SyncTenantPlanFromStripe::class);
+
         Date::use(CarbonImmutable::class);
 
         DB::prohibitDestructiveCommands(

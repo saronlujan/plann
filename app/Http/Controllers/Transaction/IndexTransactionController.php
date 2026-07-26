@@ -7,7 +7,9 @@ use App\Enums\TransactionMovementType;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\Category;
 use App\Models\Currency;
+use App\Models\Tag;
 use App\Models\Transaction;
 use App\Support\Transactions\TransactionProjector;
 use Carbon\CarbonImmutable;
@@ -33,7 +35,7 @@ class IndexTransactionController extends Controller
         $periodEnd = $period->endOfMonth();
 
         $transactions = Transaction::query()
-            ->with(['currency', 'account'])
+            ->with(['currency', 'account', 'tags:id'])
             ->where('effective_date', '<=', $periodEnd->toDateString())
             ->where(function (Builder $query) use ($periodStart): void {
                 $query->where('type', '!=', 'unique')
@@ -80,6 +82,29 @@ class IndexTransactionController extends Controller
                     'id' => $account->id,
                     'name' => $account->name,
                     'currency_id' => $account->currency_id,
+                ])
+                ->values()
+                ->all(),
+            'categoryOptions' => Category::query()
+                ->where('tenant_id', $tenant->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'type', 'color'])
+                ->map(fn (Category $category): array => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'type' => $category->type->value,
+                    'color' => $category->color->value,
+                ])
+                ->values()
+                ->all(),
+            'tagOptions' => Tag::query()
+                ->where('tenant_id', $tenant->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'color'])
+                ->map(fn (Tag $tag): array => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color->value,
                 ])
                 ->values()
                 ->all(),

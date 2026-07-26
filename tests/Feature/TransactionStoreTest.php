@@ -3,7 +3,9 @@
 use App\Enums\TransactionInstallmentFrequency;
 use App\Enums\TransactionMovementType;
 use App\Models\Account;
+use App\Models\Category;
 use App\Models\Currency;
+use App\Models\Tag;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\User;
@@ -128,4 +130,97 @@ it('stores a transfer as paired transactions', function () {
     expect(Transaction::query()->whereNotNull('series_uuid')->count())->toBe(2);
     expect(Transaction::query()->where('movement_type', TransactionMovementType::Expense->value)->exists())->toBeTrue();
     expect(Transaction::query()->where('movement_type', TransactionMovementType::Income->value)->exists())->toBeTrue();
+});
+
+it('stores a transaction with a category and tags', function () {
+    Storage::fake('public');
+
+    $tenant = Tenant::create(['name' => 'Tenant Cat']);
+    $user = User::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa',
+        'email' => 'tx-cat@example.com',
+        'password' => 'password',
+    ]);
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta BRL',
+        'balance' => 0,
+    ]);
+    $category = Category::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Mercado',
+        'type' => 'expense',
+        'color' => 'green',
+    ]);
+    $tagA = Tag::create(['tenant_id' => $tenant->id, 'name' => 'fixo', 'color' => 'blue']);
+    $tagB = Tag::create(['tenant_id' => $tenant->id, 'name' => 'casa', 'color' => 'red']);
+
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => 'Compra do mês',
+            'currency_id' => $currency->id,
+            'account_id' => $account->id,
+            'category_id' => $category->id,
+            'tags' => [$tagA->id, $tagB->id],
+            'effective_date' => '2026-12-15',
+            'amount' => 500,
+        ])
+        ->assertRedirect('/transactions?period=2026-12');
+
+    $transaction = Transaction::query()->firstOrFail();
+
+    expect($transaction->category_id)->toBe($category->id);
+    expect($transaction->tags()->pluck('tags.id')->sort()->values()->all())
+        ->toBe(collect([$tagA->id, $tagB->id])->sort()->values()->all());
+});
+
+it('rejects a category or tag from another tenant', function () {
+    $tenant = Tenant::create(['name' => 'Tenant A']);
+    $user = User::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa',
+        'email' => 'tx-cross@example.com',
+        'password' => 'password',
+    ]);
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta BRL',
+        'balance' => 0,
+    ]);
+
+    $otherTenant = Tenant::create(['name' => 'Tenant B']);
+    app(TenantContext::class)->setTenantId($otherTenant->id);
+    $foreignCategory = Category::create([
+        'tenant_id' => $otherTenant->id,
+        'name' => 'Alheia',
+        'type' => 'expense',
+        'color' => 'green',
+    ]);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => 'Teste',
+            'currency_id' => $currency->id,
+            'account_id' => $account->id,
+            'category_id' => $foreignCategory->id,
+            'effective_date' => '2026-12-15',
+            'amount' => 100,
+        ])
+        ->assertSessionHasErrors('category_id');
 });

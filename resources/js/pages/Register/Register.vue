@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Form, Head, Link } from '@inertiajs/vue3';
+import PhoneInput from '@/components/PhoneInput.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { login } from '../../routes';
@@ -52,6 +53,14 @@ const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
                             errors.email
                         }}</span>
                     </label>
+
+                    <div class="block space-y-2">
+                        <span class="text-sm font-medium text-zinc-700">Telefone</span>
+                        <PhoneInput name="phone" />
+                        <span v-if="errors.phone" class="text-sm text-red-600">{{
+                            errors.phone
+                        }}</span>
+                    </div>
 
                     <label class="block space-y-2">
                         <span class="text-sm font-medium text-zinc-700">Password</span>

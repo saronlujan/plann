@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserColor;
+use App\Enums\UserTheme;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -17,13 +19,19 @@ use Illuminate\Support\Carbon;
  * @property int $tenant_id
  * @property string $name
  * @property string $email
+ * @property string|null $google_id
+ * @property string|null $avatar_url
+ * @property string|null $phone
+ * @property string $locale
+ * @property UserTheme $theme
+ * @property UserColor $color
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['tenant_id', 'name', 'email', 'google_id', 'password'])]
+#[Fillable(['tenant_id', 'name', 'email', 'google_id', 'avatar_url', 'phone', 'password', 'locale', 'theme', 'color'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -40,6 +48,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'theme' => UserTheme::class,
+            'color' => UserColor::class,
         ];
     }
 

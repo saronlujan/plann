@@ -2,21 +2,64 @@
 
 namespace App\Models;
 
+use App\Enums\PlanSlug;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Cashier\Billable;
 
 class Tenant extends Model
 {
+    use Billable;
+
     /** @use HasFactory<TenantFactory> */
     use HasFactory;
 
     protected $fillable = [
         'name',
-        'locale',
+        'plan_slug',
     ];
+
+    protected $casts = [
+        'plan_slug' => PlanSlug::class,
+        'trial_ends_at' => 'datetime',
+    ];
+
+    /**
+     * Every new workspace starts on a 14-day, card-free trial.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Tenant $tenant): void {
+            $tenant->trial_ends_at ??= now()->addDays(14);
+        });
+    }
+
+    /**
+     * The plan the tenant is currently on (resolved by slug).
+     */
+    public function plan(): ?Plan
+    {
+        return Plan::query()->where('slug', $this->plan_slug?->value ?? PlanSlug::Basic->value)->first();
+    }
+
+    /**
+     * Maximum number of users allowed for the current plan.
+     */
+    public function maxUsers(): int
+    {
+        return ($this->plan_slug ?? PlanSlug::Basic)->maxUsers();
+    }
+
+    /**
+     * Whether the tenant can still add another user under its plan seat limit.
+     */
+    public function canAddUser(): bool
+    {
+        return $this->users()->count() < $this->maxUsers();
+    }
 
     public function currencies(): BelongsToMany
     {

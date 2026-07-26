@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<Props>(), {
         data-slot="card"
         :as="as"
         :as-child="asChild"
-        :class="cn('flex flex-col gap-5 rounded-xl border border-zinc-100 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950 md:p-5', props.class)"
+        :class="cn('flex flex-col gap-5 rounded-xl border bg-card p-3 text-card-foreground md:p-5', props.class)"
     >
         <slot />
     </Primitive>

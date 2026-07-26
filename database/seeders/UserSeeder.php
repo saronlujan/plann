@@ -2,33 +2,51 @@
 
 namespace Database\Seeders;
 
+use App\Enums\PlanSlug;
 use App\Models\Currency;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $currency = Currency::query()->firstOrCreate([
-            'code' => 'BRL',
-        ], [
-            'name' => 'Brazilian Real',
-            'symbol' => 'R$',
-        ]);
+        $currencies = Currency::query()->get()->keyBy('code');
 
-        $tenant = Tenant::query()->firstOrCreate([
-            'name' => 'Test Tenant',
-        ], [
-            'locale' => 'pt',
-        ]);
+        $tenant = Tenant::query()->firstOrCreate(
+            ['name' => 'Test Tenant'],
+            [
+                'plan_slug' => PlanSlug::Basic->value,
+                'trial_ends_at' => now()->addDays(14),
+            ],
+        );
 
-        $tenant->locale = 'pt';
-        $tenant->save();
+        app(TenantContext::class)->setTenantId($tenant->id);
 
-        $tenant->syncCurrencyActivations([$currency->id]);
-        $tenant->ensureCurrencyAssets([$currency->id]);
+        // Activate every available currency for the test workspace.
+        $tenant->syncCurrencyActivations($currencies->pluck('id')->all());
+
+        // One account per currency, plus a second BRL account to exercise transfers.
+        $accounts = [
+            ['name' => 'Conta Corrente', 'code' => 'BRL', 'balance' => 5000],
+            ['name' => 'Conta Poupança', 'code' => 'BRL', 'balance' => 12000],
+            ['name' => 'Conta Dólar', 'code' => 'USD', 'balance' => 800],
+            ['name' => 'Conta Peso', 'code' => 'ARS', 'balance' => 150000],
+            ['name' => 'Conta Guarani', 'code' => 'PYG', 'balance' => 2500000],
+            ['name' => 'Carteira Tether', 'code' => 'USDT', 'balance' => 300],
+        ];
+
+        foreach ($accounts as $account) {
+            $tenant->accounts()->updateOrCreate(
+                ['name' => $account['name']],
+                [
+                    'currency_id' => $currencies[$account['code']]->id,
+                    'balance' => $account['balance'],
+                ],
+            );
+        }
 
         User::query()->updateOrCreate(
             [
@@ -38,6 +56,8 @@ class UserSeeder extends Seeder
                 'tenant_id' => $tenant->id,
                 'name' => 'Saron Lujan',
                 'password' => '12345678',
+                'avatar_url' => 'https://avatars.githubusercontent.com/u/7363056?v=4',
+                'locale' => 'pt',
             ],
         );
     }

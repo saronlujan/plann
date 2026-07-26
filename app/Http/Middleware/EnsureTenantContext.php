@@ -7,6 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureTenantContext
@@ -34,7 +35,8 @@ class EnsureTenantContext
         }
 
         $tenantContext->setTenantId($tenant->id);
-        app()->setLocale($tenant->locale ?: config('app.locale'));
+        app()->setLocale($user->locale ?: config('app.locale'));
+        View::share('appearance', $user->theme?->value ?? 'light');
         $this->syncPostgresTenantContext($tenant->id);
 
         return $next($request);

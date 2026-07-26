@@ -41,6 +41,7 @@ class UpdateTransactionController extends Controller
 
         $transaction->fill($this->payload($validated, $transaction, $attachmentPath));
         $transaction->save();
+        $transaction->tags()->sync($validated['tags'] ?? []);
 
         $this->discardReplacedAttachment($newAttachment, $previousAttachment, $attachmentPath);
 
@@ -60,6 +61,7 @@ class UpdateTransactionController extends Controller
         return [
             'account_id' => $validated['account_id'] ?? null,
             'currency_id' => $validated['currency_id'],
+            'category_id' => $validated['category_id'] ?? null,
             'movement_type' => $validated['movement_type'],
             'type' => $scheduleType,
             'installment_frequency' => $validated['installment_frequency'] ?? null,
@@ -92,10 +94,11 @@ class UpdateTransactionController extends Controller
                 $transaction->update(['series_uuid' => $seriesUuid]);
             }
 
-            Transaction::query()->create([
+            $occurrence = Transaction::query()->create([
                 'tenant_id' => $transaction->tenant_id,
                 'account_id' => $validated['account_id'] ?? $transaction->account_id,
                 'currency_id' => $validated['currency_id'],
+                'category_id' => $validated['category_id'] ?? $transaction->category_id,
                 'movement_type' => $validated['movement_type'],
                 'type' => TransactionType::Recurring->value,
                 'installment_frequency' => null,
@@ -111,6 +114,8 @@ class UpdateTransactionController extends Controller
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
                 'description' => $validated['description'],
             ]);
+
+            $occurrence->tags()->sync($validated['tags'] ?? []);
         });
 
         return to_route('transactions.index', [
@@ -136,10 +141,11 @@ class UpdateTransactionController extends Controller
                 'effective_until' => $effectiveUntil,
             ]);
 
-            return Transaction::query()->create([
+            $following = Transaction::query()->create([
                 'tenant_id' => $transaction->tenant_id,
                 'account_id' => $validated['account_id'] ?? $transaction->account_id,
                 'currency_id' => $validated['currency_id'],
+                'category_id' => $validated['category_id'] ?? $transaction->category_id,
                 'movement_type' => $validated['movement_type'],
                 'type' => TransactionType::Recurring->value,
                 'installment_frequency' => null,
@@ -155,6 +161,10 @@ class UpdateTransactionController extends Controller
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
                 'description' => $validated['description'],
             ]);
+
+            $following->tags()->sync($validated['tags'] ?? []);
+
+            return $following;
         });
 
         return to_route('transactions.index', [

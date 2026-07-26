@@ -22,6 +22,10 @@ class Account extends Model
         'balance',
     ];
 
+    protected $casts = [
+        'balance' => 'decimal:2',
+    ];
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

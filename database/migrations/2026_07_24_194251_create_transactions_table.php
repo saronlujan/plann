@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('account_id')->constrained()->nullOnDelete();
             $table->foreignId('currency_id')->constrained()->restrictOnDelete();
+            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
             $table->string('movement_type')->nullable();
             $table->string('type');
             $table->string('installment_frequency')->nullable();

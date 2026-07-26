@@ -43,6 +43,16 @@ class StoreTransactionRequest extends FormRequest
                     ->where('currency_id', $currencyId)
                     ->where('tenant_id', $tenantId)),
             ],
+            'category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('categories', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+            ],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => [
+                'integer',
+                Rule::exists('tags', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+            ],
             'effective_date' => ['required', 'date_format:Y-m-d'],
             'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999999999.99'],
             'adjustment_amount' => ['nullable', 'numeric', 'decimal:0,2', 'gte:0'],

@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\RegisterUser;
 use App\Http\Controllers\Controller;
-use App\Models\Currency;
-use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleAuthController extends Controller
 {
+    public function __construct(private readonly RegisterUser $registerUser) {}
+
     public function redirect(): RedirectResponse
     {
         if (! $this->isConfigured()) {
@@ -29,9 +29,7 @@ class GoogleAuthController extends Controller
     {
         $googleUser = Socialite::driver('google')->user();
 
-        $user = DB::transaction(function () use ($googleUser): User {
-            return $this->resolveUser($googleUser);
-        });
+        $user = $this->resolveUser($googleUser);
 
         Auth::login($user);
 
@@ -52,37 +50,19 @@ class GoogleAuthController extends Controller
             ->first();
 
         if ($existingUser !== null) {
-            if ($existingUser->google_id !== $googleUser->getId()) {
-                $existingUser->forceFill([
-                    'google_id' => $googleUser->getId(),
-                ])->save();
-            }
+            $existingUser->forceFill([
+                'google_id' => $googleUser->getId(),
+                'avatar_url' => $googleUser->getAvatar() ?: $existingUser->avatar_url,
+            ])->save();
 
             return $existingUser;
         }
 
-        $currency = Currency::query()->firstOrCreate([
-            'code' => 'BRL',
-        ], [
-            'name' => 'Brazilian Real',
-            'symbol' => 'R$',
-        ]);
-
-        $tenantName = $googleUser->getName() ?: $googleUser->getNickname() ?: $email;
-
-        $tenant = Tenant::query()->create([
-            'name' => $tenantName,
-            'locale' => 'pt',
-        ]);
-
-        $tenant->syncCurrencyActivations([$currency->id]);
-        $tenant->ensureCurrencyAssets([$currency->id]);
-
-        return User::query()->create([
-            'tenant_id' => $tenant->id,
-            'name' => $tenantName,
+        return $this->registerUser->handle([
+            'name' => $googleUser->getName() ?: $googleUser->getNickname() ?: $email,
             'email' => $email,
             'google_id' => $googleUser->getId(),
+            'avatar_url' => $googleUser->getAvatar() ?: null,
             'password' => Str::password(32),
         ]);
     }

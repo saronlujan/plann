@@ -7,9 +7,9 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePage, router } from '@inertiajs/vue3';
-import { loadLanguageAsync } from 'laravel-vue-i18n';
-import { ChevronDown } from 'lucide-vue-next';
+import { ChevronDownIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import { update as updatePreferences } from '@/routes/preferences';
 
 type Locale = 'pt' | 'es' | 'en';
 
@@ -43,17 +43,11 @@ function selectLocale(locale: Locale): void {
         return;
     }
 
-    router.patch(
-        '/preferences/language',
-        { locale },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                selectedLocale.value = locale;
-                void loadLanguageAsync(locale);
-            },
-        },
-    );
+    selectedLocale.value = locale;
+
+    // Persist; the server reload refreshes the shared translations and
+    // AppLocaleSync applies the new language.
+    router.patch(updatePreferences().url, { locale }, { preserveScroll: true });
 }
 </script>
 
@@ -62,7 +56,7 @@ function selectLocale(locale: Locale): void {
         <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="sm" class="h-8 gap-1 text-sm font-medium">
                 {{ selectedLabel }}
-                <ChevronDown class="h-4 w-4 opacity-50" />
+                <ChevronDownIcon class="h-4 w-4 opacity-50" />
             </Button>
         </DropdownMenuTrigger>
 
@@ -71,7 +65,7 @@ function selectLocale(locale: Locale): void {
                 v-for="locale in locales"
                 :key="locale.code"
                 class="cursor-pointer"
-                :class="{ 'bg-zinc-100': locale.code === selectedLocale }"
+                :class="{ 'bg-accent': locale.code === selectedLocale }"
                 @click="selectLocale(locale.code)"
             >
                 {{ locale.label }}

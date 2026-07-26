@@ -2,32 +2,14 @@ import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { i18nVue } from 'laravel-vue-i18n';
 import { createApp, createSSRApp, h, type DefineComponent } from 'vue';
+import AppearanceSync from '@/components/layout/AppAppearanceSync.vue';
 import LocaleSync from '@/components/layout/AppLocaleSync.vue';
 import { Toaster } from '@/components/ui/sonner';
+import { resolveLocaleMessages, setLocaleMessages } from '@/lib/i18n';
 import 'vue-sonner/style.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 const pages = import.meta.glob<{ default: DefineComponent }>('./pages/**/*.vue');
-const langFiles = import.meta.glob('../../lang/php_*.json');
-const langFilesEager = import.meta.glob('../../lang/php_*.json', { eager: true });
-
-function resolveLocaleFile(lang: string) {
-    if (import.meta.env.SSR) {
-        return (
-            langFilesEager[`../../lang/php_${lang}.json`] as
-                | { default: Record<string, string> }
-                | undefined
-        )?.default ?? {};
-    }
-
-    const loader = langFiles[`../../lang/php_${lang}.json`];
-
-    if (!loader) {
-        return Promise.resolve({ default: {} });
-    }
-
-    return loader();
-}
 
 function getInitialLocale(initialLocale?: string): string {
     if (initialLocale) {
@@ -52,22 +34,29 @@ createInertiaApp({
         return page().then((module) => module.default);
     },
     setup({ el, App, props, plugin }) {
-        const initialLocale = getInitialLocale(
-            (props.initialPage.props as { locale?: string }).locale,
-        );
+        const initialProps = props.initialPage.props as {
+            locale?: string;
+            translations?: Record<string, string>;
+        };
+        const initialLocale = getInitialLocale(initialProps.locale);
+
+        // Seed the active locale's messages (delivered by the server) before the
+        // i18n plugin resolves them.
+        setLocaleMessages(initialLocale, initialProps.translations ?? {});
+
         const vueApp = import.meta.env.SSR
             ? createSSRApp({
-                  render: () => h('div', [h(App, props), h(LocaleSync)]),
+                  render: () => h('div', [h(App, props), h(LocaleSync), h(AppearanceSync)]),
               })
             : createApp({
-                  render: () => h('div', [h(App, props), h(LocaleSync), h(Toaster)]),
+                  render: () => h('div', [h(App, props), h(LocaleSync), h(AppearanceSync), h(Toaster)]),
               });
 
         vueApp.use(plugin);
         vueApp.use(i18nVue, {
             lang: initialLocale,
             fallbackLang: 'en',
-            resolve: resolveLocaleFile,
+            resolve: resolveLocaleMessages,
         });
 
         if (!import.meta.env.SSR && el) {

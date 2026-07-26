@@ -6,12 +6,12 @@ use App\Enums\TransactionMovementType;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
-use Carbon\CarbonImmutable;
 use App\Models\Account;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\DB;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -26,6 +26,7 @@ class StoreTransactionController extends Controller
         }
 
         $transaction = Transaction::query()->create($this->payload($validated, $request));
+        $transaction->tags()->sync($validated['tags'] ?? []);
 
         return to_route('transactions.index', [
             'period' => $transaction->effective_date->format('Y-m'),
@@ -41,6 +42,7 @@ class StoreTransactionController extends Controller
         return [
             'account_id' => $validated['account_id'] ?? null,
             'currency_id' => $validated['currency_id'],
+            'category_id' => $validated['category_id'] ?? null,
             'movement_type' => $validated['movement_type'],
             'type' => $validated['type'],
             'installment_frequency' => $validated['installment_frequency'] ?? null,

@@ -23,7 +23,7 @@ const props = withDefaults(
         <slot />
     </label>
 
-    <p v-if="props.message" class="text-xs text-zinc-500 dark:text-zinc-400">
+    <p v-if="props.message" class="text-xs text-muted-foreground">
         {{ props.message }}
     </p>
 </template>

@@ -15,8 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('google_id')->nullable()->unique();
+            $table->string('avatar_url')->nullable();
+            $table->string('phone')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('locale', 5)->default('pt');
+            $table->string('theme')->default('light');
+            $table->string('color')->default('zinc');
             $table->rememberToken();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
