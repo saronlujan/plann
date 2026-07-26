@@ -5,6 +5,7 @@ return [
         'title' => 'Categorias',
         'subtitle' => 'Categorias de receita e despesa.',
         'add' => 'Adicionar categoria',
+        'empty' => 'Sem categorias até o momento.',
         'delete_confirm' => 'Excluir “:name”? Esta ação não pode ser desfeita.',
         'columns' => [
             'name' => 'Nome',
@@ -25,6 +26,7 @@ return [
         'title' => 'Tags',
         'subtitle' => 'Rótulos livres para organizar suas transações.',
         'add' => 'Adicionar tag',
+        'empty' => 'Sem tags até o momento.',
         'delete_confirm' => 'Excluir “:name”? Esta ação não pode ser desfeita.',
         'columns' => [
             'name' => 'Nome',
@@ -36,36 +38,6 @@ return [
             'name_label' => 'Nome',
             'name_placeholder' => 'Nome da tag',
             'color_label' => 'Cor',
-        ],
-    ],
-
-    'accounts' => [
-        'title' => 'Contas',
-        'subtitle' => 'Contas em moedas ativas.',
-        'add' => 'Adicionar conta',
-        'delete_confirm' => 'Excluir “:name”? Esta ação não pode ser desfeita.',
-        'columns' => [
-            'name' => 'Nome',
-            'kind' => 'Tipo',
-            'currency' => 'Moeda',
-            'balance' => 'Saldo',
-        ],
-        'modal' => [
-            'create_title' => 'Nova conta',
-            'edit_title' => 'Editar conta',
-            'description' => 'Contas em moedas ativas.',
-            'name_label' => 'Nome',
-            'name_placeholder' => 'Ex.: Conta Corrente',
-            'kind_label' => 'Tipo',
-            'currency_label' => 'Moeda',
-            'currency_placeholder' => 'Selecione a moeda',
-            'balance_label' => 'Saldo inicial',
-            'balance_placeholder' => '0,00',
-            'credit_limit_label' => 'Limite de crédito',
-            'credit_limit_placeholder' => '0,00',
-            'closing_day_label' => 'Dia de fechamento',
-            'due_day_label' => 'Dia de vencimento',
-            'day_placeholder' => 'Dia',
         ],
     ],
 

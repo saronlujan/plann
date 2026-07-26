@@ -2,7 +2,8 @@
 // on the frontend — swatches, dots and dashboard charts all read from here.
 
 export type LabelColorValue =
-    'blue' | 'indigo' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'zinc';
+    | 'blue' | 'indigo' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'zinc'
+    | 'sky' | 'cyan' | 'emerald' | 'lime' | 'amber' | 'rose' | 'fuchsia' | 'violet' | 'slate' | 'stone';
 
 export type LabelColorOption = {
     value: LabelColorValue;
@@ -21,6 +22,16 @@ export const LABEL_COLORS: LabelColorOption[] = [
     { value: 'green', label: 'Verde', hex: '#22c55e' },
     { value: 'teal', label: 'Turquesa', hex: '#14b8a6' },
     { value: 'zinc', label: 'Cinza', hex: '#71717a' },
+    { value: 'sky', label: 'Céu', hex: '#0ea5e9' },
+    { value: 'cyan', label: 'Ciano', hex: '#06b6d4' },
+    { value: 'emerald', label: 'Esmeralda', hex: '#10b981' },
+    { value: 'lime', label: 'Lima', hex: '#84cc16' },
+    { value: 'amber', label: 'Âmbar', hex: '#f59e0b' },
+    { value: 'rose', label: 'Rosé', hex: '#f43f5e' },
+    { value: 'fuchsia', label: 'Fúcsia', hex: '#d946ef' },
+    { value: 'violet', label: 'Violeta', hex: '#8b5cf6' },
+    { value: 'slate', label: 'Ardósia', hex: '#64748b' },
+    { value: 'stone', label: 'Pedra', hex: '#78716c' },
 ];
 
 const HEX_BY_VALUE = new Map(LABEL_COLORS.map((color) => [color.value, color.hex]));

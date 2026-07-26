@@ -5,6 +5,7 @@ use App\Models\Category;
 use App\Models\Currency;
 use App\Models\Tag;
 use App\Models\Tenant;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -50,12 +51,6 @@ test('each settings module has its own focused page', function () {
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Settings/Tags')
             ->has('tags', 1));
-
-    actingAs($user)->get('/settings/accounts')->assertSuccessful()
-        ->assertInertia(fn (Assert $page): Assert => $page
-            ->component('Settings/Accounts')
-            ->has('accounts')
-            ->has('currencyOptions'));
 
     actingAs($user)->get('/settings/currencies')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
@@ -151,7 +146,7 @@ test('users may create, update and delete an account', function () {
     $currency = activateCurrency($user, 'BRL');
 
     actingAs($user)
-        ->post('/settings/accounts', ['name' => 'Conta A', 'currency_id' => $currency->id, 'balance' => 100.5])
+        ->post('/accounts', ['name' => 'Conta A', 'currency_id' => $currency->id, 'balance' => 100.5])
         ->assertRedirect();
 
     $account = Account::query()->where('name', 'Conta A')->first();
@@ -159,13 +154,40 @@ test('users may create, update and delete an account', function () {
     expect($account?->balance)->toBe('100.50');
 
     actingAs($user)
-        ->patch('/settings/accounts/'.$account->id, ['name' => 'Conta B', 'currency_id' => $currency->id, 'balance' => 0])
+        ->patch('/accounts/'.$account->id, ['name' => 'Conta B', 'currency_id' => $currency->id, 'balance' => 0])
         ->assertRedirect();
 
     expect($account->fresh()?->name)->toBe('Conta B');
 
-    actingAs($user)->delete('/settings/accounts/'.$account->id)->assertRedirect();
+    actingAs($user)->delete('/accounts/'.$account->id)->assertRedirect();
     expect(Account::query()->whereKey($account->id)->exists())->toBeFalse();
+});
+
+test('an account with transactions cannot be deleted', function () {
+    $user = settingsUser('acc-in-use@example.com');
+    $currency = activateCurrency($user, 'BRL');
+
+    $account = Account::create([
+        'tenant_id' => $user->tenant_id,
+        'currency_id' => $currency->id,
+        'name' => 'Com lançamentos',
+        'balance' => 0,
+    ]);
+
+    Transaction::create([
+        'tenant_id' => $user->tenant_id,
+        'account_id' => $account->id,
+        'currency_id' => $currency->id,
+        'movement_type' => 'expense',
+        'type' => 'unique',
+        'effective_date' => '2026-08-01',
+        'amount' => 50,
+        'adjustment_amount' => 0,
+        'description' => 'Compra',
+    ]);
+
+    actingAs($user)->delete('/accounts/'.$account->id)->assertSessionHasErrors('account');
+    expect(Account::query()->whereKey($account->id)->exists())->toBeTrue();
 });
 
 test('account creation requires an active currency', function () {
@@ -173,7 +195,7 @@ test('account creation requires an active currency', function () {
     $currency = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
 
     actingAs($user)
-        ->post('/settings/accounts', ['name' => 'Sem moeda ativa', 'currency_id' => $currency->id])
+        ->post('/accounts', ['name' => 'Sem moeda ativa', 'currency_id' => $currency->id])
         ->assertSessionHasErrors('currency_id');
 });
 
@@ -210,7 +232,7 @@ test('a tenant cannot modify another tenant account', function () {
     app(TenantContext::class)->clear();
 
     actingAs($attacker)
-        ->delete('/settings/accounts/'.$victimAccount->id)
+        ->delete('/accounts/'.$victimAccount->id)
         ->assertNotFound();
 
     expect($victimAccount->fresh())->not->toBeNull();

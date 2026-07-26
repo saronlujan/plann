@@ -24,7 +24,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import { accountKindIcon } from '@/lib/accountKind';
 import { playSound } from '@/lib/sound';
 import type { SoundValue } from '@/lib/sound';
 import transactions from '@/routes/transactions';
@@ -170,8 +172,16 @@ const hasEntries = computed(() => props.entries.length > 0);
 // Subtitle shown under the transaction name: "Categoria - Tipo" (the schedule
 // type is omitted for one-off entries, and the category is omitted when absent).
 function entrySubtitle(entry: TransactionEntry): string {
-    const category = props.categoryOptions.find((option) => option.id === entry.category_id);
     const parts: string[] = [];
+
+    if (entry.is_transfer && entry.transfer_from && entry.transfer_to) {
+        parts.push(scheduleLabel(entry));
+        parts.push(`${entry.transfer_from} → ${entry.transfer_to}`);
+
+        return parts.join(' - ');
+    }
+
+    const category = props.categoryOptions.find((option) => option.id === entry.category_id);
 
     if (category) {
         parts.push(category.name);
@@ -246,11 +256,11 @@ function openDetails(entry: TransactionEntry): void {
                                 <TableHead>{{ $t('transactions.columns.type') }}</TableHead>
                                 <TableHead></TableHead>
                                 <TableHead></TableHead>
+                                <TableHead></TableHead>
                                 <TableHead class="text-right">{{
                                     $t('transactions.columns.amount')
                                 }}</TableHead>
                                 <TableHead></TableHead>
-                                <TableHead>{{ $t('transactions.columns.account') }}</TableHead>
                                 <TableHead></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -263,6 +273,28 @@ function openDetails(entry: TransactionEntry): void {
                                     >
                                         {{ movementLabel(movementKind(entry)) }}
                                     </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger as-child>
+                                                <span
+                                                    class="inline-flex text-muted-foreground"
+                                                    :aria-label="entry.source"
+                                                >
+                                                    <component
+                                                        :is="
+                                                            accountKindIcon(
+                                                                entry.account_kind ?? 'account',
+                                                            )
+                                                        "
+                                                        class="size-[1.05rem]"
+                                                    />
+                                                </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{{ entry.source }}</TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 </TableCell>
                                 <TableCell>
                                     <div class="flex flex-col items-start">
@@ -309,9 +341,6 @@ function openDetails(entry: TransactionEntry): void {
                                 </TableCell>
                                 <TableCell class="text-sm whitespace-nowrap text-muted-foreground">
                                     {{ formatDate(entry.date) }}
-                                </TableCell>
-                                <TableCell class="text-sm text-muted-foreground">
-                                    {{ entry.source }}
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <div class="flex items-center justify-end gap-4">

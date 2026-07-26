@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Accounts;
 
+use App\Enums\AccountKind;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Category;
@@ -83,7 +84,7 @@ class ShowAccountController extends Controller
 
         $payAccounts = Account::query()
             ->where('tenant_id', $account->tenant_id)
-            ->where('kind', 'account')
+            ->where('kind', '!=', AccountKind::CreditCard->value)
             ->where('currency_id', $account->currency_id)
             ->orderBy('name')
             ->get(['id', 'name'])

@@ -9,6 +9,28 @@ return [
     'month_expense' => 'Saídas do mês',
     'total' => 'Total',
 
+    'add' => 'Adicionar conta',
+    'delete_confirm' => 'Excluir “:name”? Esta ação não pode ser desfeita.',
+    'delete_in_use' => 'Esta conta tem lançamentos e não pode ser excluída.',
+
+    'modal' => [
+        'create_title' => 'Nova conta',
+        'edit_title' => 'Editar conta',
+        'description' => 'Contas em moedas ativas.',
+        'name_label' => 'Nome',
+        'name_placeholder' => 'Ex.: Conta Corrente',
+        'kind_label' => 'Tipo',
+        'currency_label' => 'Moeda',
+        'currency_placeholder' => 'Selecione a moeda',
+        'balance_label' => 'Saldo inicial',
+        'balance_placeholder' => '0,00',
+        'credit_limit_label' => 'Limite de crédito',
+        'credit_limit_placeholder' => '0,00',
+        'closing_day_label' => 'Dia de fechamento',
+        'due_day_label' => 'Dia de vencimento',
+        'day_placeholder' => 'Dia',
+    ],
+
     'movement' => [
         'income' => 'Entrada',
         'expense' => 'Saída',
@@ -57,7 +79,6 @@ return [
             'amount_label' => 'Valor',
             'date_label' => 'Data do pagamento',
             'no_accounts' => 'Nenhuma conta disponível nesta moeda.',
-            'entry' => 'Pagamento fatura :card',
             'currency_mismatch' => 'A conta deve estar na mesma moeda do cartão.',
         ],
     ],

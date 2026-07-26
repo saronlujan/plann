@@ -3,6 +3,7 @@
 return [
     'title' => 'Contatos',
     'subtitle' => 'Fornecedores e clientes usados nas suas transações.',
+    'empty' => 'Sem contatos até o momento.',
     'add' => 'Adicionar contato',
 
     'table' => [

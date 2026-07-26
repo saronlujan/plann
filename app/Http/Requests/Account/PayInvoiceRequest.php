@@ -28,7 +28,7 @@ class PayInvoiceRequest extends FormRequest
                 'integer',
                 Rule::exists('accounts', 'id')->where(fn ($query) => $query
                     ->where('tenant_id', $tenantId)
-                    ->where('kind', AccountKind::Account->value)),
+                    ->where('kind', '!=', AccountKind::CreditCard->value)),
             ],
             'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0'],
             'effective_date' => ['required', 'date_format:Y-m-d'],

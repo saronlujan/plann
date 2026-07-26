@@ -5,6 +5,7 @@ return [
         'title' => 'Categorías',
         'subtitle' => 'Categorías de ingresos y gastos.',
         'add' => 'Añadir categoría',
+        'empty' => 'Sin categorías por el momento.',
         'delete_confirm' => '¿Eliminar “:name”? Esta acción no se puede deshacer.',
         'columns' => [
             'name' => 'Nombre',
@@ -25,6 +26,7 @@ return [
         'title' => 'Etiquetas',
         'subtitle' => 'Etiquetas libres para organizar tus transacciones.',
         'add' => 'Añadir etiqueta',
+        'empty' => 'Sin etiquetas por el momento.',
         'delete_confirm' => '¿Eliminar “:name”? Esta acción no se puede deshacer.',
         'columns' => [
             'name' => 'Nombre',
@@ -36,36 +38,6 @@ return [
             'name_label' => 'Nombre',
             'name_placeholder' => 'Nombre de la etiqueta',
             'color_label' => 'Color',
-        ],
-    ],
-
-    'accounts' => [
-        'title' => 'Cuentas',
-        'subtitle' => 'Cuentas en monedas activas.',
-        'add' => 'Añadir cuenta',
-        'delete_confirm' => '¿Eliminar “:name”? Esta acción no se puede deshacer.',
-        'columns' => [
-            'name' => 'Nombre',
-            'kind' => 'Tipo',
-            'currency' => 'Moneda',
-            'balance' => 'Saldo',
-        ],
-        'modal' => [
-            'create_title' => 'Nueva cuenta',
-            'edit_title' => 'Editar cuenta',
-            'description' => 'Cuentas en monedas activas.',
-            'name_label' => 'Nombre',
-            'name_placeholder' => 'Ej.: Cuenta Corriente',
-            'kind_label' => 'Tipo',
-            'currency_label' => 'Moneda',
-            'currency_placeholder' => 'Selecciona la moneda',
-            'balance_label' => 'Saldo inicial',
-            'balance_placeholder' => '0,00',
-            'credit_limit_label' => 'Límite de crédito',
-            'credit_limit_placeholder' => '0,00',
-            'closing_day_label' => 'Día de cierre',
-            'due_day_label' => 'Día de vencimiento',
-            'day_placeholder' => 'Día',
         ],
     ],
 

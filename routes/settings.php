@@ -1,9 +1,5 @@
 <?php
 
-use App\Http\Controllers\Settings\Accounts\DeleteAccountController;
-use App\Http\Controllers\Settings\Accounts\IndexAccountsController;
-use App\Http\Controllers\Settings\Accounts\StoreAccountController;
-use App\Http\Controllers\Settings\Accounts\UpdateAccountController;
 use App\Http\Controllers\Settings\Categories\DeleteCategoryController;
 use App\Http\Controllers\Settings\Categories\IndexCategoriesController;
 use App\Http\Controllers\Settings\Categories\StoreCategoryController;
@@ -27,11 +23,6 @@ Route::get('/settings/tags', IndexTagsController::class)->name('settings.tags.in
 Route::post('/settings/tags', StoreTagController::class)->name('settings.tags.store');
 Route::patch('/settings/tags/{tag}', UpdateTagController::class)->name('settings.tags.update');
 Route::delete('/settings/tags/{tag}', DeleteTagController::class)->name('settings.tags.destroy');
-
-Route::get('/settings/accounts', IndexAccountsController::class)->name('settings.accounts.index');
-Route::post('/settings/accounts', StoreAccountController::class)->name('settings.accounts.store');
-Route::patch('/settings/accounts/{account}', UpdateAccountController::class)->name('settings.accounts.update');
-Route::delete('/settings/accounts/{account}', DeleteAccountController::class)->name('settings.accounts.destroy');
 
 Route::get('/settings/currencies', IndexCurrenciesController::class)->name('settings.currencies.index');
 Route::patch('/settings/currencies', UpdateCurrenciesController::class)->name('settings.currencies.update');

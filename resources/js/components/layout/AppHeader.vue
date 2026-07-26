@@ -6,11 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { expireTrial } from '@/routes/dev';
 import { index as billing } from '@/routes/billing';
 import { edit as profile } from '@/routes/profile';
-import { index as budgets } from '@/routes/budgets';
-import { index as goals } from '@/routes/goals';
 import { accounts as accountsIndex, contacts, dashboard, logout, preferences } from '@/routes';
 import transactions from '@/routes/transactions';
-import { index as settingsAccounts } from '@/routes/settings/accounts';
 import { index as settingsCategories } from '@/routes/settings/categories';
 import { index as settingsCurrencies } from '@/routes/settings/currencies';
 import { index as settingsTags } from '@/routes/settings/tags';
@@ -78,13 +75,13 @@ const userInitials = computed(
                         </Link>
                     </li>
                     <li>
-                        <Link :href="contacts().url" class="transition hover:text-muted-foreground">
-                            {{ $t('common.navbar.contacts') }}
+                        <Link :href="accountsIndex().url" class="transition hover:text-muted-foreground">
+                            {{ $t('common.navbar.accounts') }}
                         </Link>
                     </li>
                     <li>
-                        <Link :href="accountsIndex().url" class="transition hover:text-muted-foreground">
-                            {{ $t('common.navbar.accounts') }}
+                        <Link :href="contacts().url" class="transition hover:text-muted-foreground">
+                            {{ $t('common.navbar.contacts') }}
                         </Link>
                     </li>
                     <li>
@@ -110,23 +107,8 @@ const userInitials = computed(
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>
-                                    <Link :href="settingsAccounts().url" class="w-full">
-                                        {{ $t('common.settings_menu.accounts') }}
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem as-child>
                                     <Link :href="settingsCurrencies().url" class="w-full">
                                         {{ $t('common.settings_menu.currencies') }}
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem as-child>
-                                    <Link :href="budgets().url" class="w-full">
-                                        {{ $t('common.settings_menu.budgets') }}
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem as-child>
-                                    <Link :href="goals().url" class="w-full">
-                                        {{ $t('common.settings_menu.goals') }}
                                     </Link>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

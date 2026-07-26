@@ -9,6 +9,28 @@ return [
     'month_expense' => 'Gastos del mes',
     'total' => 'Total',
 
+    'add' => 'Añadir cuenta',
+    'delete_confirm' => '¿Eliminar “:name”? Esta acción no se puede deshacer.',
+    'delete_in_use' => 'Esta cuenta tiene movimientos y no se puede eliminar.',
+
+    'modal' => [
+        'create_title' => 'Nueva cuenta',
+        'edit_title' => 'Editar cuenta',
+        'description' => 'Cuentas en monedas activas.',
+        'name_label' => 'Nombre',
+        'name_placeholder' => 'Ej.: Cuenta Corriente',
+        'kind_label' => 'Tipo',
+        'currency_label' => 'Moneda',
+        'currency_placeholder' => 'Selecciona la moneda',
+        'balance_label' => 'Saldo inicial',
+        'balance_placeholder' => '0,00',
+        'credit_limit_label' => 'Límite de crédito',
+        'credit_limit_placeholder' => '0,00',
+        'closing_day_label' => 'Día de cierre',
+        'due_day_label' => 'Día de vencimiento',
+        'day_placeholder' => 'Día',
+    ],
+
     'movement' => [
         'income' => 'Entrada',
         'expense' => 'Salida',
@@ -57,7 +79,6 @@ return [
             'amount_label' => 'Importe',
             'date_label' => 'Fecha del pago',
             'no_accounts' => 'Ninguna cuenta disponible en esta moneda.',
-            'entry' => 'Pago factura :card',
             'currency_mismatch' => 'La cuenta debe estar en la misma moneda que la tarjeta.',
         ],
     ],

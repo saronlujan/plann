@@ -27,9 +27,9 @@ const palette: Record<ColorValue, PaletteEntry | null> = {
     indigo: { primary: 'oklch(0.51 0.23 277)', foreground: 'oklch(0.985 0 0)' },
     purple: { primary: 'oklch(0.52 0.24 300)', foreground: 'oklch(0.985 0 0)' },
     pink: { primary: 'oklch(0.62 0.23 350)', foreground: 'oklch(0.985 0 0)' },
-    cyan: { primary: 'oklch(0.72 0.13 210)', foreground: 'oklch(0.205 0 0)' },
-    orange: { primary: 'oklch(0.70 0.18 55)', foreground: 'oklch(0.205 0 0)' },
-    yellow: { primary: 'oklch(0.85 0.16 90)', foreground: 'oklch(0.205 0 0)' },
+    cyan: { primary: 'oklch(0.72 0.13 210)', foreground: 'oklch(0.985 0 0)' },
+    orange: { primary: 'oklch(0.70 0.18 55)', foreground: 'oklch(0.985 0 0)' },
+    yellow: { primary: 'oklch(0.85 0.16 90)', foreground: 'oklch(0.985 0 0)' },
     green: { primary: 'oklch(0.62 0.17 150)', foreground: 'oklch(0.985 0 0)' },
     teal: { primary: 'oklch(0.60 0.13 190)', foreground: 'oklch(0.985 0 0)' },
 };

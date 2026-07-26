@@ -34,11 +34,19 @@ class ReadAccountsController extends Controller
                     ->with(['currency', 'account'])
                     ->get();
 
+                // Fields the edit modal needs, present on every account. `balance`
+                // is the stored opening balance the modal edits — distinct from the
+                // computed current balance shown on the card.
                 $base = [
                     'id' => $account->id,
                     'name' => $account->name,
                     'kind' => $account->kind->value,
+                    'currency_id' => $account->currency_id,
                     'currency_code' => $account->currency->code,
+                    'balance' => (string) $account->balance,
+                    'credit_limit' => $account->credit_limit === null ? null : (string) $account->credit_limit,
+                    'closing_day' => $account->closing_day,
+                    'due_day' => $account->due_day,
                 ];
 
                 if ($account->isCreditCard()) {
@@ -49,7 +57,6 @@ class ReadAccountsController extends Controller
                         'invoice_total' => $current['total'],
                         'invoice_due_date' => $current['due_date'],
                         'available' => $current['available'],
-                        'credit_limit' => $account->credit_limit === null ? null : (string) $account->credit_limit,
                     ];
                 }
 
@@ -57,7 +64,7 @@ class ReadAccountsController extends Controller
 
                 return [
                     ...$base,
-                    'balance' => $statement->balanceAsOf($account, $transactions, $now),
+                    'current_balance' => $statement->balanceAsOf($account, $transactions, $now),
                     'monthly_income' => $period['income'],
                     'monthly_expense' => $period['expense'],
                 ];

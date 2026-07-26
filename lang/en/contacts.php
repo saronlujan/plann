@@ -3,6 +3,7 @@
 return [
     'title' => 'Contacts',
     'subtitle' => 'Suppliers and clients used in your transactions.',
+    'empty' => 'No contacts yet.',
     'add' => 'Add contact',
 
     'table' => [

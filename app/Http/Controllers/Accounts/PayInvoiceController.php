@@ -23,7 +23,7 @@ class PayInvoiceController extends Controller
         $seriesUuid = (string) Str::uuid();
 
         DB::transaction(function () use ($validated, $bank, $account, $seriesUuid): void {
-            $description = __('accounts.invoice.pay.entry', ['card' => $account->name]);
+            $description = $account->name;
 
             Transaction::query()->create([
                 'tenant_id' => $bank->tenant_id,
@@ -34,6 +34,7 @@ class PayInvoiceController extends Controller
                 'type' => TransactionType::Unique->value,
                 'series_uuid' => $seriesUuid,
                 'effective_date' => $validated['effective_date'],
+                'paid_at' => $validated['effective_date'],
                 'amount' => $validated['amount'],
                 'adjustment_amount' => 0,
                 'description' => $description,
@@ -48,6 +49,7 @@ class PayInvoiceController extends Controller
                 'type' => TransactionType::Unique->value,
                 'series_uuid' => $seriesUuid,
                 'effective_date' => $validated['effective_date'],
+                'paid_at' => $validated['effective_date'],
                 'amount' => $validated['amount'],
                 'adjustment_amount' => 0,
                 'description' => $description,

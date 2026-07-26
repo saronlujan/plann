@@ -31,12 +31,6 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware(['web', 'auth', 'subscribed'])
                 ->group(base_path('routes/settings.php'));
 
-            Route::middleware(['web', 'auth', 'subscribed'])
-                ->group(base_path('routes/budgets.php'));
-
-            Route::middleware(['web', 'auth', 'subscribed'])
-                ->group(base_path('routes/goals.php'));
-
             // Billing and preferences stay reachable even when the trial lapses.
             Route::middleware(['web', 'auth'])
                 ->group(base_path('routes/billing.php'));

@@ -28,6 +28,26 @@ enum LabelColor: string
 
     case Zinc = 'zinc';
 
+    case Sky = 'sky';
+
+    case Cyan = 'cyan';
+
+    case Emerald = 'emerald';
+
+    case Lime = 'lime';
+
+    case Amber = 'amber';
+
+    case Rose = 'rose';
+
+    case Fuchsia = 'fuchsia';
+
+    case Violet = 'violet';
+
+    case Slate = 'slate';
+
+    case Stone = 'stone';
+
     public static function default(): self
     {
         return self::Zinc;
@@ -54,6 +74,16 @@ enum LabelColor: string
             self::Green => '#22c55e',
             self::Teal => '#14b8a6',
             self::Zinc => '#71717a',
+            self::Sky => '#0ea5e9',
+            self::Cyan => '#06b6d4',
+            self::Emerald => '#10b981',
+            self::Lime => '#84cc16',
+            self::Amber => '#f59e0b',
+            self::Rose => '#f43f5e',
+            self::Fuchsia => '#d946ef',
+            self::Violet => '#8b5cf6',
+            self::Slate => '#64748b',
+            self::Stone => '#78716c',
         };
     }
 

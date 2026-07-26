@@ -69,7 +69,7 @@ afterEach(function () {
 test('a credit card can be created through settings with card fields', function () {
     [$user, $currency] = cardFixture('card-create@example.com');
 
-    actingAs($user)->post('/settings/accounts', [
+    actingAs($user)->post('/accounts', [
         'name' => 'Cartão',
         'kind' => 'credit_card',
         'currency_id' => (string) $currency->id,
@@ -159,6 +159,9 @@ test('paying the invoice reduces the outstanding balance via a transfer', functi
 
     // Two transfer legs created (bank expense + card income), both is_transfer.
     expect(Transaction::query()->where('is_transfer', true)->count())->toBe(2);
+
+    // The payment is an executed movement, so both legs are already paid.
+    expect(Transaction::query()->where('is_transfer', true)->whereNull('paid_at')->count())->toBe(0);
 
     // Outstanding is now zero: purchase 300 − payment 300.
     actingAs($user)->get('/accounts/'.$card->id)->assertSuccessful()

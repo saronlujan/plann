@@ -18,6 +18,7 @@ import {
     amountClass,
     dueStatus,
     movementBadgeClass,
+    movementKind,
     movementLabel,
     scheduleLabel,
     signedAmount,
@@ -82,8 +83,8 @@ const hasAdjustment = computed(
         <DrawerContent v-if="entry">
             <DrawerHeader class="gap-2 text-left">
                 <div class="flex items-center gap-2">
-                    <Badge variant="outline" :class="movementBadgeClass[entry.movement_type]">
-                        {{ movementLabel(entry.movement_type) }}
+                    <Badge variant="outline" :class="movementBadgeClass[movementKind(entry)]">
+                        {{ movementLabel(movementKind(entry)) }}
                     </Badge>
                     <Badge variant="outline" class="rounded-full">
                         {{ scheduleLabel(entry) }}

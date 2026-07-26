@@ -84,4 +84,7 @@ export type TransactionEntry = {
     installments_total: number | null;
     installment_number: number | null;
     source: string;
+    account_kind: string | null;
+    transfer_from: string | null;
+    transfer_to: string | null;
 };

@@ -6,6 +6,10 @@ enum AccountKind: string
 {
     case Account = 'account';
 
+    case Bank = 'bank';
+
+    case Wallet = 'wallet';
+
     case CreditCard = 'credit_card';
 
     public function label(): string

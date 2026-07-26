@@ -21,8 +21,6 @@ return [
         'tags' => 'Tags',
         'accounts' => 'Accounts',
         'currencies' => 'Currencies',
-        'budgets' => 'Budgets',
-        'goals' => 'Goals',
     ],
 
     'actions' => [
@@ -36,11 +34,13 @@ return [
         'remove' => 'Remove',
         'select' => 'Select',
         'search' => 'Search',
+        'more' => 'More options',
     ],
 
     'state' => [
         'empty' => 'Empty',
         'none' => '—',
+        'error' => 'Something went wrong. Please try again.',
     ],
 
     'date' => [

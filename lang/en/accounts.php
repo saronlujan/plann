@@ -9,6 +9,28 @@ return [
     'month_expense' => 'Expenses this month',
     'total' => 'Total',
 
+    'add' => 'Add account',
+    'delete_confirm' => 'Delete “:name”? This action cannot be undone.',
+    'delete_in_use' => 'This account has transactions and cannot be deleted.',
+
+    'modal' => [
+        'create_title' => 'New account',
+        'edit_title' => 'Edit account',
+        'description' => 'Accounts in active currencies.',
+        'name_label' => 'Name',
+        'name_placeholder' => 'E.g., Checking Account',
+        'kind_label' => 'Type',
+        'currency_label' => 'Currency',
+        'currency_placeholder' => 'Select the currency',
+        'balance_label' => 'Initial balance',
+        'balance_placeholder' => '0.00',
+        'credit_limit_label' => 'Credit limit',
+        'credit_limit_placeholder' => '0.00',
+        'closing_day_label' => 'Closing day',
+        'due_day_label' => 'Due day',
+        'day_placeholder' => 'Day',
+    ],
+
     'movement' => [
         'income' => 'In',
         'expense' => 'Out',
@@ -57,7 +79,6 @@ return [
             'amount_label' => 'Amount',
             'date_label' => 'Payment date',
             'no_accounts' => 'No account available in this currency.',
-            'entry' => 'Invoice payment :card',
             'currency_mismatch' => 'The account must be in the same currency as the card.',
         ],
     ],

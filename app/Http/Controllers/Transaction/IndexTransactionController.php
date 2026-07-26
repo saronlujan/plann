@@ -15,6 +15,7 @@ use App\Support\Transactions\TransactionProjector;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,7 +46,16 @@ class IndexTransactionController extends Controller
             ->orderBy('id')
             ->get();
 
+        $transferLegs = $this->transferLegs($transactions);
+
         $entries = $projector->entriesForPeriod($transactions, $period)
+            ->map(function (array $entry) use ($transferLegs): array {
+                $legs = $transferLegs[$entry['transaction_id']] ?? null;
+                $entry['transfer_from'] = $legs['from'] ?? null;
+                $entry['transfer_to'] = $legs['to'] ?? null;
+
+                return $entry;
+            })
             ->sortBy([['date', 'desc'], ['label', 'asc']])
             ->values();
 
@@ -111,6 +121,34 @@ class IndexTransactionController extends Controller
             'entries' => $entries->all(),
             'summaries' => $summaries->all(),
         ]);
+    }
+
+    /**
+     * Map each transfer leg's transaction id to the origin/destination account
+     * names, resolved from its sibling leg (same series_uuid).
+     *
+     * @param  Collection<int, Transaction>  $transactions
+     * @return array<int, array{from: ?string, to: ?string}>
+     */
+    private function transferLegs(Collection $transactions): array
+    {
+        $bySeries = $transactions
+            ->filter(fn (Transaction $transaction): bool => $transaction->is_transfer && $transaction->series_uuid !== null)
+            ->groupBy('series_uuid')
+            ->map(fn ($legs): array => [
+                'from' => $legs->first(fn (Transaction $leg): bool => $leg->movement_type === TransactionMovementType::Expense)?->account?->name,
+                'to' => $legs->first(fn (Transaction $leg): bool => $leg->movement_type === TransactionMovementType::Income)?->account?->name,
+            ]);
+
+        $legs = [];
+
+        foreach ($transactions as $transaction) {
+            if ($transaction->is_transfer && isset($bySeries[$transaction->series_uuid])) {
+                $legs[$transaction->id] = $bySeries[$transaction->series_uuid];
+            }
+        }
+
+        return $legs;
     }
 
     private function resolvePeriod(string $period): CarbonImmutable

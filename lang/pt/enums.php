@@ -2,8 +2,10 @@
 
 return [
     'account_kind' => [
-        'account' => 'Conta',
-        'credit_card' => 'Cartão de crédito',
+        'account' => 'Conta Simples',
+        'bank' => 'Conta Bancária',
+        'wallet' => 'Cripto Moeda',
+        'credit_card' => 'Cartão de Crédito',
     ],
 
     'transaction_movement_type' => [
@@ -62,6 +64,16 @@ return [
         'green' => 'Verde',
         'teal' => 'Turquesa',
         'zinc' => 'Cinza',
+        'sky' => 'Céu',
+        'cyan' => 'Ciano',
+        'emerald' => 'Esmeralda',
+        'lime' => 'Lima',
+        'amber' => 'Âmbar',
+        'rose' => 'Rosé',
+        'fuchsia' => 'Fúcsia',
+        'violet' => 'Violeta',
+        'slate' => 'Ardósia',
+        'stone' => 'Pedra',
     ],
 
     'sound_theme' => [

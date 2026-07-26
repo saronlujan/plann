@@ -21,8 +21,6 @@ return [
         'tags' => 'Etiquetas',
         'accounts' => 'Cuentas',
         'currencies' => 'Monedas',
-        'budgets' => 'Presupuestos',
-        'goals' => 'Metas',
     ],
 
     'actions' => [
@@ -36,11 +34,13 @@ return [
         'remove' => 'Quitar',
         'select' => 'Seleccione',
         'search' => 'Buscar',
+        'more' => 'Más opciones',
     ],
 
     'state' => [
         'empty' => 'Vacío',
         'none' => '—',
+        'error' => 'Algo salió mal. Inténtalo de nuevo.',
     ],
 
     'date' => [

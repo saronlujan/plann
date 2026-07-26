@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { PencilIcon, PlusIcon, Trash2Icon } from '@lucide/vue';
+import { DatabaseIcon, PlusIcon } from '@lucide/vue';
 import { ref } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import RowActionsMenu from '@/components/RowActionsMenu.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -121,23 +122,11 @@ function confirmDelete(): void {
                                     </Badge>
                                 </TableCell>
                                 <TableCell class="text-right">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            :aria-label="$t('common.actions.edit')"
-                                            @click="openModal(category)"
-                                        >
-                                            <PencilIcon class="size-4" />
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            :aria-label="$t('common.actions.delete')"
-                                            @click="askDelete(category)"
-                                        >
-                                            <Trash2Icon class="size-4" />
-                                        </Button>
+                                    <div class="flex items-center justify-end">
+                                        <RowActionsMenu
+                                            @edit="openModal(category)"
+                                            @delete="askDelete(category)"
+                                        />
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -145,8 +134,12 @@ function confirmDelete(): void {
                     </Table>
                 </CardContent>
             </Card>
-            <div v-else class="p-6 text-center text-sm text-muted-foreground">
-                {{ $t('common.state.empty') }}
+            <div
+                v-else
+                class="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground"
+            >
+                <DatabaseIcon class="size-4 shrink-0" />
+                {{ $t('settings.categories.empty') }}
             </div>
 
             <CategoryModal

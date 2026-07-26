@@ -68,7 +68,7 @@ test('the accounts list shows the computed current balance', function () {
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Accounts/Index')
             ->has('accounts', 1)
-            ->where('accounts.0.balance', '250.00')
+            ->where('accounts.0.current_balance', '250.00')
             ->where('accounts.0.monthly_income', '200.00')
             ->where('accounts.0.monthly_expense', '50.00'));
 });

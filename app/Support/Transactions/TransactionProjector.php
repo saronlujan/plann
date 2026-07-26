@@ -179,6 +179,7 @@ class TransactionProjector
                     'installments_total' => $transaction->installments_total,
                     'installment_number' => $installmentNumber,
                     'source' => $this->resolveSourceLabel($transaction),
+                    'account_kind' => $transaction->account?->kind?->value,
                 ]);
             }
 
@@ -267,6 +268,7 @@ class TransactionProjector
             'installments_total' => $transaction->installments_total,
             'installment_number' => $transaction->installment_number,
             'source' => $this->resolveSourceLabel($transaction),
+            'account_kind' => $transaction->account?->kind?->value,
             ...$overrides,
         ];
     }
