@@ -76,9 +76,7 @@ function submit(): void {
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>{{
-                    isEdit
-                        ? $t('tags.modal.edit_title')
-                        : $t('tags.modal.create_title')
+                    isEdit ? $t('tags.modal.edit_title') : $t('tags.modal.create_title')
                 }}</DialogTitle>
                 <DialogDescription>{{ $t('tags.modal.description') }}</DialogDescription>
             </DialogHeader>

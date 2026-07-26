@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'Profile',
+    'title' => 'My Details',
     'subtitle' => 'Manage your account details and password.',
 
     'account' => [
@@ -10,7 +10,8 @@ return [
         'name' => 'Name',
         'email' => 'Email',
         'phone' => 'Phone',
-        'saved' => 'Profile updated.',
+        'saved' => 'Details updated.',
+        'email_locked' => 'Your email is your verified login identity and cannot be changed.',
     ],
 
     'password' => [
@@ -19,7 +20,7 @@ return [
         'current' => 'Current password',
         'new' => 'New password',
         'confirm' => 'Confirm new password',
-        'submit' => 'Update password',
+        'submit' => 'Save',
         'updated' => 'Password updated.',
     ],
 ];

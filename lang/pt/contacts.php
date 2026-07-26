@@ -21,8 +21,8 @@ return [
     'delete_confirm' => 'Excluir o contato “:name”? Esta ação não pode ser desfeita.',
 
     'modal' => [
-        'create_title' => 'Novo contato',
-        'edit_title' => 'Editar contato',
+        'create_title' => 'Novo Contato',
+        'edit_title' => 'Editar Contato',
         'description' => 'Cadastre um fornecedor ou cliente.',
     ],
 

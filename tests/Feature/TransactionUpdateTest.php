@@ -16,7 +16,7 @@ it('updates a transaction from the edit modal', function () {
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'update-transactions@example.com',
@@ -79,7 +79,7 @@ it('updates only one recurring occurrence when requested', function () {
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'update-recurring-one@example.com',
@@ -146,7 +146,7 @@ it('splits a recurring series from the selected month forward', function () {
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'update-recurring-forward@example.com',

@@ -13,9 +13,10 @@ const props = defineProps<{
     profile: { name: string; email: string; phone: string | null };
 }>();
 
+// The email is the verified login identity and is not editable, so it is shown
+// read-only and deliberately kept out of the form payload.
 const accountForm = useForm({
     name: props.profile.name,
-    email: props.profile.email,
     phone: props.profile.phone ?? '',
 });
 
@@ -54,7 +55,9 @@ function submitPassword(): void {
             </div>
 
             <Card>
-                <div class="grid grid-cols-12 gap-5 border-b border-zinc-100 pb-6 dark:border-zinc-800">
+                <div
+                    class="grid grid-cols-12 gap-5 border-b border-zinc-100 pb-6 dark:border-zinc-800"
+                >
                     <div class="col-span-12 flex flex-col lg:col-span-4">
                         <h2 class="font-medium">{{ $t('profile.account.title') }}</h2>
                         <span class="text-xs font-medium text-zinc-400 dark:text-zinc-500">
@@ -69,12 +72,24 @@ function submitPassword(): void {
                                 <FormError :message="accountForm.errors.name" />
                             </FormGroup>
                             <FormGroup>
-                                <FormLabel for="p-email">{{ $t('profile.account.email') }}</FormLabel>
-                                <Input id="p-email" v-model="accountForm.email" type="email" />
-                                <FormError :message="accountForm.errors.email" />
+                                <FormLabel for="p-email">{{
+                                    $t('profile.account.email')
+                                }}</FormLabel>
+                                <Input
+                                    id="p-email"
+                                    :model-value="props.profile.email"
+                                    type="email"
+                                    readonly
+                                    disabled
+                                />
+                                <span class="text-xs text-muted-foreground">
+                                    {{ $t('profile.account.email_locked') }}
+                                </span>
                             </FormGroup>
                             <FormGroup>
-                                <FormLabel for="p-phone">{{ $t('profile.account.phone') }}</FormLabel>
+                                <FormLabel for="p-phone">{{
+                                    $t('profile.account.phone')
+                                }}</FormLabel>
                                 <Input id="p-phone" v-model="accountForm.phone" />
                                 <FormError :message="accountForm.errors.phone" />
                             </FormGroup>

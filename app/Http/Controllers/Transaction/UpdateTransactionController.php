@@ -7,15 +7,16 @@ use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
 use App\Models\Transaction;
+use App\Support\Transactions\TransactionAttachments;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class UpdateTransactionController extends Controller
 {
+    public function __construct(private readonly TransactionAttachments $attachments) {}
+
     public function __invoke(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
     {
         $this->authorize('update', $transaction);
@@ -23,7 +24,7 @@ class UpdateTransactionController extends Controller
         $validated = $request->validated();
 
         $newAttachment = $request->file('attachment');
-        $attachmentPath = $this->storeAttachment($newAttachment) ?? $transaction->attachment_path;
+        $attachmentPath = $this->attachments->store($newAttachment) ?? $transaction->attachment_path;
 
         if ($transaction->type === TransactionType::Recurring) {
             $recurrenceScope = TransactionRecurrenceScope::from($validated['recurrence_scope'] ?? TransactionRecurrenceScope::All->value);
@@ -43,7 +44,7 @@ class UpdateTransactionController extends Controller
         $transaction->save();
         $transaction->tags()->sync($validated['tags'] ?? []);
 
-        $this->discardReplacedAttachment($newAttachment, $previousAttachment, $attachmentPath);
+        $this->attachments->discardReplaced($newAttachment, $previousAttachment, $attachmentPath);
 
         return to_route('transactions.index', [
             'period' => $transaction->effective_date->format('Y-m'),
@@ -170,26 +171,5 @@ class UpdateTransactionController extends Controller
         return to_route('transactions.index', [
             'period' => $newSeries->effective_date->format('Y-m'),
         ]);
-    }
-
-    private function storeAttachment(?UploadedFile $attachment): ?string
-    {
-        if ($attachment === null) {
-            return null;
-        }
-
-        return Storage::disk('public')->putFile('transactions/attachments', $attachment);
-    }
-
-    /**
-     * Remove the previously stored file once a new attachment has replaced it.
-     */
-    private function discardReplacedAttachment(?UploadedFile $newAttachment, ?string $previousAttachment, ?string $currentAttachment): void
-    {
-        if ($newAttachment === null || $previousAttachment === null || $previousAttachment === $currentAttachment) {
-            return;
-        }
-
-        Storage::disk('public')->delete($previousAttachment);
     }
 }

@@ -48,7 +48,7 @@ class UserSeeder extends Seeder
             );
         }
 
-        User::query()->updateOrCreate(
+        $user = User::query()->updateOrCreate(
             [
                 'email' => 'saronlujan@gmail.com',
             ],
@@ -60,5 +60,9 @@ class UserSeeder extends Seeder
                 'locale' => 'pt',
             ],
         );
+
+        // The seeded account skips the verification step so `migrate:fresh --seed`
+        // lands straight on a usable app.
+        $user->markEmailAsVerified();
     }
 }

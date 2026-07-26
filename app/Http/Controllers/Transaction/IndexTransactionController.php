@@ -49,13 +49,7 @@ class IndexTransactionController extends Controller
         $transferLegs = $this->transferLegs($transactions);
 
         $entries = $projector->entriesForPeriod($transactions, $period)
-            ->map(function (array $entry) use ($transferLegs): array {
-                $legs = $transferLegs[$entry['transaction_id']] ?? null;
-                $entry['transfer_from'] = $legs['from'] ?? null;
-                $entry['transfer_to'] = $legs['to'] ?? null;
-
-                return $entry;
-            })
+            ->map(fn (array $entry): array => $this->withTransferLegs($entry, $transferLegs))
             ->sortBy([['date', 'desc'], ['label', 'asc']])
             ->values();
 
@@ -121,6 +115,23 @@ class IndexTransactionController extends Controller
             'entries' => $entries->all(),
             'summaries' => $summaries->all(),
         ]);
+    }
+
+    /**
+     * Attach the origin/destination account names to a projected entry.
+     *
+     * @param  array<string, mixed>  $entry
+     * @param  array<int, array{from: ?string, to: ?string}>  $transferLegs
+     * @return array<string, mixed>
+     */
+    private function withTransferLegs(array $entry, array $transferLegs): array
+    {
+        $legs = $transferLegs[$entry['transaction_id']] ?? null;
+
+        $entry['transfer_from'] = $legs['from'] ?? null;
+        $entry['transfer_to'] = $legs['to'] ?? null;
+
+        return $entry;
     }
 
     /**

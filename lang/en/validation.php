@@ -180,8 +180,11 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'destination_account_id' => [
+            'different' => 'The destination account must be different from the source account.',
+        ],
+        'pin' => [
+            'digits' => 'The code must be 6 digits.',
         ],
     ],
 
@@ -196,6 +199,50 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'account_id' => 'account',
+        'adjustment_amount' => 'adjustment amount',
+        'adjustment_month' => 'adjustment month',
+        'amount' => 'amount',
+        'attachment' => 'attachment',
+        'balance' => 'balance',
+        'category_id' => 'category',
+        'closing_day' => 'closing day',
+        'color' => 'colour',
+        'credit_limit' => 'credit limit',
+        'currency_id' => 'currency',
+        'currency_ids' => 'currencies',
+        'current_password' => 'current password',
+        'description' => 'description',
+        'destination_account_id' => 'destination account',
+        'document' => 'document',
+        'due_day' => 'due day',
+        'effective_date' => 'date',
+        'effective_until' => 'end date',
+        'email' => 'email',
+        'installment_frequency' => 'installment frequency',
+        'installment_number' => 'installment number',
+        'installments_total' => 'total installments',
+        'interest_amount' => 'interest',
+        'kind' => 'kind',
+        'locale' => 'language',
+        'movement_type' => 'movement',
+        'name' => 'name',
+        'notes' => 'notes',
+        'notifications_enabled' => 'notifications',
+        'notify_days_before' => 'days in advance',
+        'occurrence_date' => 'occurrence date',
+        'password' => 'password',
+        'password_confirmation' => 'password confirmation',
+        'phone' => 'phone',
+        'pin' => 'code',
+        'recurrence_scope' => 'recurrence scope',
+        'remember' => 'remember me',
+        'sound_enabled' => 'sounds',
+        'sound_theme' => 'sound theme',
+        'tags' => 'tags',
+        'theme' => 'theme',
+        'type' => 'type',
+    ],
 
 ];

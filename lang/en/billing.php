@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'Plans and billing',
+    'title' => 'Plans and Billing',
     'subtitle' => 'Choose the ideal plan — billed annually, cancel anytime.',
 
     'status' => [

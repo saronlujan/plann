@@ -11,7 +11,7 @@ test('authenticated requests set the postgres tenant context', function () {
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'tenant-context@example.com',

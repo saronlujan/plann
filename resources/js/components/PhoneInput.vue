@@ -81,10 +81,12 @@ const countries: Country[] = [
     },
 ];
 
-const props = withDefaults(
-    defineProps<{ name?: string; placeholder?: string; disabled?: boolean }>(),
-    { name: undefined, placeholder: undefined, disabled: false },
-);
+// The template reads the props directly, so the returned object is not bound.
+withDefaults(defineProps<{ name?: string; placeholder?: string; disabled?: boolean }>(), {
+    name: undefined,
+    placeholder: undefined,
+    disabled: false,
+});
 
 const model = defineModel<string>({ default: '' });
 

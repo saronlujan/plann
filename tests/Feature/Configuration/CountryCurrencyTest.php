@@ -10,5 +10,5 @@ test('currency seeds are created for the mvp currencies', function () {
 
     sort($currencyCodes);
 
-    expect($currencyCodes)->toBe(['ARS', 'BRL', 'PYG', 'USD']);
+    expect($currencyCodes)->toBe(['ARS', 'BRL', 'PYG', 'USD', 'USDT']);
 });

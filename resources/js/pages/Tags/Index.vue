@@ -38,9 +38,11 @@ function askDelete(tag: Tag): void {
 }
 function confirmDelete(): void {
     const target = deleteTarget.value;
+
     if (target === null) {
         return;
     }
+
     confirmOpen.value = false;
     router.delete(destroyTag(target.id).url, {
         preserveScroll: true,
@@ -117,9 +119,7 @@ function confirmDelete(): void {
             <TagModal v-model:open="modalOpen" :entry="editing" />
             <ConfirmDialog
                 :open="confirmOpen"
-                :description="
-                    $t('tags.delete_confirm', { name: deleteTarget?.name ?? '' })
-                "
+                :description="$t('tags.delete_confirm', { name: deleteTarget?.name ?? '' })"
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"
             />

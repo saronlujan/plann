@@ -18,7 +18,14 @@ class SendDueTransactionNotifications extends Command
 {
     protected $signature = 'app:send-due-transaction-notifications';
 
-    protected $description = 'Notify users about transactions that are due today or coming due (queued).';
+    protected $description = 'Notify users about overdue transactions and those due today or coming due (queued).';
+
+    /**
+     * How far back the overdue sweep looks. Each occurrence is only ever
+     * reported once (see TransactionNotification), so a wider window would only
+     * add projection cost, not extra reminders.
+     */
+    private const OVERDUE_LOOKBACK_DAYS = 60;
 
     public function handle(TransactionProjector $projector, TenantContext $context): int
     {
@@ -50,9 +57,10 @@ class SendDueTransactionNotifications extends Command
                 ->unique(fn (CarbonImmutable $date): string => $date->toDateString());
 
             $entriesByDate = $this->entriesByDate($projector, $transactions, $targetDates);
+            $overdue = $this->overdueEntries($projector, $transactions, $today);
 
             foreach ($users as $user) {
-                $sent += $this->notifyUser($user, $today, $entriesByDate);
+                $sent += $this->notifyUser($user, $today, $entriesByDate, $overdue);
             }
         });
 
@@ -96,16 +104,57 @@ class SendDueTransactionNotifications extends Command
     }
 
     /**
-     * @param  array<string, array<int, array<string, mixed>>>  $entriesByDate
+     * Unpaid entries whose due date has already passed, within the lookback
+     * window. Bounded on purpose: without it every run would re-project the
+     * tenant's entire history month by month.
+     *
+     * @param  Collection<int, Transaction>  $transactions
+     * @return array<int, array<string, mixed>>
      */
-    private function notifyUser(User $user, CarbonImmutable $today, array $entriesByDate): int
+    private function overdueEntries(TransactionProjector $projector, Collection $transactions, CarbonImmutable $today): array
+    {
+        $windowStart = $today->subDays(self::OVERDUE_LOOKBACK_DAYS);
+        $todayKey = $today->toDateString();
+        $windowStartKey = $windowStart->toDateString();
+
+        $entries = [];
+        $period = $windowStart->startOfMonth();
+        $lastPeriod = $today->startOfMonth();
+
+        while ($period->lessThanOrEqualTo($lastPeriod)) {
+            foreach ($projector->entriesForPeriod($transactions, $period) as $entry) {
+                if ($entry['paid_at'] === null && $entry['date'] >= $windowStartKey && $entry['date'] < $todayKey) {
+                    $entries[] = $entry;
+                }
+            }
+
+            $period = $period->addMonth();
+        }
+
+        usort($entries, fn (array $a, array $b): int => $a['date'] <=> $b['date']);
+
+        return $entries;
+    }
+
+    /**
+     * @param  array<string, array<int, array<string, mixed>>>  $entriesByDate
+     * @param  array<int, array<string, mixed>>  $overdue
+     */
+    private function notifyUser(User $user, CarbonImmutable $today, array $entriesByDate, array $overdue): int
     {
         $upcomingDate = $today->addDays(max(0, $user->notify_days_before));
 
         $buckets = [
+            'overdue' => $overdue,
             'due_today' => $entriesByDate[$today->toDateString()] ?? [],
-            'upcoming' => $entriesByDate[$upcomingDate->toDateString()] ?? [],
         ];
+
+        // With notify_days_before = 0 (allowed by the preferences form) the
+        // "upcoming" horizon lands on today, which would mail the same entries
+        // a second time under a different kind.
+        if (! $upcomingDate->isSameDay($today)) {
+            $buckets['upcoming'] = $entriesByDate[$upcomingDate->toDateString()] ?? [];
+        }
 
         $dispatched = 0;
 
@@ -116,7 +165,13 @@ class SendDueTransactionNotifications extends Command
                 continue;
             }
 
-            Notification::send($user, new TransactionDueNotification($kind, array_map($this->toItem(...), $fresh)));
+            // Queued notification: without an explicit locale the worker would
+            // render every email in the app default language.
+            Notification::send(
+                $user,
+                (new TransactionDueNotification($kind, array_map($this->toItem(...), $fresh)))
+                    ->locale($user->locale ?: config('app.locale')),
+            );
 
             foreach ($fresh as $entry) {
                 TransactionNotification::query()->create([

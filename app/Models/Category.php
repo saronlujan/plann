@@ -37,11 +37,17 @@ class Category extends Model
         'color' => LabelColor::class,
     ];
 
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * @return HasMany<Transaction, $this>
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

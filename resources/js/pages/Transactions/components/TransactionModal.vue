@@ -7,7 +7,6 @@ import DatePicker from '@/components/ui/date-picker/DatePicker.vue';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -24,7 +23,6 @@ import {
 import { colorHex } from '@/lib/labelColors';
 import { cn } from '@/lib/utils';
 import transactions from '@/routes/transactions';
-import TagsSelect from './TagsSelect.vue';
 import type {
     AccountOption,
     CategoryOption,
@@ -33,6 +31,7 @@ import type {
     TagOption,
     TransactionEntry,
 } from '../types';
+import TagsSelect from './TagsSelect.vue';
 
 type TransactionFormData = {
     movement_type: string;
@@ -168,6 +167,7 @@ const destinationAccountOptions = computed(() =>
 const isInstallmentType = computed(() => form.type === 'installment');
 const isRecurringType = computed(() => form.type === 'recurring');
 const isTransferMovement = computed(() => form.movement_type === 'transfer');
+const showInstallmentFields = computed(() => isInstallmentType.value && !isTransferMovement.value);
 
 // Categories carry a type (income / expense / both). Show the ones matching the
 // current movement plus dual-use ("both") categories. Transfers have no category.
@@ -355,9 +355,44 @@ watch(
 
             <Form class="space-y-5 px-6 pb-6" @submit.prevent="submitTransaction">
                 <div class="grid gap-4 md:grid-cols-2">
+                    <FormGroup class="md:col-span-2">
+                        <FormLabel for="tx-description">{{
+                            $t('transactions.fields.description')
+                        }}</FormLabel>
+                        <Input
+                            id="tx-description"
+                            v-model="form.description"
+                            type="text"
+                            name="description"
+                            :placeholder="$t('transactions.placeholders.description')"
+                        />
+                        <FormError :message="form.errors.description" />
+                    </FormGroup>
+
                     <FormGroup class="md:col-span-1">
+                        <FormLabel for="tx-amount">{{
+                            $t('transactions.fields.amount')
+                        }}</FormLabel>
+                        <Input
+                            id="tx-amount"
+                            v-model="form.amount"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="amount"
+                            :placeholder="$t('transactions.placeholders.amount')"
+                        />
+                        <FormError :message="form.errors.amount" />
+                    </FormGroup>
+
+                    <!--
+                        A transfer is always a single, already-settled movement: the
+                        watcher pins form.type to 'unique', so the field has nothing to
+                        offer and is hidden rather than shown disabled.
+                    -->
+                    <FormGroup v-if="!isTransferMovement" class="md:col-span-1">
                         <FormLabel for="tx-type">{{ $t('transactions.fields.type') }}</FormLabel>
-                        <Select v-model="form.type" :disabled="isTransferMovement">
+                        <Select v-model="form.type">
                             <SelectTrigger id="tx-type">
                                 <SelectValue :placeholder="$t('transactions.placeholders.type')" />
                             </SelectTrigger>
@@ -374,7 +409,61 @@ watch(
                         <FormError :message="form.errors.type" />
                     </FormGroup>
 
-                    <FormGroup>
+                    <!--
+                        Installment details sit inline right after the type that reveals
+                        them. The wrapper spans the grid so the pair always shares a row
+                        of its own instead of pairing up with whatever field follows.
+                    -->
+                    <div
+                        v-if="showInstallmentFields"
+                        class="grid gap-4 md:col-span-2 md:grid-cols-2"
+                    >
+                        <FormGroup>
+                            <FormLabel for="tx-installments-total">{{
+                                $t('transactions.fields.installments_total')
+                            }}</FormLabel>
+                            <Input
+                                id="tx-installments-total"
+                                v-model="form.installments_total"
+                                type="number"
+                                min="1"
+                                max="600"
+                                name="installments_total"
+                                :placeholder="$t('transactions.placeholders.installments_total')"
+                            />
+                            <FormError :message="form.errors.installments_total" />
+                        </FormGroup>
+
+                        <FormGroup>
+                            <FormLabel for="tx-frequency">{{
+                                $t('transactions.fields.frequency')
+                            }}</FormLabel>
+                            <Select v-model="form.installment_frequency">
+                                <SelectTrigger id="tx-frequency">
+                                    <SelectValue
+                                        :placeholder="$t('transactions.placeholders.frequency')"
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="option in frequencyOptions"
+                                        :key="option.value"
+                                        :value="option.value"
+                                    >
+                                        {{ option.label }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormError :message="form.errors.installment_frequency" />
+                        </FormGroup>
+                    </div>
+
+                    <!--
+                        With a single active currency there is nothing to choose: the
+                        form already defaults to it, so the field would only be a
+                        read-only echo taking up a slot.
+                    -->
+                    <FormGroup v-if="currencyOptions.length > 1">
                         <FormLabel for="tx-currency">{{
                             $t('transactions.fields.currency')
                         }}</FormLabel>
@@ -397,7 +486,11 @@ watch(
                         <FormError :message="form.errors.currency_id" />
                     </FormGroup>
 
-                    <FormGroup>
+                    <!--
+                        On a transfer the source account is forced to start a new row so
+                        the destination always lands beside it, whatever precedes them.
+                    -->
+                    <FormGroup :class="isTransferMovement ? 'md:col-start-1' : undefined">
                         <FormLabel for="tx-account">{{ accountLabel }}</FormLabel>
                         <Select v-model="form.account_id">
                             <SelectTrigger id="tx-account">
@@ -451,51 +544,11 @@ watch(
                         <FormError :message="form.errors.effective_date" />
                     </FormGroup>
 
-                    <FormGroup>
-                        <FormLabel for="tx-amount">{{
-                            $t('transactions.fields.amount')
-                        }}</FormLabel>
-                        <Input
-                            id="tx-amount"
-                            v-model="form.amount"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            name="amount"
-                            :placeholder="$t('transactions.placeholders.amount')"
-                        />
-                        <FormError :message="form.errors.amount" />
-                    </FormGroup>
-
-                    <FormGroup>
-                        <FormLabel for="tx-interest">{{
-                            $t('transactions.fields.interest')
-                        }}</FormLabel>
-                        <Input
-                            id="tx-interest"
-                            v-model="form.interest_amount"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            name="interest_amount"
-                            :placeholder="$t('transactions.placeholders.amount')"
-                        />
-                        <FormError :message="form.errors.interest_amount" />
-                    </FormGroup>
-
-                    <FormGroup class="md:col-span-2">
-                        <FormLabel for="tx-description">{{
-                            $t('transactions.fields.description')
-                        }}</FormLabel>
-                        <Input
-                            id="tx-description"
-                            v-model="form.description"
-                            type="text"
-                            name="description"
-                            :placeholder="$t('transactions.placeholders.description')"
-                        />
-                        <FormError :message="form.errors.description" />
-                    </FormGroup>
+                    <!--
+                        Interest is hidden for now: it only makes sense alongside the
+                        extra fields that describe how it is charged. The form still
+                        posts interest_amount (empty), so the backend is unchanged.
+                    -->
 
                     <FormGroup v-if="!isTransferMovement">
                         <FormLabel for="tx-category">{{
@@ -548,17 +601,11 @@ watch(
                         <FormError :message="form.errors.tags" />
                     </FormGroup>
 
-                    <FormGroup v-if="isRecurringType" class="md:col-span-2">
-                        <FormLabel for="tx-effective-until">{{
-                            $t('transactions.fields.repeat_until')
-                        }}</FormLabel>
-                        <DatePicker
-                            v-model="form.effective_until"
-                            :label="$t('transactions.fields.repeat_until_short')"
-                            :hint="$t('transactions.hints.repeat_until')"
-                        />
-                        <FormError :message="form.errors.effective_until" />
-                    </FormGroup>
+                    <!--
+                        A recurring transaction runs open-endedly, so there is no end
+                        date to ask for. effective_until stays in the payload as an
+                        empty value and the projector treats null as "no end".
+                    -->
                 </div>
 
                 <FormCard
@@ -588,52 +635,6 @@ watch(
                     </FormGroup>
                 </FormCard>
 
-                <FormCard
-                    v-if="isInstallmentType && !isTransferMovement"
-                    :title="$t('transactions.installment.title')"
-                    :subtitle="$t('transactions.installment.subtitle')"
-                >
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <FormGroup>
-                            <FormLabel for="tx-installments-total">{{
-                                $t('transactions.fields.installments_total')
-                            }}</FormLabel>
-                            <Input
-                                id="tx-installments-total"
-                                v-model="form.installments_total"
-                                type="number"
-                                min="1"
-                                max="600"
-                                name="installments_total"
-                                :placeholder="$t('transactions.placeholders.installments_total')"
-                            />
-                            <FormError :message="form.errors.installments_total" />
-                        </FormGroup>
-
-                        <FormGroup>
-                            <FormLabel for="tx-frequency">{{
-                                $t('transactions.fields.frequency')
-                            }}</FormLabel>
-                            <Select v-model="form.installment_frequency">
-                                <SelectTrigger id="tx-frequency">
-                                    <SelectValue
-                                        :placeholder="$t('transactions.placeholders.frequency')"
-                                    />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem
-                                        v-for="option in frequencyOptions"
-                                        :key="option.value"
-                                        :value="option.value"
-                                    >
-                                        {{ option.label }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormError :message="form.errors.installment_frequency" />
-                        </FormGroup>
-                    </div>
-                </FormCard>
                 <DialogFooter>
                     <Button type="button" variant="outline" @click="closeModal">{{
                         $t('common.actions.cancel')

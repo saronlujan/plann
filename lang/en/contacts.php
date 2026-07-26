@@ -21,8 +21,8 @@ return [
     'delete_confirm' => 'Delete the contact “:name”? This action cannot be undone.',
 
     'modal' => [
-        'create_title' => 'New contact',
-        'edit_title' => 'Edit contact',
+        'create_title' => 'New Contact',
+        'edit_title' => 'Edit Contact',
         'description' => 'Register a supplier or client.',
     ],
 

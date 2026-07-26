@@ -12,7 +12,7 @@ function makePreferencesUser(string $email, string $locale = 'pt'): User
 {
     $tenant = Tenant::create(['name' => 'Tenant Principal']);
 
-    return User::create([
+    return User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => $email,

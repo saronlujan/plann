@@ -19,7 +19,7 @@ class PayInvoiceController extends Controller
         abort_unless($account->isCreditCard(), 404);
 
         $validated = $request->validated();
-        $bank = Account::query()->findOrFail($validated['account_id']);
+        $bank = Account::query()->findOrFail((int) $validated['account_id']);
         $seriesUuid = (string) Str::uuid();
 
         DB::transaction(function () use ($validated, $bank, $account, $seriesUuid): void {

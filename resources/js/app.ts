@@ -1,7 +1,8 @@
 import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { i18nVue } from 'laravel-vue-i18n';
-import { createApp, createSSRApp, h, type DefineComponent } from 'vue';
+import { createApp, createSSRApp, h } from 'vue';
+import type { DefineComponent } from 'vue';
 import AppearanceSync from '@/components/layout/AppAppearanceSync.vue';
 import LocaleSync from '@/components/layout/AppLocaleSync.vue';
 import { Toaster } from '@/components/ui/sonner';

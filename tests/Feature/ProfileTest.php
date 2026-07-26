@@ -4,6 +4,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
@@ -13,13 +14,17 @@ function profileUser(string $email): User
     $tenant = Tenant::create(['name' => 'Tenant '.$email]);
     app(TenantContext::class)->setTenantId($tenant->id);
 
-    return User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => $email,
         'password' => 'password',
         'locale' => 'pt',
     ]);
+
+    $user->markEmailAsVerified();
+
+    return $user;
 }
 
 test('users may view their profile', function () {
@@ -37,15 +42,35 @@ test('users may update their account details', function () {
     actingAs($user)
         ->patch('/profile', [
             'name' => 'Novo Nome',
-            'email' => 'novo@example.com',
             'phone' => '+5511999999999',
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
 
     $user->refresh();
     expect($user->name)->toBe('Novo Nome');
-    expect($user->email)->toBe('novo@example.com');
     expect($user->phone)->toBe('+5511999999999');
+});
+
+test('the email address cannot be changed from the profile', function () {
+    Notification::fake();
+
+    $user = profileUser('immutable@example.com');
+
+    actingAs($user)
+        ->patch('/profile', [
+            'name' => 'Pessoa',
+            'phone' => null,
+            'email' => 'hijacked@example.com',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    // The update succeeds for the editable fields, but the login identity and
+    // its verified state are untouched.
+    expect($user->refresh()->email)->toBe('immutable@example.com');
+    expect($user->email_verified_at)->not->toBeNull();
+    Notification::assertNothingSent();
 });
 
 test('users may change their password with the correct current password', function () {
@@ -86,4 +111,11 @@ test('the new password must be confirmed', function () {
             'password_confirmation' => 'mismatch',
         ])
         ->assertSessionHasErrors('password');
+});
+
+test('an unverified user cannot reach the profile page', function () {
+    $user = profileUser('unverified-profile@example.com');
+    $user->forceFill(['email_verified_at' => null])->save();
+
+    actingAs($user)->get('/profile')->assertRedirect(route('verification.notice'));
 });

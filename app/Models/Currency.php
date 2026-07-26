@@ -19,6 +19,9 @@ class Currency extends Model
         'symbol',
     ];
 
+    /**
+     * @return BelongsToMany<Tenant, $this>
+     */
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(Tenant::class)
@@ -26,6 +29,9 @@ class Currency extends Model
             ->withTimestamps();
     }
 
+    /**
+     * @return HasMany<Account, $this>
+     */
     public function accounts(): HasMany
     {
         return $this->hasMany(Account::class);

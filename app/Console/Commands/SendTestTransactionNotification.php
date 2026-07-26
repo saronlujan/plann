@@ -98,7 +98,7 @@ class SendTestTransactionNotification extends Command
             'description' => $transaction->description,
             'amount' => $transaction->currency->symbol.' '.number_format((float) $transaction->amount, 2, ',', '.'),
             'date' => $today->format('d/m/Y'),
-            'account' => $transaction->account?->name ?? 'Sem origem',
+            'account' => $transaction->account->name ?? 'Sem origem',
         ]];
     }
 }

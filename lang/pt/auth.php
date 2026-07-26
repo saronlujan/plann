@@ -35,6 +35,12 @@ return [
         'social' => [
             'google' => 'Continuar com o Google',
             'google_not_configured' => 'O login com Google ainda não está configurado.',
+            'google_failed' => 'Não foi possível entrar com o Google. Tente novamente.',
+        ],
+
+        'errors' => [
+            'failed' => 'Estas credenciais não correspondem aos nossos registros.',
+            'throttled' => 'Muitas tentativas de login. Tente novamente em :seconds segundos.',
         ],
 
         'forgot' => [
@@ -47,8 +53,25 @@ return [
             'sent' => 'Se o e-mail existir, enviamos um código de 6 dígitos.',
         ],
 
+        'verify' => [
+            'title' => 'Confirme seu e-mail',
+            'subtitle' => 'Enviamos um código de 6 dígitos para :email.',
+            'pin_label' => 'Código',
+            'pin_hint' => 'Digite os 6 dígitos que enviamos.',
+            'submit' => 'Confirmar e-mail',
+            'resend' => 'Reenviar código',
+            'resent' => 'Enviamos um novo código.',
+            'logout' => 'Sair',
+            'invalid_pin' => 'Código inválido ou expirado.',
+            'email_subject' => 'Confirme seu e-mail',
+            'email_greeting' => 'Olá, :name!',
+            'email_intro' => 'Use o código abaixo para confirmar seu e-mail:',
+            'email_expires' => 'O código expira em :minutes minutos.',
+            'email_ignore' => 'Se você não criou esta conta, ignore este e-mail.',
+        ],
+
         'reset' => [
-            'title' => 'Redefinir senha',
+            'title' => 'Redefinir Senha',
             'subtitle' => 'Digite o código de 6 dígitos enviado ao seu e-mail e a nova senha.',
             'email_label' => 'E-mail',
             'pin_label' => 'Código',

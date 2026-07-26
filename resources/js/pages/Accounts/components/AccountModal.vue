@@ -107,20 +107,14 @@ function submit(): void {
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>{{
-                    isEdit
-                        ? $t('accounts.modal.edit_title')
-                        : $t('accounts.modal.create_title')
+                    isEdit ? $t('accounts.modal.edit_title') : $t('accounts.modal.create_title')
                 }}</DialogTitle>
-                <DialogDescription>{{
-                    $t('accounts.modal.description')
-                }}</DialogDescription>
+                <DialogDescription>{{ $t('accounts.modal.description') }}</DialogDescription>
             </DialogHeader>
 
             <Form class="gap-3" @submit.prevent="submit">
                 <FormGroup>
-                    <FormLabel for="acc-name">{{
-                        $t('accounts.modal.name_label')
-                    }}</FormLabel>
+                    <FormLabel for="acc-name">{{ $t('accounts.modal.name_label') }}</FormLabel>
                     <Input
                         id="acc-name"
                         v-model="form.name"
@@ -130,9 +124,7 @@ function submit(): void {
                 </FormGroup>
 
                 <FormGroup>
-                    <FormLabel for="acc-kind">{{
-                        $t('accounts.modal.kind_label')
-                    }}</FormLabel>
+                    <FormLabel for="acc-kind">{{ $t('accounts.modal.kind_label') }}</FormLabel>
                     <Select v-model="form.kind">
                         <SelectTrigger id="acc-kind">
                             <SelectValue />
@@ -150,15 +142,17 @@ function submit(): void {
                     <FormError :message="form.errors.kind" />
                 </FormGroup>
 
-                <FormGroup>
+                <!--
+                    With a single active currency there is nothing to choose: the form
+                    already defaults to it, so the field would only be a read-only echo.
+                -->
+                <FormGroup v-if="currencyOptions.length > 1">
                     <FormLabel for="acc-currency">{{
                         $t('accounts.modal.currency_label')
                     }}</FormLabel>
                     <Select v-model="form.currency_id">
                         <SelectTrigger id="acc-currency">
-                            <SelectValue
-                                :placeholder="$t('accounts.modal.currency_placeholder')"
-                            />
+                            <SelectValue :placeholder="$t('accounts.modal.currency_placeholder')" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem

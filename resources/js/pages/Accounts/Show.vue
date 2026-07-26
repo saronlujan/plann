@@ -14,9 +14,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { colorHex } from '@/lib/labelColors';
 import { formatMoney } from '@/lib/money';
-import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { accounts as accountsIndex } from '@/routes';
 import { show as showAccount } from '@/routes/accounts';
 
@@ -132,7 +132,12 @@ function money(value: string): string {
             <div class="flex items-center justify-between gap-4">
                 <span class="text-sm font-medium capitalize">{{ periodLabel }}</span>
                 <div class="flex items-center gap-1">
-                    <Button variant="outline" size="icon" aria-label="prev" @click="shiftPeriod(-1)">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label="prev"
+                        @click="shiftPeriod(-1)"
+                    >
                         <ChevronLeftIcon class="size-4" />
                     </Button>
                     <Button variant="outline" size="icon" aria-label="next" @click="shiftPeriod(1)">
@@ -209,7 +214,8 @@ function money(value: string): string {
                                             : 'text-red-600 dark:text-red-400'
                                     "
                                 >
-                                    {{ entry.movement_type === 'income' ? '+' : '-' }}{{ money(entry.amount) }}
+                                    {{ entry.movement_type === 'income' ? '+' : '-'
+                                    }}{{ money(entry.amount) }}
                                 </TableCell>
                                 <TableCell class="text-right font-medium whitespace-nowrap">
                                     {{ money(entry.balance) }}

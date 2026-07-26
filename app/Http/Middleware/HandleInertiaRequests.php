@@ -68,7 +68,7 @@ class HandleInertiaRequests extends Middleware
 
         $messages = [];
 
-        foreach (glob($directory.'/*.php') as $file) {
+        foreach (glob($directory.'/*.php') ?: [] as $file) {
             $name = basename($file, '.php');
 
             // Validation strings are used server-side; keep the payload lean.

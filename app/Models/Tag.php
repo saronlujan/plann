@@ -33,11 +33,17 @@ class Tag extends Model
         'color' => LabelColor::class,
     ];
 
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * @return BelongsToMany<Transaction, $this>
+     */
     public function transactions(): BelongsToMany
     {
         return $this->belongsToMany(Transaction::class);

@@ -21,8 +21,8 @@ return [
     'delete_confirm' => 'Eliminar el contacto “:name”? Esta acción no se puede deshacer.',
 
     'modal' => [
-        'create_title' => 'Nuevo contacto',
-        'edit_title' => 'Editar contacto',
+        'create_title' => 'Nuevo Contacto',
+        'edit_title' => 'Editar Contacto',
         'description' => 'Registra un proveedor o cliente.',
     ],
 

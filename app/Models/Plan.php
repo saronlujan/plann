@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property int $id
- * @property string $slug
+ * @property PlanSlug $slug
  * @property string $name
  * @property string|null $description
  * @property int $monthly_price_cents

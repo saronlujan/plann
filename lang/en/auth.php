@@ -35,6 +35,12 @@ return [
         'social' => [
             'google' => 'Continue with Google',
             'google_not_configured' => 'Google login is not configured yet.',
+            'google_failed' => 'We could not sign you in with Google. Please try again.',
+        ],
+
+        'errors' => [
+            'failed' => 'These credentials do not match our records.',
+            'throttled' => 'Too many login attempts. Please try again in :seconds seconds.',
         ],
 
         'forgot' => [
@@ -45,6 +51,23 @@ return [
             'submit' => 'Send code',
             'back_to_login' => 'Back to login',
             'sent' => 'If the email exists, we sent a 6-digit code.',
+        ],
+
+        'verify' => [
+            'title' => 'Confirm your email',
+            'subtitle' => 'We sent a 6-digit code to :email.',
+            'pin_label' => 'Code',
+            'pin_hint' => 'Enter the 6 digits we sent you.',
+            'submit' => 'Confirm email',
+            'resend' => 'Resend code',
+            'resent' => 'We sent a new code.',
+            'logout' => 'Sign out',
+            'invalid_pin' => 'Invalid or expired code.',
+            'email_subject' => 'Confirm your email',
+            'email_greeting' => 'Hi, :name!',
+            'email_intro' => 'Use the code below to confirm your email:',
+            'email_expires' => 'The code expires in :minutes minutes.',
+            'email_ignore' => 'If you did not create this account, ignore this email.',
         ],
 
         'reset' => [

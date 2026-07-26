@@ -4,8 +4,8 @@ import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { ref } from 'vue';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import { cn } from '@/lib/utils';
 import CurrencyPanel from './components/CurrencyPanel.vue';
 
 type SeriesPoint = { label: string; month: string; income: string; expense: string };

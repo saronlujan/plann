@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date';
-import { computed, ref } from 'vue';
+import type { DateValue } from '@internationalized/date';
+import { computed, ref, shallowRef } from 'vue';
 import { toast } from 'vue-sonner';
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -60,8 +61,10 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue';
 const name = ref('Plann');
 const email = ref('team@plann.test');
 const selectedDate = ref('2026-07-24');
-const calendarDate = ref(today(getLocalTimeZone()));
-const rangeDate = ref({
+// shallowRef keeps the DateValue class instances intact: ref() deep-unwraps them
+// into structural objects that no longer satisfy ZonedDateTime's private fields.
+const calendarDate = shallowRef<DateValue>(today(getLocalTimeZone()));
+const rangeDate = shallowRef<{ start: DateValue; end: DateValue }>({
     start: new CalendarDate(2026, 7, 24),
     end: new CalendarDate(2026, 7, 31),
 });

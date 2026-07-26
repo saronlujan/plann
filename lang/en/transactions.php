@@ -49,18 +49,18 @@ return [
     ],
 
     'delete' => [
-        'title' => 'Delete transaction',
+        'title' => 'Delete Transaction',
         'description' => 'Delete “:label”? This action cannot be undone.',
     ],
 
     'modal' => [
-        'create_title' => 'New transaction',
-        'edit_title' => 'Edit transaction',
+        'create_title' => 'New Transaction',
+        'edit_title' => 'Edit Transaction',
         'movement_type_group' => 'Transaction type',
     ],
 
     'recurrence' => [
-        'title' => 'Recurrence scope',
+        'title' => 'Recurrence Scope',
         'subtitle' => 'Choose which occurrences in this series are affected.',
     ],
 
@@ -81,7 +81,7 @@ return [
         'account' => 'Account',
         'source_account' => 'Source account',
         'destination_account' => 'Destination account',
-        'effective_date' => 'Effective date',
+        'effective_date' => 'Date',
         'amount' => 'Amount',
         'interest' => 'Account interest',
         'description' => 'Description',

@@ -11,12 +11,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
+use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
+use Throwable;
 
 class GoogleAuthController extends Controller
 {
     public function __construct(private readonly RegisterUser $registerUser) {}
 
-    public function redirect(): RedirectResponse
+    public function redirect(): SymfonyRedirectResponse
     {
         if (! $this->isConfigured()) {
             return to_route('login')->with('error', 'Google login is not configured yet.');
@@ -27,7 +29,19 @@ class GoogleAuthController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
-        $googleUser = Socialite::driver('google')->user();
+        if (! $this->isConfigured()) {
+            return to_route('login')->with('error', 'Google login is not configured yet.');
+        }
+
+        try {
+            $googleUser = Socialite::driver('google')->user();
+        } catch (Throwable $exception) {
+            // Consent denied, an expired state token or a Google outage. None of
+            // these are actionable by the user beyond retrying the login.
+            report($exception);
+
+            return to_route('login')->withErrors(['email' => __('auth.ui.social.google_failed')]);
+        }
 
         $user = $this->resolveUser($googleUser);
 
@@ -53,18 +67,25 @@ class GoogleAuthController extends Controller
             $existingUser->forceFill([
                 'google_id' => $googleUser->getId(),
                 'avatar_url' => $googleUser->getAvatar() ?: $existingUser->avatar_url,
+                // Google already proved ownership of this address.
+                'email_verified_at' => $existingUser->email_verified_at ?? now(),
             ])->save();
 
             return $existingUser;
         }
 
-        return $this->registerUser->handle([
+        $user = $this->registerUser->handle([
             'name' => $googleUser->getName() ?: $googleUser->getNickname() ?: $email,
             'email' => $email,
             'google_id' => $googleUser->getId(),
             'avatar_url' => $googleUser->getAvatar() ?: null,
             'password' => Str::password(32),
         ]);
+
+        // No PIN round-trip: the address is confirmed by the provider itself.
+        $user->markEmailAsVerified();
+
+        return $user;
     }
 
     private function isConfigured(): bool

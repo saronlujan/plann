@@ -9,9 +9,9 @@ import RowActionsMenu from '@/components/RowActionsMenu.vue';
 import Sparkline from '@/components/Sparkline.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { accountKindIcon } from '@/lib/accountKind';
 import { formatMoney } from '@/lib/money';
-import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { destroy as destroyAccount, show as showAccount } from '@/routes/accounts';
 import AccountModal from './components/AccountModal.vue';
 
@@ -66,9 +66,11 @@ function askDelete(account: Account): void {
 }
 function confirmDelete(): void {
     const target = deleteTarget.value;
+
     if (target === null) {
         return;
     }
+
     confirmOpen.value = false;
     router.delete(destroyAccount(target.id).url, {
         preserveScroll: true,

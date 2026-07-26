@@ -37,7 +37,7 @@ class EnsureTenantContext
 
         $tenantContext->setTenantId($tenant->id);
         app()->setLocale($user->locale ?: config('app.locale'));
-        View::share('appearance', $user->theme?->value ?? 'light');
+        View::share('appearance', $user->theme->value);
         $this->syncPostgresTenantContext($tenant->id);
 
         return $next($request);

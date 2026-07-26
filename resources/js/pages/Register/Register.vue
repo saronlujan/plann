@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { trans } from 'laravel-vue-i18n';
 import { Form, Head, Link } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
+import { computed } from 'vue';
 import PhoneInput from '@/components/PhoneInput.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,7 @@ const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
     <AuthLayout>
         <section class="w-full space-y-8 text-center">
             <Form
-                :action="registerStore().action"
+                :action="registerStore.form().action"
                 method="post"
                 class="space-y-4 text-left"
                 #default="{ errors, processing }"

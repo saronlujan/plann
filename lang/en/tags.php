@@ -10,8 +10,8 @@ return [
         'name' => 'Name',
     ],
     'modal' => [
-        'create_title' => 'New tag',
-        'edit_title' => 'Edit tag',
+        'create_title' => 'New Tag',
+        'edit_title' => 'Edit Tag',
         'description' => 'Free-form labels to organize transactions.',
         'name_label' => 'Name',
         'name_placeholder' => 'Tag name',

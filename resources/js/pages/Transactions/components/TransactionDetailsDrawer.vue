@@ -13,7 +13,6 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { colorHex } from '@/lib/labelColors';
-import type { CategoryOption, TagOption, TransactionEntry } from '../types';
 import {
     amountClass,
     dueStatus,
@@ -24,6 +23,7 @@ import {
     signedAmount,
 } from '../display';
 import { formatCurrency, formatDate } from '../format';
+import type { CategoryOption, TagOption, TransactionEntry } from '../types';
 
 const props = defineProps<{
     open: boolean;

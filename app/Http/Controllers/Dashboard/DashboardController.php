@@ -9,6 +9,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\Currency;
 use App\Models\Transaction;
+use App\Support\Accounts\AccountStatement;
 use App\Support\Transactions\TransactionProjector;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, TransactionProjector $projector): Response
+    public function __invoke(Request $request, TransactionProjector $projector, AccountStatement $statement): Response
     {
         $tenant = $request->user()?->tenant()->with('activeCurrencies')->first();
         abort_if($tenant === null, 403);
@@ -30,22 +31,44 @@ class DashboardController extends Controller
         }
 
         $categories = Category::query()->get()->keyBy('id');
-        $now = CarbonImmutable::now()->startOfMonth();
+        $today = CarbonImmutable::now();
+        $now = $today->startOfMonth();
+
+        $accountsByCurrency = Account::query()
+            ->whereIn('currency_id', $currencies->pluck('id')->all())
+            ->get()
+            ->groupBy('currency_id');
 
         return Inertia::render('Dashboard/Index', [
             'ready' => true,
             'currencies' => $currencies
-                ->map(fn (Currency $currency): array => $this->buildCurrency($currency, $projector, $categories, $now))
+                ->map(fn (Currency $currency): array => $this->buildCurrency(
+                    $currency,
+                    $projector,
+                    $statement,
+                    $categories,
+                    $accountsByCurrency->get($currency->id, collect()),
+                    $now,
+                    $today,
+                ))
                 ->all(),
         ]);
     }
 
     /**
      * @param  Collection<int, Category>  $categories
+     * @param  Collection<int, Account>  $accounts
      * @return array<string, mixed>
      */
-    private function buildCurrency(Currency $currency, TransactionProjector $projector, Collection $categories, CarbonImmutable $now): array
-    {
+    private function buildCurrency(
+        Currency $currency,
+        TransactionProjector $projector,
+        AccountStatement $statement,
+        Collection $categories,
+        Collection $accounts,
+        CarbonImmutable $now,
+        CarbonImmutable $today,
+    ): array {
         $transactions = Transaction::query()
             ->where('currency_id', $currency->id)
             ->with(['currency', 'account'])
@@ -73,7 +96,7 @@ class DashboardController extends Controller
         return [
             'code' => $currency->code,
             'symbol' => $currency->symbol,
-            'balance' => $this->money(Account::query()->where('currency_id', $currency->id)->sum('balance')),
+            'balance' => $this->balance($statement, $accounts, $transactions, $today),
             'monthlyIncome' => $monthlyIncome,
             'monthlyExpenses' => $monthlyExpenses,
             'monthlyNet' => $this->money((float) $monthlyIncome - (float) $monthlyExpenses),
@@ -81,6 +104,32 @@ class DashboardController extends Controller
             'expensesByCategory' => $this->expensesByCategory($current, $categories),
             'recent' => $this->recent($current),
         ];
+    }
+
+    /**
+     * Cash on hand: the same computed balance the accounts page shows on each
+     * card (opening balance + every movement booked up to today), summed across
+     * the currency's accounts.
+     *
+     * Credit cards are excluded — they are a liability, not cash, and the
+     * accounts page reports them as an invoice rather than a balance.
+     *
+     * @param  Collection<int, Account>  $accounts
+     * @param  Collection<int, Transaction>  $transactions
+     */
+    private function balance(AccountStatement $statement, Collection $accounts, Collection $transactions, CarbonImmutable $today): string
+    {
+        $transactionsByAccount = $transactions->groupBy('account_id');
+
+        $total = $accounts
+            ->reject(fn (Account $account): bool => $account->isCreditCard())
+            ->reduce(function (float $carry, Account $account) use ($statement, $transactionsByAccount, $today): float {
+                $accountTransactions = $transactionsByAccount->get($account->id, collect());
+
+                return $carry + (float) $statement->balanceAsOf($account, $accountTransactions, $today);
+            }, 0.0);
+
+        return $this->money($total);
     }
 
     /**
@@ -113,8 +162,8 @@ class DashboardController extends Controller
                 $category = $key === 'none' ? null : $categories->get((int) $key);
 
                 return [
-                    'name' => $category?->name ?? __('dashboard.uncategorized'),
-                    'color' => ($category?->color ?? LabelColor::Zinc)->value,
+                    'name' => $category->name ?? __('dashboard.uncategorized'),
+                    'color' => ($category->color ?? LabelColor::Zinc)->value,
                     'value' => $this->money($group->reduce(fn (float $carry, array $entry): float => $carry + (float) $entry['amount'], 0.0)),
                 ];
             })

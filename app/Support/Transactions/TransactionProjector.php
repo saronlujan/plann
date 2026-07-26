@@ -62,7 +62,7 @@ class TransactionProjector
                 continue;
             }
 
-            if ($transaction->type === TransactionType::Recurring && $transaction->adjustment_month?->isSameMonth($period)) {
+            if ($transaction->type === TransactionType::Recurring && $transaction->adjustment_month->isSameMonth($period)) {
                 $entries->push($this->mapAdjustmentEntry($transaction, $period));
 
                 continue;
@@ -91,51 +91,64 @@ class TransactionProjector
      */
     public function summaries(Collection $currencies, Collection $entries): Collection
     {
-        return $currencies
-            ->sortBy('code')
-            ->values()
-            ->map(function ($currency) use ($entries): ?array {
-                $currencyEntries = $entries->where('currency_code', $currency->code);
+        /** @var array<int, array<string, mixed>> $summaries */
+        $summaries = [];
 
-                if ($currencyEntries->isEmpty()) {
-                    return null;
-                }
+        foreach ($currencies->sortBy('code')->values() as $currency) {
+            $currencyEntries = $entries->where('currency_code', $currency->code);
 
-                $incomePaid = $this->sumMovement($currencyEntries, TransactionMovementType::Income, onlyPaid: true);
-                $expensePaid = $this->sumMovement($currencyEntries, TransactionMovementType::Expense, onlyPaid: true);
-                $incomeAll = $this->sumMovement($currencyEntries, TransactionMovementType::Income, onlyPaid: false);
-                $expenseAll = $this->sumMovement($currencyEntries, TransactionMovementType::Expense, onlyPaid: false);
+            if ($currencyEntries->isEmpty()) {
+                continue;
+            }
 
-                return [
-                    'code' => $currency->code,
-                    'name' => $currency->name,
-                    'symbol' => $currency->symbol,
-                    'income' => $incomePaid,
-                    'expenses' => $expensePaid,
-                    'total' => bcsub($incomePaid, $expensePaid, 2),
-                    'expected_income' => $incomeAll,
-                    'expected_expense' => $expenseAll,
-                    'expected_total' => bcsub($incomeAll, $expenseAll, 2),
-                ];
-            })
-            ->filter()
-            ->values();
+            $incomePaid = $this->sumMovement($currencyEntries, TransactionMovementType::Income, onlyPaid: true);
+            $expensePaid = $this->sumMovement($currencyEntries, TransactionMovementType::Expense, onlyPaid: true);
+            $incomeAll = $this->sumMovement($currencyEntries, TransactionMovementType::Income, onlyPaid: false);
+            $expenseAll = $this->sumMovement($currencyEntries, TransactionMovementType::Expense, onlyPaid: false);
+
+            $summaries[] = [
+                'code' => $currency->code,
+                'name' => $currency->name,
+                'symbol' => $currency->symbol,
+                'income' => $incomePaid,
+                'expenses' => $expensePaid,
+                'total' => bcsub($incomePaid, $expensePaid, 2),
+                'expected_income' => $incomeAll,
+                'expected_expense' => $expenseAll,
+                'expected_total' => bcsub($incomeAll, $expenseAll, 2),
+            ];
+        }
+
+        return collect($summaries);
     }
 
     /**
      * @param  Collection<int, array<string, mixed>>  $entries
+     * @return numeric-string
      */
     private function sumMovement(Collection $entries, TransactionMovementType $movement, bool $onlyPaid): string
     {
-        return $entries
-            ->filter(function (array $entry) use ($movement, $onlyPaid): bool {
-                if ($entry['movement_type'] !== $movement->value) {
-                    return false;
-                }
+        $total = '0.00';
 
-                return $onlyPaid ? $entry['paid_at'] !== null : true;
-            })
-            ->reduce(fn (string $carry, array $entry): string => bcadd($carry, (string) $entry['amount'], 2), '0.00');
+        foreach ($entries as $entry) {
+            if ($entry['movement_type'] !== $movement->value) {
+                continue;
+            }
+
+            if ($onlyPaid && $entry['paid_at'] === null) {
+                continue;
+            }
+
+            $amount = (string) $entry['amount'];
+
+            // Amounts come from a decimal:2 cast, but guard anyway: a malformed
+            // value must not poison the whole currency total.
+            if (is_numeric($amount)) {
+                $total = bcadd($total, $amount, 2);
+            }
+        }
+
+        return $total;
     }
 
     /**
@@ -160,7 +173,7 @@ class TransactionProjector
                     'kind' => 'installment',
                     'type' => 'installment',
                     'schedule_type' => 'installment',
-                    'movement_type' => $transaction->movement_type?->value ?? TransactionMovementType::Expense->value,
+                    'movement_type' => $transaction->movement_type->value ?? TransactionMovementType::Expense->value,
                     'is_transfer' => (bool) $transaction->is_transfer,
                     'category_id' => $transaction->category_id,
                     'tag_ids' => $transaction->tags->pluck('id')->all(),
@@ -175,7 +188,7 @@ class TransactionProjector
                     'amount' => $this->formatMoney($transaction->amount),
                     'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
                     'description' => $transaction->description,
-                    'installment_frequency' => $transaction->installment_frequency?->value,
+                    'installment_frequency' => $transaction->installment_frequency->value,
                     'installments_total' => $transaction->installments_total,
                     'installment_number' => $installmentNumber,
                     'source' => $this->resolveSourceLabel($transaction),
@@ -249,7 +262,7 @@ class TransactionProjector
         return [
             'transaction_id' => $transaction->id,
             'type' => $overrides['schedule_type'],
-            'movement_type' => $transaction->movement_type?->value ?? TransactionMovementType::Expense->value,
+            'movement_type' => $transaction->movement_type->value ?? TransactionMovementType::Expense->value,
             'is_transfer' => (bool) $transaction->is_transfer,
             'category_id' => $transaction->category_id,
             'tag_ids' => $transaction->tags->pluck('id')->all(),
@@ -264,6 +277,7 @@ class TransactionProjector
             'amount' => $this->formatMoney($transaction->amount),
             'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
             'description' => $transaction->description,
+            // Shared by every entry kind: only installments carry a frequency.
             'installment_frequency' => $transaction->installment_frequency?->value,
             'installments_total' => $transaction->installments_total,
             'installment_number' => $transaction->installment_number,
@@ -282,7 +296,7 @@ class TransactionProjector
 
     private function resolveSourceLabel(Transaction $transaction): string
     {
-        return $transaction->account?->name ?? 'Sem origem';
+        return $transaction->account->name ?? 'Sem origem';
     }
 
     private function formatMoney(float|int|string $value): string

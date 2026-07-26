@@ -78,9 +78,7 @@ function submit(): void {
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>{{ $t('accounts.invoice.pay.title') }}</DialogTitle>
-                <DialogDescription>{{
-                    $t('accounts.invoice.pay.description')
-                }}</DialogDescription>
+                <DialogDescription>{{ $t('accounts.invoice.pay.description') }}</DialogDescription>
             </DialogHeader>
 
             <p v-if="payAccounts.length === 0" class="text-sm text-muted-foreground">

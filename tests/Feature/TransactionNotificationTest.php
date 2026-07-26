@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\TransactionDueNotification;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -18,7 +19,7 @@ function notifyFixture(bool $enabled = true, array $overrides = []): array
     $tenant = Tenant::create(['name' => 'Tenant Notify '.uniqid()]);
     app(TenantContext::class)->setTenantId($tenant->id);
 
-    $user = User::create(array_merge([
+    $user = User::factory()->create(array_merge([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => 'notify-'.uniqid().'@example.com',
@@ -121,4 +122,104 @@ test('users without notifications enabled are skipped', function () {
     $this->artisan('app:send-due-transaction-notifications');
 
     Notification::assertNothingSent();
+});
+
+test('notifies about overdue unpaid transactions', function () {
+    CarbonImmutable::setTestNow('2026-08-10 09:00:00');
+    Notification::fake();
+
+    [$tenant, $user, $currency, $account] = notifyFixture();
+
+    makeTransaction($tenant, $account, $currency, '2026-08-05');              // overdue
+    makeTransaction($tenant, $account, $currency, '2026-07-28');              // overdue, previous month
+    makeTransaction($tenant, $account, $currency, '2026-08-01', '2026-08-02'); // overdue but paid → skipped
+
+    app(TenantContext::class)->clear();
+
+    $this->artisan('app:send-due-transaction-notifications')->assertSuccessful();
+
+    Notification::assertSentTo($user, TransactionDueNotification::class, function ($notification): bool {
+        if ($notification->kind !== 'overdue') {
+            return false;
+        }
+
+        $dates = array_column($notification->items, 'date');
+
+        // Oldest first, and the paid one is absent.
+        return count($notification->items) === 2
+            && $dates === ['28/07/2026', '05/08/2026'];
+    });
+});
+
+test('an entry due today is not also reported as overdue', function () {
+    CarbonImmutable::setTestNow('2026-08-10 09:00:00');
+    Notification::fake();
+
+    [$tenant, $user, $currency, $account] = notifyFixture();
+    makeTransaction($tenant, $account, $currency, '2026-08-10');
+    app(TenantContext::class)->clear();
+
+    $this->artisan('app:send-due-transaction-notifications');
+
+    Notification::assertSentTo($user, TransactionDueNotification::class, fn ($n): bool => $n->kind === 'due_today');
+    Notification::assertSentToTimes($user, TransactionDueNotification::class, 1);
+});
+
+test('does not report the same overdue occurrence twice', function () {
+    CarbonImmutable::setTestNow('2026-08-10 09:00:00');
+    Notification::fake();
+
+    [$tenant, $user, $currency, $account] = notifyFixture();
+    makeTransaction($tenant, $account, $currency, '2026-08-05');
+    app(TenantContext::class)->clear();
+
+    $this->artisan('app:send-due-transaction-notifications');
+    $this->artisan('app:send-due-transaction-notifications');
+
+    Notification::assertSentToTimes($user, TransactionDueNotification::class, 1);
+});
+
+test('overdue entries beyond the lookback window are ignored', function () {
+    CarbonImmutable::setTestNow('2026-08-10 09:00:00');
+    Notification::fake();
+
+    [$tenant, $user, $currency, $account] = notifyFixture();
+
+    makeTransaction($tenant, $account, $currency, '2026-01-15'); // ~7 months late
+    app(TenantContext::class)->clear();
+
+    $this->artisan('app:send-due-transaction-notifications');
+
+    Notification::assertNothingSent();
+});
+
+test('the due notification is queued and localized for the user', function () {
+    CarbonImmutable::setTestNow('2026-08-10 09:00:00');
+    Notification::fake();
+
+    [$tenant, $user, $currency, $account] = notifyFixture(overrides: ['locale' => 'es']);
+    makeTransaction($tenant, $account, $currency, '2026-08-10');
+    app(TenantContext::class)->clear();
+
+    $this->artisan('app:send-due-transaction-notifications');
+
+    Notification::assertSentTo(
+        $user,
+        TransactionDueNotification::class,
+        fn ($notification): bool => $notification instanceof ShouldQueue && $notification->locale === 'es',
+    );
+});
+test('notify_days_before of zero does not send the same entries twice', function () {
+    CarbonImmutable::setTestNow('2026-08-10 09:00:00');
+    Notification::fake();
+
+    // The "upcoming" horizon collapses onto today; only due_today should fire.
+    [$tenant, $user, $currency, $account] = notifyFixture(overrides: ['notify_days_before' => 0]);
+    makeTransaction($tenant, $account, $currency, '2026-08-10');
+    app(TenantContext::class)->clear();
+
+    $this->artisan('app:send-due-transaction-notifications');
+
+    Notification::assertSentTo($user, TransactionDueNotification::class, fn ($n): bool => $n->kind === 'due_today');
+    Notification::assertSentToTimes($user, TransactionDueNotification::class, 1);
 });

@@ -7,6 +7,9 @@ use Illuminate\Validation\Rule;
 
 class UpdateTransactionRequest extends StoreTransactionRequest
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return array_merge(parent::rules(), [

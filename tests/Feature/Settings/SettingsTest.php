@@ -25,7 +25,7 @@ function settingsUser(string $email): User
     $tenant = Tenant::create(['name' => 'Tenant '.$email]);
     app(TenantContext::class)->setTenantId($tenant->id);
 
-    return User::create([
+    return User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => $email,

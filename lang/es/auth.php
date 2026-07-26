@@ -3,7 +3,7 @@
 return [
     'ui' => [
         'login' => [
-            'title' => 'Iniciar sesión',
+            'title' => 'Iniciar Sesión',
             'email_label' => 'Correo electrónico:',
             'email_placeholder' => 'juan@email.com',
             'password_label' => 'Contraseña',
@@ -35,6 +35,12 @@ return [
         'social' => [
             'google' => 'Continuar con Google',
             'google_not_configured' => 'El inicio de sesión con Google aún no está configurado.',
+            'google_failed' => 'No pudimos iniciar tu sesión con Google. Inténtalo de nuevo.',
+        ],
+
+        'errors' => [
+            'failed' => 'Estas credenciales no coinciden con nuestros registros.',
+            'throttled' => 'Demasiados intentos de inicio de sesión. Inténtalo de nuevo en :seconds segundos.',
         ],
 
         'forgot' => [
@@ -47,8 +53,25 @@ return [
             'sent' => 'Si el correo existe, enviamos un código de 6 dígitos.',
         ],
 
+        'verify' => [
+            'title' => 'Confirma tu correo',
+            'subtitle' => 'Enviamos un código de 6 dígitos a :email.',
+            'pin_label' => 'Código',
+            'pin_hint' => 'Escribe los 6 dígitos que te enviamos.',
+            'submit' => 'Confirmar correo',
+            'resend' => 'Reenviar código',
+            'resent' => 'Enviamos un código nuevo.',
+            'logout' => 'Salir',
+            'invalid_pin' => 'Código inválido o vencido.',
+            'email_subject' => 'Confirma tu correo',
+            'email_greeting' => '¡Hola, :name!',
+            'email_intro' => 'Usa el código de abajo para confirmar tu correo:',
+            'email_expires' => 'El código vence en :minutes minutos.',
+            'email_ignore' => 'Si no creaste esta cuenta, ignora este correo.',
+        ],
+
         'reset' => [
-            'title' => 'Restablecer contraseña',
+            'title' => 'Restablecer Contraseña',
             'subtitle' => 'Ingresa el código de 6 dígitos que enviamos a tu correo y la nueva contraseña.',
             'email_label' => 'Correo electrónico',
             'pin_label' => 'Código',

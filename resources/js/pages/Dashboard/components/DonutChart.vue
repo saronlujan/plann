@@ -23,7 +23,9 @@ const total = computed(() =>
     props.segments.reduce((sum, segment) => sum + Number.parseFloat(segment.value), 0),
 );
 
-const chartSeries = computed(() => props.segments.map((segment) => Number.parseFloat(segment.value)));
+const chartSeries = computed(() =>
+    props.segments.map((segment) => Number.parseFloat(segment.value)),
+);
 
 const chartOptions = computed((): ApexOptions => ({
     chart: {

@@ -6,6 +6,8 @@ use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
+use App\Support\Transactions\TransactionAttachments;
+use Illuminate\Http\UploadedFile;
 
 use function Pest\Laravel\actingAs;
 
@@ -15,7 +17,7 @@ use function Pest\Laravel\actingAs;
 function makeTenantWithTransaction(string $email): array
 {
     $tenant = Tenant::create(['name' => 'Tenant '.$email]);
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Owner '.$email,
         'email' => $email,
@@ -188,4 +190,45 @@ it('rejects installment counts above the allowed maximum', function () {
             'installments_total' => 5000,
         ])
         ->assertSessionHasErrors('installments_total');
+});
+
+it('serves a transaction attachment to its owner', function () {
+    $data = makeTenantWithTransaction('attachment-owner@example.com');
+
+    $path = app(TransactionAttachments::class)->store(
+        UploadedFile::fake()->create('recibo.pdf', 10, 'application/pdf'),
+    );
+
+    $data['transaction']->update(['attachment_path' => $path]);
+
+    actingAs($data['user'])
+        ->get(route('transactions.attachment', $data['transaction']))
+        ->assertOk()
+        // Never rendered inline on our own origin.
+        ->assertHeader('content-disposition', 'attachment; filename='.basename((string) $path))
+        ->assertHeader('x-content-type-options', 'nosniff');
+});
+
+it('does not let a tenant download another tenant transaction attachment', function () {
+    $victim = makeTenantWithTransaction('attachment-victim@example.com');
+
+    app(TenantContext::class)->setTenantId($victim['tenant']->id);
+    $path = app(TransactionAttachments::class)->store(
+        UploadedFile::fake()->create('recibo.pdf', 10, 'application/pdf'),
+    );
+    $victim['transaction']->update(['attachment_path' => $path]);
+
+    $attacker = makeTenantWithTransaction('attachment-attacker@example.com');
+
+    actingAs($attacker['user'])
+        ->get(route('transactions.attachment', $victim['transaction']))
+        ->assertNotFound();
+});
+
+it('returns 404 for a transaction without an attachment', function () {
+    $data = makeTenantWithTransaction('attachment-missing@example.com');
+
+    actingAs($data['user'])
+        ->get(route('transactions.attachment', $data['transaction']))
+        ->assertNotFound();
 });

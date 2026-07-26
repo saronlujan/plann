@@ -2,21 +2,22 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Reminder about transactions that are due today or coming due. Delivered on the
- * queue by email (through Resend).
+ * Reminder about transactions that are overdue, due today or coming due.
+ * Delivered on the queue by email (through Resend).
  */
 class TransactionDueNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     /**
-     * @param  'due_today'|'upcoming'  $kind
+     * @param  'overdue'|'due_today'|'upcoming'  $kind
      * @param  array<int, array{description: string, amount: string, date: string, account: string}>  $items
      */
     public function __construct(
@@ -27,36 +28,32 @@ class TransactionDueNotification extends Notification implements ShouldQueue
     /**
      * @return array<int, string>
      */
-    public function via(object $notifiable): array
+    public function via(User $notifiable): array
     {
         return filled($notifiable->email) ? ['mail'] : [];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject($this->subject())
-            ->greeting('Olá, '.$notifiable->name.'!')
-            ->line($this->intro());
+            ->subject(__("notifications.transactions_due.subject.{$this->kind}"))
+            ->greeting(__('notifications.transactions_due.greeting', ['name' => $notifiable->name]))
+            ->line(__("notifications.transactions_due.intro.{$this->kind}"));
+
+        // Overdue items read in the past tense; everything else is still ahead.
+        $itemKey = $this->kind === 'overdue'
+            ? 'notifications.transactions_due.item_overdue'
+            : 'notifications.transactions_due.item';
 
         foreach ($this->items as $item) {
-            $mail->line(sprintf('• %s — %s (vence em %s, %s)', $item['description'], $item['amount'], $item['date'], $item['account']));
+            $mail->line('• '.__($itemKey, [
+                'description' => $item['description'],
+                'amount' => $item['amount'],
+                'date' => $item['date'],
+                'account' => $item['account'],
+            ]));
         }
 
-        return $mail->line('Acesse o plann.money para acompanhar suas transações.');
-    }
-
-    private function subject(): string
-    {
-        return $this->kind === 'due_today'
-            ? 'Transações que vencem hoje'
-            : 'Transações a vencer';
-    }
-
-    private function intro(): string
-    {
-        return $this->kind === 'due_today'
-            ? 'Você tem transações que vencem hoje:'
-            : 'Você tem transações que vão vencer em breve:';
+        return $mail->line(__('notifications.transactions_due.footer'));
     }
 }

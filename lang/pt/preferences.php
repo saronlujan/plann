@@ -27,7 +27,7 @@ return [
     ],
 
     'sound_type' => [
-        'title' => 'Tipo de som',
+        'title' => 'Tipo de Som',
         'description' => 'Escolha o som e ouça uma prévia.',
         'placeholder' => 'Selecione um som',
     ],
@@ -39,7 +39,7 @@ return [
     ],
 
     'reminder' => [
-        'title' => 'Antecedência do lembrete',
+        'title' => 'Antecedência do Lembrete',
         'description' => 'Sempre notificamos na data de vencimento, além desta quantidade de dias antes.',
         'placeholder' => 'Selecione',
     ],

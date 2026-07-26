@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'Planos e cobrança',
+    'title' => 'Planos e Cobrança',
     'subtitle' => 'Escolha o plano ideal — cobrança anual, cancele quando quiser.',
 
     'status' => [

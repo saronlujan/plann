@@ -14,8 +14,8 @@ return [
     'delete_in_use' => 'Esta conta tem lançamentos e não pode ser excluída.',
 
     'modal' => [
-        'create_title' => 'Nova conta',
-        'edit_title' => 'Editar conta',
+        'create_title' => 'Nova Conta',
+        'edit_title' => 'Editar Conta',
         'description' => 'Contas em moedas ativas.',
         'name_label' => 'Nome',
         'name_placeholder' => 'Ex.: Conta Corrente',
@@ -56,7 +56,7 @@ return [
     ],
 
     'invoice' => [
-        'title' => 'Fatura atual',
+        'title' => 'Fatura Atual',
         'total' => 'Total da fatura',
         'due_date' => 'Vencimento',
         'available' => 'Limite disponível',
@@ -72,7 +72,7 @@ return [
         ],
         'pay' => [
             'action' => 'Pagar fatura',
-            'title' => 'Pagar fatura',
+            'title' => 'Pagar Fatura',
             'description' => 'Registre o pagamento da fatura como uma transferência da sua conta.',
             'account_label' => 'Conta de origem',
             'account_placeholder' => 'Selecione a conta',

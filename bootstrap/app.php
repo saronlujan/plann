@@ -4,6 +4,7 @@ use App\Console\Commands\SendDueTransactionNotifications;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantSubscribed;
 use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -13,8 +14,10 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
+    // Application routes are registered by RouteServiceProvider; only the
+    // uptime probe is wired here.
     ->withRouting(
-        //
+        health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
@@ -25,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'subscribed' => EnsureTenantSubscribed::class,
+            'verified' => EnsureEmailIsVerified::class,
         ]);
 
         // The Stripe webhook cannot carry a CSRF token.

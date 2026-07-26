@@ -36,6 +36,6 @@ class CreateCheckoutController extends Controller
         ]);
 
         // Send the browser to Stripe Checkout (works for both Inertia and plain requests).
-        return Inertia::location($checkout->url);
+        return Inertia::location($checkout->asStripeCheckoutSession()->url);
     }
 }

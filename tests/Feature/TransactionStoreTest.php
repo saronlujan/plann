@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
+use App\Support\Transactions\TransactionAttachments;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,7 +23,7 @@ it('stores a transaction from the insertion modal', function () {
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'store-transactions@example.com',
@@ -72,7 +73,10 @@ it('stores a transaction from the insertion modal', function () {
     expect($transaction?->installment_frequency)->toBe(TransactionInstallmentFrequency::Bimonthly);
     expect($transaction?->interest_amount)->toBe('12.50');
     expect($transaction?->attachment_path)->not->toBeNull();
-    expect(Storage::disk('public')->exists($transaction?->attachment_path ?? ''))->toBeTrue();
+    // Receipts live on the private disk, namespaced per tenant.
+    expect(Storage::disk(TransactionAttachments::DISK)->exists($transaction?->attachment_path ?? ''))->toBeTrue();
+    expect(Storage::disk('public')->exists($transaction?->attachment_path ?? ''))->toBeFalse();
+    expect($transaction?->attachment_path)->toStartWith('transactions/attachments/'.$tenant->id.'/');
 });
 
 it('stores a transfer as paired transactions', function () {
@@ -80,7 +84,7 @@ it('stores a transfer as paired transactions', function () {
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'transfer-transactions@example.com',
@@ -136,7 +140,7 @@ it('stores a transaction with a category and tags', function () {
     Storage::fake('public');
 
     $tenant = Tenant::create(['name' => 'Tenant Cat']);
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => 'tx-cat@example.com',
@@ -184,7 +188,7 @@ it('stores a transaction with a category and tags', function () {
 
 it('rejects a category or tag from another tenant', function () {
     $tenant = Tenant::create(['name' => 'Tenant A']);
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => 'tx-cross@example.com',
@@ -227,7 +231,7 @@ it('rejects a category or tag from another tenant', function () {
 
 it('accepts a dual-use (both) category on income and expense', function () {
     $tenant = Tenant::create(['name' => 'Tenant Both']);
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => 'tx-both@example.com',
@@ -275,7 +279,7 @@ it('accepts a dual-use (both) category on income and expense', function () {
 
 it('keeps existing transactions when a category type changes', function () {
     $tenant = Tenant::create(['name' => 'Tenant Change']);
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => 'tx-change@example.com',

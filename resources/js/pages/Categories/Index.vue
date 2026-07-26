@@ -56,9 +56,11 @@ function askDelete(category: Category): void {
 }
 function confirmDelete(): void {
     const target = deleteTarget.value;
+
     if (target === null) {
         return;
     }
+
     confirmOpen.value = false;
     router.delete(destroyCategory(target.id).url, {
         preserveScroll: true,
@@ -149,9 +151,7 @@ function confirmDelete(): void {
             />
             <ConfirmDialog
                 :open="confirmOpen"
-                :description="
-                    $t('categories.delete_confirm', { name: deleteTarget?.name ?? '' })
-                "
+                :description="$t('categories.delete_confirm', { name: deleteTarget?.name ?? '' })"
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"
             />

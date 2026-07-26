@@ -4,6 +4,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\UserPin;
 use App\Notifications\PasswordResetPinNotification;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -15,7 +16,7 @@ function resetUser(string $email): User
 {
     $tenant = Tenant::create(['name' => 'Tenant '.$email]);
 
-    return User::create([
+    return User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => $email,
@@ -129,4 +130,19 @@ test('resetting requires a verified pin', function () {
         ->assertSessionHasErrors('pin');
 
     expect(Hash::check('password', $user->refresh()->password))->toBeTrue();
+});
+
+test('the reset pin notification is queued and localized for the user', function () {
+    Notification::fake();
+
+    $user = resetUser('queued-pin@example.com');
+    $user->update(['locale' => 'es']);
+
+    $this->post('/forgot-password', ['email' => 'queued-pin@example.com'])
+        ->assertRedirect(route('password.reset'));
+
+    Notification::assertSentTo($user, PasswordResetPinNotification::class, function (PasswordResetPinNotification $notification): bool {
+        return $notification instanceof ShouldQueue
+            && $notification->locale === 'es';
+    });
 });

@@ -14,7 +14,7 @@ it('marks a transaction as paid', function () {
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'pay-transactions@example.com',

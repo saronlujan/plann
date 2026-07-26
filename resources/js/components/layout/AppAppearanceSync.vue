@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
 import { watch } from 'vue';
-import { applyAppearance, type ColorValue, type ThemeValue } from '@/composables/useAppearance';
+import { applyAppearance } from '@/composables/useAppearance';
+import type { ColorValue, ThemeValue } from '@/composables/useAppearance';
 
 const page = usePage<{ auth?: { user?: { theme?: ThemeValue; color?: ColorValue } | null } }>();
 

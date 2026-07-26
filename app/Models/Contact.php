@@ -40,6 +40,9 @@ class Contact extends Model
         'type' => ContactType::class,
     ];
 
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

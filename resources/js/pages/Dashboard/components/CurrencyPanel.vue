@@ -82,7 +82,10 @@ function formatDay(date: string): string {
             <Card>
                 <CardContent class="flex flex-col gap-3 p-2">
                     <span class="font-medium">{{ $t('dashboard.expenses_by_category') }}</span>
-                    <DonutChart :segments="props.data.expensesByCategory" :currency="props.data.code" />
+                    <DonutChart
+                        :segments="props.data.expensesByCategory"
+                        :currency="props.data.code"
+                    />
                 </CardContent>
             </Card>
         </div>

@@ -7,6 +7,11 @@ use App\Models\User;
 
 class TransactionPolicy
 {
+    public function view(User $user, Transaction $transaction): bool
+    {
+        return $user->tenant_id === $transaction->tenant_id;
+    }
+
     public function update(User $user, Transaction $transaction): bool
     {
         return $user->tenant_id === $transaction->tenant_id;

@@ -34,6 +34,11 @@ class SendPasswordResetPin
             'expires_at' => now()->addMinutes(self::EXPIRES_MINUTES),
         ]);
 
-        $user->notify(new PasswordResetPinNotification($pin, self::EXPIRES_MINUTES));
+        // The notification is queued, so the worker would otherwise render the
+        // email in the app default locale instead of the user's.
+        $user->notify(
+            (new PasswordResetPinNotification($pin, self::EXPIRES_MINUTES))
+                ->locale($user->locale ?: config('app.locale')),
+        );
     }
 }

@@ -10,8 +10,8 @@ return [
         'name' => 'Nombre',
     ],
     'modal' => [
-        'create_title' => 'Nueva etiqueta',
-        'edit_title' => 'Editar etiqueta',
+        'create_title' => 'Nueva Etiqueta',
+        'edit_title' => 'Editar Etiqueta',
         'description' => 'Etiquetas libres para organizar transacciones.',
         'name_label' => 'Nombre',
         'name_placeholder' => 'Nombre de la etiqueta',

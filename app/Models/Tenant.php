@@ -22,6 +22,15 @@ class Tenant extends Model
         'plan_slug',
     ];
 
+    /**
+     * Mirrors the column default so a brand-new tenant already has a plan.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'plan_slug' => 'basic',
+    ];
+
     protected $casts = [
         'plan_slug' => PlanSlug::class,
         'trial_ends_at' => 'datetime',
@@ -42,7 +51,7 @@ class Tenant extends Model
      */
     public function plan(): ?Plan
     {
-        return Plan::query()->where('slug', $this->plan_slug?->value ?? PlanSlug::Basic->value)->first();
+        return Plan::query()->where('slug', $this->plan_slug->value)->first();
     }
 
     /**
@@ -61,6 +70,9 @@ class Tenant extends Model
         return $this->users()->count() < $this->maxUsers();
     }
 
+    /**
+     * @return BelongsToMany<Currency, $this>
+     */
     public function currencies(): BelongsToMany
     {
         return $this->belongsToMany(Currency::class)
@@ -68,6 +80,9 @@ class Tenant extends Model
             ->withTimestamps();
     }
 
+    /**
+     * @return BelongsToMany<Currency, $this>
+     */
     public function activeCurrencies(): BelongsToMany
     {
         return $this->currencies()->wherePivot('is_active', true);
@@ -117,11 +132,17 @@ class Tenant extends Model
             });
     }
 
+    /**
+     * @return HasMany<User, $this>
+     */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }
 
+    /**
+     * @return HasMany<Account, $this>
+     */
     public function accounts(): HasMany
     {
         return $this->hasMany(Account::class);

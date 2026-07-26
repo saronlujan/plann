@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'Perfil',
+    'title' => 'Meus Dados',
     'subtitle' => 'Gerencie seus dados de conta e sua senha.',
 
     'account' => [
@@ -10,7 +10,8 @@ return [
         'name' => 'Nome',
         'email' => 'E-mail',
         'phone' => 'Telefone',
-        'saved' => 'Perfil atualizado.',
+        'saved' => 'Dados atualizados.',
+        'email_locked' => 'O e-mail é sua identidade de login verificada e não pode ser alterado.',
     ],
 
     'password' => [
@@ -19,7 +20,7 @@ return [
         'current' => 'Senha atual',
         'new' => 'Nova senha',
         'confirm' => 'Confirmar nova senha',
-        'submit' => 'Atualizar senha',
+        'submit' => 'Salvar',
         'updated' => 'Senha atualizada.',
     ],
 ];

@@ -27,7 +27,7 @@ return [
     ],
 
     'sound_type' => [
-        'title' => 'Tipo de sonido',
+        'title' => 'Tipo de Sonido',
         'description' => 'Elige el sonido y escucha una vista previa.',
         'placeholder' => 'Selecciona un sonido',
     ],
@@ -39,7 +39,7 @@ return [
     ],
 
     'reminder' => [
-        'title' => 'Anticipación del recordatorio',
+        'title' => 'Anticipación del Recordatorio',
         'description' => 'Siempre notificamos en la fecha de vencimiento, además de esta cantidad de días antes.',
         'placeholder' => 'Selecciona',
     ],

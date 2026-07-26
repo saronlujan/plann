@@ -2,8 +2,26 @@
 // on the frontend — swatches, dots and dashboard charts all read from here.
 
 export type LabelColorValue =
-    | 'blue' | 'indigo' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'zinc'
-    | 'sky' | 'cyan' | 'emerald' | 'lime' | 'amber' | 'rose' | 'fuchsia' | 'violet' | 'slate' | 'stone';
+    | 'blue'
+    | 'indigo'
+    | 'purple'
+    | 'pink'
+    | 'red'
+    | 'orange'
+    | 'yellow'
+    | 'green'
+    | 'teal'
+    | 'zinc'
+    | 'sky'
+    | 'cyan'
+    | 'emerald'
+    | 'lime'
+    | 'amber'
+    | 'rose'
+    | 'fuchsia'
+    | 'violet'
+    | 'slate'
+    | 'stone';
 
 export type LabelColorOption = {
     value: LabelColorValue;

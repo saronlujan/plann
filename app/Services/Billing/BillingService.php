@@ -5,6 +5,7 @@ namespace App\Services\Billing;
 use App\Models\Plan;
 use App\Models\Tenant;
 use Illuminate\Support\Collection;
+use Laravel\Cashier\Invoice;
 
 class BillingService
 {
@@ -26,13 +27,13 @@ class BillingService
         $subscription = $tenant->subscription('default');
 
         return [
-            'plan_slug' => $tenant->plan_slug?->value,
+            'plan_slug' => $tenant->plan_slug->value,
             'subscribed' => $tenant->subscribed(),
             'on_trial' => $tenant->onTrial(),
             'on_grace_period' => (bool) $subscription?->onGracePeriod(),
             'trial_ends_at' => $tenant->trial_ends_at?->toDateString(),
             'trial_days_left' => $tenant->onTrial()
-                ? max(0, (int) ceil(now()->floatDiffInDays($tenant->trial_ends_at, false)))
+                ? max(0, (int) ceil(now()->diffInDays($tenant->trial_ends_at, false)))
                 : 0,
             'current_price_id' => $subscription?->stripe_price,
         ];
@@ -50,11 +51,11 @@ class BillingService
         }
 
         return $tenant->invoices()
-            ->map(fn ($invoice): array => [
-                'id' => $invoice->id,
+            ->map(fn (Invoice $invoice): array => [
+                'id' => $invoice->asStripeInvoice()->id,
                 'date' => $invoice->date()->toDateString(),
                 'total' => $invoice->total(),
-                'status' => $invoice->status,
+                'status' => $invoice->asStripeInvoice()->status,
             ])
             ->all();
     }

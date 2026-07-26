@@ -19,7 +19,7 @@ function billingTenantUser(string $email, ?callable $tenantSetup = null): array
         $tenantSetup($tenant);
     }
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => $email,

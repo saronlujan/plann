@@ -49,18 +49,18 @@ return [
     ],
 
     'delete' => [
-        'title' => 'Excluir transação',
+        'title' => 'Excluir Transação',
         'description' => 'Excluir “:label”? Esta ação não pode ser desfeita.',
     ],
 
     'modal' => [
-        'create_title' => 'Nova transação',
-        'edit_title' => 'Editar transação',
+        'create_title' => 'Nova Transação',
+        'edit_title' => 'Editar Transação',
         'movement_type_group' => 'Tipo de transação',
     ],
 
     'recurrence' => [
-        'title' => 'Escopo da recorrência',
+        'title' => 'Escopo da Recorrência',
         'subtitle' => 'Escolha quais ocorrências desta série serão afetadas.',
     ],
 
@@ -81,7 +81,7 @@ return [
         'account' => 'Conta',
         'source_account' => 'Conta de origem',
         'destination_account' => 'Conta de destino',
-        'effective_date' => 'Data efetiva',
+        'effective_date' => 'Data',
         'amount' => 'Valor',
         'interest' => 'Juros da conta',
         'description' => 'Descrição',

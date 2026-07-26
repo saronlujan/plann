@@ -4,7 +4,7 @@ import { CheckIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -13,15 +13,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { applyAppearance, paletteSwatch } from '@/composables/useAppearance';
+import type { ColorValue, ThemeValue } from '@/composables/useAppearance';
+import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { playSound } from '@/lib/sound';
 import type { SoundValue } from '@/lib/sound';
-import {
-    applyAppearance,
-    paletteSwatch,
-    type ColorValue,
-    type ThemeValue,
-} from '@/composables/useAppearance';
-import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { update as updatePreferences } from '@/routes/preferences';
 
 type Option = { value: string; label: string };

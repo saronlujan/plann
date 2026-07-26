@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { usePage, router } from '@inertiajs/vue3';
+import { ChevronDownIcon, GlobeIcon } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -6,9 +9,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { usePage, router } from '@inertiajs/vue3';
-import { ChevronDownIcon, GlobeIcon } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
 import { update as updateLocale } from '@/routes/locale';
 import { update as updatePreferences } from '@/routes/preferences';
 

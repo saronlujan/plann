@@ -19,11 +19,17 @@ class Country extends Model
         'currency_id',
     ];
 
+    /**
+     * @return BelongsTo<Currency, $this>
+     */
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
     }
 
+    /**
+     * @return HasMany<Tenant, $this>
+     */
     public function tenants(): HasMany
     {
         return $this->hasMany(Tenant::class);

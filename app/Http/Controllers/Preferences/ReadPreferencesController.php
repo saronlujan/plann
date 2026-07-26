@@ -18,13 +18,13 @@ class ReadPreferencesController extends Controller
 
         return Inertia::render('Preferences/Index', [
             'preferences' => [
-                'locale' => $user?->locale ?? 'pt',
+                'locale' => $user->locale ?? 'pt',
                 'theme' => $user?->theme->value ?? UserTheme::Light->value,
                 'color' => $user?->color->value ?? UserColor::Zinc->value,
-                'sound_enabled' => $user?->sound_enabled ?? true,
-                'sound_theme' => $user?->sound_theme ?? SoundTheme::Blip->value,
-                'notifications_enabled' => $user?->notifications_enabled ?? false,
-                'notify_days_before' => $user?->notify_days_before ?? 3,
+                'sound_enabled' => $user->sound_enabled ?? true,
+                'sound_theme' => $user->sound_theme ?? SoundTheme::Blip->value,
+                'notifications_enabled' => $user->notifications_enabled ?? false,
+                'notify_days_before' => $user->notify_days_before ?? 3,
             ],
             'localeOptions' => [
                 ['value' => 'pt', 'label' => 'Português'],

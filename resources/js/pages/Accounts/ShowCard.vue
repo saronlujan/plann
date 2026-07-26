@@ -12,9 +12,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { colorHex } from '@/lib/labelColors';
 import { formatMoney } from '@/lib/money';
-import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { accounts as accountsIndex } from '@/routes';
 import PayInvoiceModal from './components/PayInvoiceModal.vue';
 

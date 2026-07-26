@@ -10,7 +10,7 @@ return [
     ],
 
     'profile' => [
-        'profile' => 'Perfil',
+        'profile' => 'Mis Datos',
         'preferences' => 'Preferencias',
         'billing' => 'Finanzas',
         'logout' => 'Cerrar sesión',
@@ -49,7 +49,7 @@ return [
     ],
 
     'confirm' => [
-        'title' => 'Confirmar eliminación',
+        'title' => 'Confirmar Eliminación',
         'description' => 'Esta acción no se puede deshacer.',
         'confirm' => 'Eliminar',
         'cancel' => 'Cancelar',

@@ -11,8 +11,8 @@ return [
         'type' => 'Tipo',
     ],
     'modal' => [
-        'create_title' => 'Nova categoria',
-        'edit_title' => 'Editar categoria',
+        'create_title' => 'Nova Categoria',
+        'edit_title' => 'Editar Categoria',
         'description' => 'Categorias de receita ou despesa.',
         'name_label' => 'Nome',
         'name_placeholder' => 'Nome da categoria',

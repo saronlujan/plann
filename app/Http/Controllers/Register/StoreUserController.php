@@ -25,6 +25,8 @@ class StoreUserController extends Controller
 
         $request->session()->regenerate();
 
-        return to_route('dashboard');
+        $user->sendEmailVerificationNotification();
+
+        return to_route('verification.notice');
     }
 }

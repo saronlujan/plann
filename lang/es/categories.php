@@ -11,8 +11,8 @@ return [
         'type' => 'Tipo',
     ],
     'modal' => [
-        'create_title' => 'Nueva categoría',
-        'edit_title' => 'Editar categoría',
+        'create_title' => 'Nueva Categoría',
+        'edit_title' => 'Editar Categoría',
         'description' => 'Categorías de ingresos o gastos.',
         'name_label' => 'Nombre',
         'name_placeholder' => 'Nombre de la categoría',

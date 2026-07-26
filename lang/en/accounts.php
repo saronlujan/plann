@@ -14,8 +14,8 @@ return [
     'delete_in_use' => 'This account has transactions and cannot be deleted.',
 
     'modal' => [
-        'create_title' => 'New account',
-        'edit_title' => 'Edit account',
+        'create_title' => 'New Account',
+        'edit_title' => 'Edit Account',
         'description' => 'Accounts in active currencies.',
         'name_label' => 'Name',
         'name_placeholder' => 'E.g., Checking Account',

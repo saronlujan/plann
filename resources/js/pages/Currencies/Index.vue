@@ -43,9 +43,7 @@ function toggleCurrency(currency: CurrencyRow, active: boolean): void {
                         </div>
                         <Switch
                             :model-value="currency.active"
-                            :aria-label="
-                                $t('currencies.activate', { code: currency.code })
-                            "
+                            :aria-label="$t('currencies.activate', { code: currency.code })"
                             @update:model-value="(value) => toggleCurrency(currency, value)"
                         />
                     </CardContent>

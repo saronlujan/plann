@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { trans } from 'laravel-vue-i18n';
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { Checkbox } from '@/components/ui/checkbox';
+import { trans } from 'laravel-vue-i18n';
+import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { register } from '../../routes';
@@ -23,7 +23,7 @@ const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
     <AuthLayout>
         <section class="w-full space-y-8 text-center">
             <Form
-                :action="loginStore().action"
+                :action="loginStore.form().action"
                 method="post"
                 class="space-y-4 text-left"
                 #default="{ errors, processing }"

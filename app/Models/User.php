@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Actions\Auth\SendEmailVerificationPin;
 use App\Enums\UserColor;
 use App\Enums\UserTheme;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property int $tenant_id
  * @property string $name
  * @property string $email
+ * @property Carbon|null $email_verified_at
  * @property string|null $google_id
  * @property string|null $avatar_url
  * @property string|null $phone
@@ -36,10 +38,26 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable(['tenant_id', 'name', 'email', 'google_id', 'avatar_url', 'phone', 'password', 'locale', 'theme', 'color', 'sound_enabled', 'sound_theme', 'notifications_enabled', 'notify_days_before'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * Mirrors the column defaults so a brand-new instance already carries them,
+     * instead of exposing null until the row is round-tripped through the DB.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'locale' => 'pt',
+        'theme' => 'light',
+        'color' => 'zinc',
+        'sound_enabled' => true,
+        'sound_theme' => 'blip',
+        'notifications_enabled' => false,
+        'notify_days_before' => 3,
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -50,6 +68,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'email_verified_at' => 'datetime',
             'theme' => UserTheme::class,
             'color' => UserColor::class,
             'sound_enabled' => 'boolean',
@@ -58,6 +77,19 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * This app verifies with a short-lived 6-digit PIN instead of Laravel's
+     * default signed URL, so the address works even when the user opens the
+     * email on a different device from the one they signed up on.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        app(SendEmailVerificationPin::class)->handle($this);
+    }
+
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

@@ -8,15 +8,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Models\Account;
 use App\Models\Transaction;
+use App\Support\Transactions\TransactionAttachments;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class StoreTransactionController extends Controller
 {
+    public function __construct(private readonly TransactionAttachments $attachments) {}
+
     public function __invoke(StoreTransactionRequest $request): RedirectResponse
     {
         $validated = $request->validated();
@@ -49,7 +50,7 @@ class StoreTransactionController extends Controller
             'installments_total' => $validated['installments_total'] ?? null,
             'installment_number' => $validated['installment_number'] ?? null,
             'interest_amount' => $validated['interest_amount'] ?? null,
-            'attachment_path' => $this->storeAttachment($request->file('attachment')),
+            'attachment_path' => $this->attachments->store($request->file('attachment')),
             'series_uuid' => in_array($validated['type'], [TransactionType::Recurring->value, TransactionType::Installment->value], true) ? (string) Str::uuid() : null,
             'effective_date' => $validated['effective_date'],
             'effective_until' => $validated['effective_until'] ?? null,
@@ -65,10 +66,10 @@ class StoreTransactionController extends Controller
      */
     private function storeTransfer(array $validated, StoreTransactionRequest $request): RedirectResponse
     {
-        $sourceAccount = Account::query()->findOrFail($validated['account_id']);
-        $destinationAccount = Account::query()->findOrFail($validated['destination_account_id']);
+        $sourceAccount = Account::query()->findOrFail((int) $validated['account_id']);
+        $destinationAccount = Account::query()->findOrFail((int) $validated['destination_account_id']);
         $seriesUuid = (string) Str::uuid();
-        $attachmentPath = $this->storeAttachment($request->file('attachment'));
+        $attachmentPath = $this->attachments->store($request->file('attachment'));
 
         DB::transaction(function () use ($validated, $sourceAccount, $destinationAccount, $seriesUuid, $attachmentPath): void {
             Transaction::query()->create([
@@ -113,14 +114,5 @@ class StoreTransactionController extends Controller
         return to_route('transactions.index', [
             'period' => CarbonImmutable::createFromFormat('Y-m-d', $validated['effective_date'])->format('Y-m'),
         ]);
-    }
-
-    private function storeAttachment(?UploadedFile $attachment): ?string
-    {
-        if ($attachment === null) {
-            return null;
-        }
-
-        return Storage::disk('public')->putFile('transactions/attachments', $attachment);
     }
 }

@@ -11,8 +11,8 @@ return [
         'type' => 'Type',
     ],
     'modal' => [
-        'create_title' => 'New category',
-        'edit_title' => 'Edit category',
+        'create_title' => 'New Category',
+        'edit_title' => 'Edit Category',
         'description' => 'Income or expense categories.',
         'name_label' => 'Name',
         'name_placeholder' => 'Category name',

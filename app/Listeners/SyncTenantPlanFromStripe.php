@@ -5,7 +5,6 @@ namespace App\Listeners;
 use App\Enums\PlanSlug;
 use App\Models\Plan;
 use App\Models\Tenant;
-use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Events\WebhookReceived;
 
 class SyncTenantPlanFromStripe
@@ -32,9 +31,9 @@ class SyncTenantPlanFromStripe
             return;
         }
 
-        $tenant = Cashier::findBillable($stripeId);
+        $tenant = Tenant::query()->where('stripe_id', $stripeId)->first();
 
-        if (! $tenant instanceof Tenant) {
+        if ($tenant === null) {
             return;
         }
 

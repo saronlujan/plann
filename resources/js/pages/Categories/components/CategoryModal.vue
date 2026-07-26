@@ -88,20 +88,14 @@ function submit(): void {
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>{{
-                    isEdit
-                        ? $t('categories.modal.edit_title')
-                        : $t('categories.modal.create_title')
+                    isEdit ? $t('categories.modal.edit_title') : $t('categories.modal.create_title')
                 }}</DialogTitle>
-                <DialogDescription>{{
-                    $t('categories.modal.description')
-                }}</DialogDescription>
+                <DialogDescription>{{ $t('categories.modal.description') }}</DialogDescription>
             </DialogHeader>
 
             <Form class="gap-3" @submit.prevent="submit">
                 <FormGroup>
-                    <FormLabel for="cat-name">{{
-                        $t('categories.modal.name_label')
-                    }}</FormLabel>
+                    <FormLabel for="cat-name">{{ $t('categories.modal.name_label') }}</FormLabel>
                     <Input
                         id="cat-name"
                         v-model="form.name"
@@ -111,9 +105,7 @@ function submit(): void {
                 </FormGroup>
 
                 <FormGroup>
-                    <FormLabel for="cat-type">{{
-                        $t('categories.modal.type_label')
-                    }}</FormLabel>
+                    <FormLabel for="cat-type">{{ $t('categories.modal.type_label') }}</FormLabel>
                     <Select v-model="form.type">
                         <SelectTrigger id="cat-type">
                             <SelectValue :placeholder="$t('common.actions.select')" />

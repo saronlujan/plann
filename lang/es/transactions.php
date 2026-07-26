@@ -49,18 +49,18 @@ return [
     ],
 
     'delete' => [
-        'title' => 'Eliminar transacción',
+        'title' => 'Eliminar Transacción',
         'description' => 'Eliminar «:label»? Esta acción no se puede deshacer.',
     ],
 
     'modal' => [
-        'create_title' => 'Nueva transacción',
-        'edit_title' => 'Editar transacción',
+        'create_title' => 'Nueva Transacción',
+        'edit_title' => 'Editar Transacción',
         'movement_type_group' => 'Tipo de transacción',
     ],
 
     'recurrence' => [
-        'title' => 'Alcance de la recurrencia',
+        'title' => 'Alcance de la Recurrencia',
         'subtitle' => 'Elige qué ocurrencias de esta serie se verán afectadas.',
     ],
 
@@ -71,7 +71,7 @@ return [
     ],
 
     'installment' => [
-        'title' => 'Pago a plazos',
+        'title' => 'Pago a Plazos',
         'subtitle' => 'Indica la cantidad de cuotas y el período de cobro.',
     ],
 
@@ -81,7 +81,7 @@ return [
         'account' => 'Cuenta',
         'source_account' => 'Cuenta de origen',
         'destination_account' => 'Cuenta de destino',
-        'effective_date' => 'Fecha efectiva',
+        'effective_date' => 'Fecha',
         'amount' => 'Importe',
         'interest' => 'Interés de la cuenta',
         'description' => 'Descripción',

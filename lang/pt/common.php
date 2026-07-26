@@ -10,7 +10,7 @@ return [
     ],
 
     'profile' => [
-        'profile' => 'Perfil',
+        'profile' => 'Meus Dados',
         'preferences' => 'Preferências',
         'billing' => 'Financeiro',
         'logout' => 'Desconectar',
@@ -49,7 +49,7 @@ return [
     ],
 
     'confirm' => [
-        'title' => 'Confirmar exclusão',
+        'title' => 'Confirmar Exclusão',
         'description' => 'Esta ação não pode ser desfeita.',
         'confirm' => 'Excluir',
         'cancel' => 'Cancelar',

@@ -10,7 +10,7 @@ return [
     ],
 
     'profile' => [
-        'profile' => 'Profile',
+        'profile' => 'My Details',
         'preferences' => 'Preferences',
         'billing' => 'Finance',
         'logout' => 'Logout',

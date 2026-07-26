@@ -15,7 +15,7 @@ test('users may review virtual transactions by month with simple calculations', 
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'transactions@example.com',
@@ -121,7 +121,7 @@ test('period navigation keeps recurring transactions visible in the target month
         'name' => 'Tenant Principal',
     ]);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa Teste',
         'email' => 'transactions-navigation@example.com',

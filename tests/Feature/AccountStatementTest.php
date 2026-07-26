@@ -19,7 +19,7 @@ function statementFixture(string $email): array
     $tenant = Tenant::create(['name' => 'Tenant '.$email]);
     app(TenantContext::class)->setTenantId($tenant->id);
 
-    $user = User::create([
+    $user = User::factory()->create([
         'tenant_id' => $tenant->id,
         'name' => 'Pessoa',
         'email' => $email,

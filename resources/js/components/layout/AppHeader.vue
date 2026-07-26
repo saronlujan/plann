@@ -3,20 +3,20 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import { SettingsIcon, TimerOffIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { expireTrial } from '@/routes/dev';
-import { index as billing } from '@/routes/billing';
-import { edit as profile } from '@/routes/profile';
-import { accounts as accountsIndex, contacts, dashboard, logout, preferences } from '@/routes';
-import transactions from '@/routes/transactions';
-import { index as categoriesIndex } from '@/routes/categories';
-import { index as currenciesIndex } from '@/routes/currencies';
-import { index as tagsIndex } from '@/routes/tags';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { accounts as accountsIndex, contacts, dashboard, logout, preferences } from '@/routes';
+import { index as billing } from '@/routes/billing';
+import { index as categoriesIndex } from '@/routes/categories';
+import { index as currenciesIndex } from '@/routes/currencies';
+import { expireTrial } from '@/routes/dev';
+import { edit as profile } from '@/routes/profile';
+import { index as tagsIndex } from '@/routes/tags';
+import transactions from '@/routes/transactions';
 
 const page = usePage<{
     auth: { user: { name: string; avatar_url: string | null } | null };
