@@ -49,7 +49,13 @@ createInertiaApp({
                   render: () => h('div', [h(App, props), h(LocaleSync), h(AppearanceSync)]),
               })
             : createApp({
-                  render: () => h('div', [h(App, props), h(LocaleSync), h(AppearanceSync), h(Toaster)]),
+                  render: () =>
+                      h('div', [
+                          h(App, props),
+                          h(LocaleSync),
+                          h(AppearanceSync),
+                          h(Toaster, { position: 'bottom-center' }),
+                      ]),
               });
 
         vueApp.use(plugin);

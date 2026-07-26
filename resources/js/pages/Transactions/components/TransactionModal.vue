@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import { computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import DatePicker from '@/components/ui/date-picker/DatePicker.vue';
@@ -84,9 +85,9 @@ const dialogOpen = computed({
 const isEdit = computed(() => props.entry != null);
 
 const recurrenceScopeOptions: Option[] = [
-    { value: 'all', label: 'Toda a série' },
-    { value: 'one', label: 'Somente esta ocorrência' },
-    { value: 'forward', label: 'Esta e as futuras' },
+    { value: 'all', label: trans('transactions.recurrence_scope.all') },
+    { value: 'one', label: trans('transactions.recurrence_scope.one') },
+    { value: 'forward', label: trans('transactions.recurrence_scope.forward') },
 ];
 
 function todayIsoDate(): string {
@@ -168,14 +169,40 @@ const isInstallmentType = computed(() => form.type === 'installment');
 const isRecurringType = computed(() => form.type === 'recurring');
 const isTransferMovement = computed(() => form.movement_type === 'transfer');
 
-// Categories carry an income/expense type, so only show the ones matching the
-// current movement. Transfers have no category.
+// Categories carry a type (income / expense / both). Show the ones matching the
+// current movement plus dual-use ("both") categories. Transfers have no category.
 const filteredCategoryOptions = computed(() =>
-    props.categoryOptions.filter((category) => category.type === form.movement_type),
+    props.categoryOptions.filter(
+        (category) => category.type === form.movement_type || category.type === 'both',
+    ),
 );
 
-const accountLabel = computed(() => (isTransferMovement.value ? 'Conta de origem' : 'Conta'));
-const dialogTitle = computed(() => (isEdit.value ? 'Edit Transaction' : 'New Transaction'));
+// Keep the already-selected category visible even if its type no longer matches
+// the movement (e.g. the category's type was changed after this entry was created),
+// so editing never silently drops it.
+const categorySelectOptions = computed(() => {
+    const list = [...filteredCategoryOptions.value];
+    const selected = props.categoryOptions.find(
+        (category) => category.id.toString() === form.category_id,
+    );
+
+    if (selected && !list.some((category) => category.id === selected.id)) {
+        list.push(selected);
+    }
+
+    return list;
+});
+
+const accountLabel = computed(() =>
+    isTransferMovement.value
+        ? trans('transactions.fields.source_account')
+        : trans('transactions.fields.account'),
+);
+const dialogTitle = computed(() =>
+    isEdit.value
+        ? trans('transactions.modal.edit_title')
+        : trans('transactions.modal.create_title'),
+);
 
 // Solid color at the top of the modal, one per movement type. Softer (darker,
 // less saturated) shades in dark mode so it doesn't glare.
@@ -291,7 +318,7 @@ watch(
 <template>
     <Dialog v-model:open="dialogOpen">
         <DialogContent
-            class="overflow-hidden border-none p-0 **:data-[slot=dialog-close]:text-white **:data-[slot=dialog-close]:hover:bg-white/20 sm:max-w-2xl"
+            class="gap-4 overflow-hidden border-none p-0 **:data-[slot=dialog-close]:text-white **:data-[slot=dialog-close]:hover:bg-white/20 sm:max-w-2xl"
         >
             <div :class="cn('px-6 pt-6 pb-4', movementHeaderClass)">
                 <DialogHeader>
@@ -300,7 +327,7 @@ watch(
 
                 <div
                     role="radiogroup"
-                    aria-label="Tipo de transação"
+                    :aria-label="$t('transactions.modal.movement_type_group')"
                     class="mt-3 grid grid-cols-3 gap-2"
                 >
                     <button
@@ -329,10 +356,10 @@ watch(
             <Form class="space-y-5 px-6 pb-6" @submit.prevent="submitTransaction">
                 <div class="grid gap-4 md:grid-cols-2">
                     <FormGroup class="md:col-span-1">
-                        <FormLabel for="tx-type">Tipo</FormLabel>
+                        <FormLabel for="tx-type">{{ $t('transactions.fields.type') }}</FormLabel>
                         <Select v-model="form.type" :disabled="isTransferMovement">
                             <SelectTrigger id="tx-type">
-                                <SelectValue placeholder="Selecione o tipo" />
+                                <SelectValue :placeholder="$t('transactions.placeholders.type')" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -348,10 +375,14 @@ watch(
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel for="tx-currency">Moeda</FormLabel>
+                        <FormLabel for="tx-currency">{{
+                            $t('transactions.fields.currency')
+                        }}</FormLabel>
                         <Select v-model="form.currency_id">
                             <SelectTrigger id="tx-currency">
-                                <SelectValue placeholder="Selecione a moeda" />
+                                <SelectValue
+                                    :placeholder="$t('transactions.placeholders.currency')"
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -370,7 +401,9 @@ watch(
                         <FormLabel for="tx-account">{{ accountLabel }}</FormLabel>
                         <Select v-model="form.account_id">
                             <SelectTrigger id="tx-account">
-                                <SelectValue placeholder="Selecione a conta" />
+                                <SelectValue
+                                    :placeholder="$t('transactions.placeholders.account')"
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -386,10 +419,16 @@ watch(
                     </FormGroup>
 
                     <FormGroup v-if="isTransferMovement">
-                        <FormLabel for="tx-destination">Conta de destino</FormLabel>
+                        <FormLabel for="tx-destination">{{
+                            $t('transactions.fields.destination_account')
+                        }}</FormLabel>
                         <Select v-model="form.destination_account_id">
                             <SelectTrigger id="tx-destination">
-                                <SelectValue placeholder="Selecione a conta de destino" />
+                                <SelectValue
+                                    :placeholder="
+                                        $t('transactions.placeholders.destination_account')
+                                    "
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -405,12 +444,17 @@ watch(
                     </FormGroup>
 
                     <FormGroup>
-                        <DatePicker v-model="form.effective_date" label="Data efetiva" />
+                        <DatePicker
+                            v-model="form.effective_date"
+                            :label="$t('transactions.fields.effective_date')"
+                        />
                         <FormError :message="form.errors.effective_date" />
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel for="tx-amount">Valor</FormLabel>
+                        <FormLabel for="tx-amount">{{
+                            $t('transactions.fields.amount')
+                        }}</FormLabel>
                         <Input
                             id="tx-amount"
                             v-model="form.amount"
@@ -418,13 +462,15 @@ watch(
                             step="0.01"
                             min="0"
                             name="amount"
-                            placeholder="0,00"
+                            :placeholder="$t('transactions.placeholders.amount')"
                         />
                         <FormError :message="form.errors.amount" />
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel for="tx-interest">Juros da conta</FormLabel>
+                        <FormLabel for="tx-interest">{{
+                            $t('transactions.fields.interest')
+                        }}</FormLabel>
                         <Input
                             id="tx-interest"
                             v-model="form.interest_amount"
@@ -432,41 +478,45 @@ watch(
                             step="0.01"
                             min="0"
                             name="interest_amount"
-                            placeholder="0,00"
+                            :placeholder="$t('transactions.placeholders.amount')"
                         />
                         <FormError :message="form.errors.interest_amount" />
                     </FormGroup>
 
                     <FormGroup class="md:col-span-2">
-                        <FormLabel for="tx-description">Descrição</FormLabel>
+                        <FormLabel for="tx-description">{{
+                            $t('transactions.fields.description')
+                        }}</FormLabel>
                         <Input
                             id="tx-description"
                             v-model="form.description"
                             type="text"
                             name="description"
-                            placeholder="Descreva a transação"
+                            :placeholder="$t('transactions.placeholders.description')"
                         />
                         <FormError :message="form.errors.description" />
                     </FormGroup>
 
                     <FormGroup v-if="!isTransferMovement">
-                        <FormLabel for="tx-category">Categoria</FormLabel>
+                        <FormLabel for="tx-category">{{
+                            $t('transactions.fields.category')
+                        }}</FormLabel>
                         <Select
                             v-model="form.category_id"
-                            :disabled="filteredCategoryOptions.length === 0"
+                            :disabled="categorySelectOptions.length === 0"
                         >
                             <SelectTrigger id="tx-category">
                                 <SelectValue
                                     :placeholder="
-                                        filteredCategoryOptions.length === 0
-                                            ? 'Nenhuma categoria cadastrada'
-                                            : 'Selecione a categoria'
+                                        categorySelectOptions.length === 0
+                                            ? $t('transactions.placeholders.no_categories')
+                                            : $t('transactions.placeholders.category')
                                     "
                                 />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
-                                    v-for="category in filteredCategoryOptions"
+                                    v-for="category in categorySelectOptions"
                                     :key="category.id"
                                     :value="category.id.toString()"
                                 >
@@ -484,26 +534,28 @@ watch(
                     </FormGroup>
 
                     <FormGroup v-if="!isTransferMovement">
-                        <FormLabel>Tags</FormLabel>
+                        <FormLabel>{{ $t('transactions.fields.tags') }}</FormLabel>
                         <TagsSelect
                             v-model="form.tags"
                             :options="tagOptions"
                             :disabled="tagOptions.length === 0"
                             :placeholder="
                                 tagOptions.length === 0
-                                    ? 'Nenhuma tag cadastrada'
-                                    : 'Selecione tags'
+                                    ? $t('transactions.placeholders.no_tags')
+                                    : $t('transactions.placeholders.tags')
                             "
                         />
                         <FormError :message="form.errors.tags" />
                     </FormGroup>
 
                     <FormGroup v-if="isRecurringType" class="md:col-span-2">
-                        <FormLabel for="tx-effective-until">Repetir até (opcional)</FormLabel>
+                        <FormLabel for="tx-effective-until">{{
+                            $t('transactions.fields.repeat_until')
+                        }}</FormLabel>
                         <DatePicker
                             v-model="form.effective_until"
-                            label="Repetir até"
-                            hint="Deixe em branco para uma recorrência sem fim."
+                            :label="$t('transactions.fields.repeat_until_short')"
+                            :hint="$t('transactions.hints.repeat_until')"
                         />
                         <FormError :message="form.errors.effective_until" />
                     </FormGroup>
@@ -511,14 +563,16 @@ watch(
 
                 <FormCard
                     v-if="isEdit && isRecurringType"
-                    title="Escopo da recorrência"
-                    subtitle="Escolha quais ocorrências desta série serão afetadas."
+                    :title="$t('transactions.recurrence.title')"
+                    :subtitle="$t('transactions.recurrence.subtitle')"
                 >
                     <FormGroup>
-                        <FormLabel for="tx-recurrence-scope">Aplicar alteração a</FormLabel>
+                        <FormLabel for="tx-recurrence-scope">{{
+                            $t('transactions.fields.apply_change_to')
+                        }}</FormLabel>
                         <Select v-model="form.recurrence_scope">
                             <SelectTrigger id="tx-recurrence-scope">
-                                <SelectValue placeholder="Selecione o escopo" />
+                                <SelectValue :placeholder="$t('transactions.placeholders.scope')" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -536,14 +590,14 @@ watch(
 
                 <FormCard
                     v-if="isInstallmentType && !isTransferMovement"
-                    title="Parcelamento"
-                    subtitle="Informe a quantidade de parcelas e o período de cobrança."
+                    :title="$t('transactions.installment.title')"
+                    :subtitle="$t('transactions.installment.subtitle')"
                 >
                     <div class="grid gap-4 md:grid-cols-2">
                         <FormGroup>
-                            <FormLabel for="tx-installments-total"
-                                >Quantidade de parcelas</FormLabel
-                            >
+                            <FormLabel for="tx-installments-total">{{
+                                $t('transactions.fields.installments_total')
+                            }}</FormLabel>
                             <Input
                                 id="tx-installments-total"
                                 v-model="form.installments_total"
@@ -551,16 +605,20 @@ watch(
                                 min="1"
                                 max="600"
                                 name="installments_total"
-                                placeholder="12"
+                                :placeholder="$t('transactions.placeholders.installments_total')"
                             />
                             <FormError :message="form.errors.installments_total" />
                         </FormGroup>
 
                         <FormGroup>
-                            <FormLabel for="tx-frequency">Período</FormLabel>
+                            <FormLabel for="tx-frequency">{{
+                                $t('transactions.fields.frequency')
+                            }}</FormLabel>
                             <Select v-model="form.installment_frequency">
                                 <SelectTrigger id="tx-frequency">
-                                    <SelectValue placeholder="Selecione o período" />
+                                    <SelectValue
+                                        :placeholder="$t('transactions.placeholders.frequency')"
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem
@@ -577,9 +635,15 @@ watch(
                     </div>
                 </FormCard>
                 <DialogFooter>
-                    <Button type="button" variant="outline" @click="closeModal">Cancel</Button>
+                    <Button type="button" variant="outline" @click="closeModal">{{
+                        $t('common.actions.cancel')
+                    }}</Button>
                     <Button type="submit" :disabled="form.processing">
-                        {{ form.processing ? 'Saving...' : 'Save' }}
+                        {{
+                            form.processing
+                                ? $t('common.actions.saving')
+                                : $t('common.actions.save')
+                        }}
                     </Button>
                 </DialogFooter>
             </Form>

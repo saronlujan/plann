@@ -12,10 +12,6 @@ enum TransactionMovementType: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Income => 'Receita',
-            self::Expense => 'Despesa',
-            self::Transfer => 'Transferência',
-        };
+        return __('enums.transaction_movement_type.'.$this->value);
     }
 }

@@ -11,21 +11,13 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-const props = withDefaults(
-    defineProps<{
-        open: boolean;
-        title?: string;
-        description?: string;
-        confirmLabel?: string;
-        cancelLabel?: string;
-    }>(),
-    {
-        title: 'Confirmar exclusão',
-        description: 'Esta ação não pode ser desfeita.',
-        confirmLabel: 'Excluir',
-        cancelLabel: 'Cancelar',
-    },
-);
+const props = defineProps<{
+    open: boolean;
+    title?: string;
+    description?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+}>();
 
 const emit = defineEmits<{ 'update:open': [value: boolean]; confirm: [] }>();
 
@@ -39,16 +31,20 @@ const model = computed({
     <AlertDialog v-model:open="model">
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>{{ title }}</AlertDialogTitle>
-                <AlertDialogDescription>{{ description }}</AlertDialogDescription>
+                <AlertDialogTitle>{{ title ?? $t('common.confirm.title') }}</AlertDialogTitle>
+                <AlertDialogDescription>
+                    {{ description ?? $t('common.confirm.description') }}
+                </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>{{ cancelLabel }}</AlertDialogCancel>
+                <AlertDialogCancel>{{
+                    cancelLabel ?? $t('common.confirm.cancel')
+                }}</AlertDialogCancel>
                 <AlertDialogAction
                     class="bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40"
                     @click="emit('confirm')"
                 >
-                    {{ confirmLabel }}
+                    {{ confirmLabel ?? $t('common.confirm.confirm') }}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

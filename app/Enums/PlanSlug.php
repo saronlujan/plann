@@ -10,10 +10,7 @@ enum PlanSlug: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Basic => 'Basic',
-            self::Pro => 'Pro',
-        };
+        return __('enums.plan_slug.'.$this->value);
     }
 
     public function description(): string

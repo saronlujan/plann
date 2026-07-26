@@ -224,3 +224,94 @@ it('rejects a category or tag from another tenant', function () {
         ])
         ->assertSessionHasErrors('category_id');
 });
+
+it('accepts a dual-use (both) category on income and expense', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Both']);
+    $user = User::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa',
+        'email' => 'tx-both@example.com',
+        'password' => 'password',
+    ]);
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+    app(TenantContext::class)->setTenantId($tenant->id);
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+        'balance' => 0,
+    ]);
+    $both = Category::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Hospedagem',
+        'type' => 'both',
+        'color' => 'blue',
+    ]);
+
+    actingAs($user)->post('/transactions', [
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'description' => 'Recebido hospedagem',
+        'currency_id' => $currency->id,
+        'account_id' => $account->id,
+        'category_id' => $both->id,
+        'effective_date' => '2026-12-10',
+        'amount' => 200,
+    ])->assertRedirect();
+
+    actingAs($user)->post('/transactions', [
+        'movement_type' => 'expense',
+        'type' => 'unique',
+        'description' => 'Pago servidor',
+        'currency_id' => $currency->id,
+        'account_id' => $account->id,
+        'category_id' => $both->id,
+        'effective_date' => '2026-12-11',
+        'amount' => 80,
+    ])->assertRedirect();
+
+    expect(Transaction::query()->where('category_id', $both->id)->count())->toBe(2);
+});
+
+it('keeps existing transactions when a category type changes', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Change']);
+    $user = User::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa',
+        'email' => 'tx-change@example.com',
+        'password' => 'password',
+    ]);
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+    app(TenantContext::class)->setTenantId($tenant->id);
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+        'balance' => 0,
+    ]);
+    $category = Category::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Mercado',
+        'type' => 'expense',
+        'color' => 'green',
+    ]);
+    $transaction = Transaction::create([
+        'tenant_id' => $tenant->id,
+        'account_id' => $account->id,
+        'currency_id' => $currency->id,
+        'category_id' => $category->id,
+        'movement_type' => 'expense',
+        'type' => 'unique',
+        'effective_date' => '2026-12-10',
+        'amount' => 50,
+        'adjustment_amount' => 0,
+        'description' => 'Compra',
+    ]);
+
+    actingAs($user)
+        ->patch('/settings/categories/'.$category->id, ['name' => 'Mercado', 'type' => 'income', 'color' => 'green'])
+        ->assertRedirect();
+
+    expect($category->fresh()?->type->value)->toBe('income');
+    expect($transaction->fresh()?->category_id)->toBe($category->id);
+});

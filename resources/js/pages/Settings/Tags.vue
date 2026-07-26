@@ -49,21 +49,23 @@ function confirmDelete(): void {
 </script>
 
 <template>
-    <Head title="Tags" />
+    <Head :title="$t('settings.tags.title')" />
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">Tags</h1>
+                    <h1 class="text-lg font-semibold md:text-xl">
+                        {{ $t('settings.tags.title') }}
+                    </h1>
                     <span class="text-sm text-muted-foreground">
-                        Rótulos livres para organizar suas transações.
+                        {{ $t('settings.tags.subtitle') }}
                     </span>
                 </div>
                 <Button
                     size="icon-lg"
                     class="rounded-full"
-                    aria-label="Adicionar tag"
+                    :aria-label="$t('settings.tags.add')"
                     @click="openModal(null)"
                 >
                     <PlusIcon />
@@ -75,7 +77,7 @@ function confirmDelete(): void {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Nome</TableHead>
+                                <TableHead>{{ $t('settings.tags.columns.name') }}</TableHead>
                                 <TableHead class="text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -95,7 +97,7 @@ function confirmDelete(): void {
                                         <Button
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Editar"
+                                            :aria-label="$t('common.actions.edit')"
                                             @click="openModal(tag)"
                                         >
                                             <PencilIcon class="size-4" />
@@ -103,7 +105,7 @@ function confirmDelete(): void {
                                         <Button
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Excluir"
+                                            :aria-label="$t('common.actions.delete')"
                                             @click="askDelete(tag)"
                                         >
                                             <Trash2Icon class="size-4" />
@@ -115,12 +117,16 @@ function confirmDelete(): void {
                     </Table>
                 </CardContent>
             </Card>
-            <div v-else class="p-6 text-center text-sm text-muted-foreground">empty</div>
+            <div v-else class="p-6 text-center text-sm text-muted-foreground">
+                {{ $t('common.state.empty') }}
+            </div>
 
             <TagModal v-model:open="modalOpen" :entry="editing" />
             <ConfirmDialog
                 :open="confirmOpen"
-                :description="`Excluir “${deleteTarget?.name}”? Esta ação não pode ser desfeita.`"
+                :description="
+                    $t('settings.tags.delete_confirm', { name: deleteTarget?.name ?? '' })
+                "
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"
             />

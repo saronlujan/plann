@@ -49,6 +49,14 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        // Local dev inbox bundled with Laravel Herd (SMTP on 127.0.0.1:1025).
+        'mailpit' => [
+            'transport' => 'smtp',
+            'host' => '127.0.0.1',
+            'port' => 1025,
+            'encryption' => null,
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

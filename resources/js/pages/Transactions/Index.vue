@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
-import { PencilIcon, ThumbsDownIcon, ThumbsUpIcon, Trash2Icon } from '@lucide/vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { EllipsisVerticalIcon, ThumbsDownIcon, ThumbsUpIcon } from '@lucide/vue';
 import { onClickOutside } from '@vueuse/core';
+import { trans } from 'laravel-vue-i18n';
 import { Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -18,10 +25,20 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import { playSound } from '@/lib/sound';
+import type { SoundValue } from '@/lib/sound';
 import transactions from '@/routes/transactions';
 import TransactionDetailsDrawer from './components/TransactionDetailsDrawer.vue';
 import TransactionModal from './components/TransactionModal.vue';
-import { amountClass, dueStatus, movementBadge, scheduleLabel, signedAmount } from './display';
+import {
+    amountClass,
+    dueStatus,
+    movementBadgeClass,
+    movementKind,
+    movementLabel,
+    scheduleLabel,
+    signedAmount,
+} from './display';
 import { formatCurrency, formatDate } from './format';
 import type {
     AccountOption,
@@ -45,20 +62,36 @@ const props = defineProps<{
     summaries: TransactionSummary[];
 }>();
 
+const page = usePage<{
+    auth: { user: { sound_enabled: boolean; sound_theme: SoundValue } | null };
+}>();
+
 function summaryRows(summary: TransactionSummary): { label: string; value: string }[] {
     return [
-        { label: 'Receita', value: formatCurrency(summary.income, summary.symbol) },
-        { label: 'Despesas', value: formatCurrency(summary.expenses, summary.symbol) },
-        { label: 'Total', value: formatCurrency(summary.total, summary.symbol) },
         {
-            label: 'Receita prevista',
+            label: trans('transactions.summary.income'),
+            value: formatCurrency(summary.income, summary.symbol),
+        },
+        {
+            label: trans('transactions.summary.expenses'),
+            value: formatCurrency(summary.expenses, summary.symbol),
+        },
+        {
+            label: trans('transactions.summary.total'),
+            value: formatCurrency(summary.total, summary.symbol),
+        },
+        {
+            label: trans('transactions.summary.expected_income'),
             value: formatCurrency(summary.expected_income, summary.symbol),
         },
         {
-            label: 'Despesa prevista',
+            label: trans('transactions.summary.expected_expense'),
             value: formatCurrency(summary.expected_expense, summary.symbol),
         },
-        { label: 'Total previsto', value: formatCurrency(summary.expected_total, summary.symbol) },
+        {
+            label: trans('transactions.summary.expected_total'),
+            value: formatCurrency(summary.expected_total, summary.symbol),
+        },
     ];
 }
 
@@ -95,6 +128,11 @@ const poppingId = ref<number | null>(null);
 function togglePaid(entry: TransactionEntry): void {
     if (!entry.paid_at) {
         poppingId.value = entry.transaction_id;
+
+        if (page.props.auth.user?.sound_enabled) {
+            playSound(page.props.auth.user.sound_theme);
+        }
+
         window.setTimeout(() => {
             if (poppingId.value === entry.transaction_id) {
                 poppingId.value = null;
@@ -156,16 +194,15 @@ function openDetails(entry: TransactionEntry): void {
 </script>
 
 <template>
-    <Head title="Transações" />
+    <Head :title="$t('transactions.title')" />
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">Transactions</h1>
+                    <h1 class="text-lg font-semibold md:text-xl">{{ $t('transactions.title') }}</h1>
                     <span class="text-sm text-muted-foreground">
-                        Manage your financial transactions, including income, expenses, and
-                        transfers.
+                        {{ $t('transactions.subtitle') }}
                     </span>
                 </div>
 
@@ -173,7 +210,7 @@ function openDetails(entry: TransactionEntry): void {
                     <Button
                         class="shrink-0 rounded-full"
                         size="icon-lg"
-                        aria-label="Nova transação"
+                        :aria-label="$t('transactions.actions.new')"
                         :aria-expanded="createMenuOpen"
                         @click="createMenuOpen = !createMenuOpen"
                     >
@@ -206,12 +243,14 @@ function openDetails(entry: TransactionEntry): void {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Tipo</TableHead>
+                                <TableHead>{{ $t('transactions.columns.type') }}</TableHead>
                                 <TableHead></TableHead>
                                 <TableHead></TableHead>
-                                <TableHead>Conta</TableHead>
-                                <TableHead class="text-right">Valor</TableHead>
+                                <TableHead class="text-right">{{
+                                    $t('transactions.columns.amount')
+                                }}</TableHead>
                                 <TableHead></TableHead>
+                                <TableHead>{{ $t('transactions.columns.account') }}</TableHead>
                                 <TableHead></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -220,12 +259,9 @@ function openDetails(entry: TransactionEntry): void {
                                 <TableCell>
                                     <Badge
                                         variant="outline"
-                                        :class="movementBadge[entry.movement_type]?.class"
+                                        :class="movementBadgeClass[movementKind(entry)]"
                                     >
-                                        {{
-                                            movementBadge[entry.movement_type]?.label ??
-                                            entry.movement_type
-                                        }}
+                                        {{ movementLabel(movementKind(entry)) }}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
@@ -243,24 +279,23 @@ function openDetails(entry: TransactionEntry): void {
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge v-if="entry.paid_at" class="rounded-full">Pago</Badge>
+                                    <Badge v-if="entry.paid_at" class="rounded-full">{{
+                                        $t('transactions.status.paid')
+                                    }}</Badge>
                                     <Badge
                                         v-else-if="dueStatus(entry) === 'overdue'"
                                         variant="outline"
                                         class="rounded-full border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
                                     >
-                                        Vencida
+                                        {{ $t('transactions.status.overdue') }}
                                     </Badge>
                                     <Badge
                                         v-else-if="dueStatus(entry) === 'soon'"
                                         variant="outline"
                                         class="rounded-full border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400"
                                     >
-                                        Vence em breve
+                                        {{ $t('transactions.status.due_soon') }}
                                     </Badge>
-                                </TableCell>
-                                <TableCell class="text-sm text-muted-foreground">
-                                    {{ entry.source }}
                                 </TableCell>
                                 <TableCell
                                     class="text-right font-medium whitespace-nowrap"
@@ -275,35 +310,40 @@ function openDetails(entry: TransactionEntry): void {
                                 <TableCell class="text-sm whitespace-nowrap text-muted-foreground">
                                     {{ formatDate(entry.date) }}
                                 </TableCell>
+                                <TableCell class="text-sm text-muted-foreground">
+                                    {{ entry.source }}
+                                </TableCell>
                                 <TableCell class="text-right">
-                                    <div class="flex items-center justify-end gap-1">
+                                    <div class="flex items-center justify-end gap-4">
                                         <span class="relative inline-flex">
-                                            <Button
+                                            <button
                                                 type="button"
-                                                variant="outline"
-                                                size="icon"
                                                 :aria-label="
                                                     entry.paid_at
-                                                        ? 'Marcar como não pago'
-                                                        : 'Marcar como pago'
+                                                        ? $t('transactions.actions.mark_unpaid')
+                                                        : $t('transactions.actions.mark_paid')
                                                 "
                                                 :class="
                                                     entry.paid_at
                                                         ? 'text-emerald-600 dark:text-emerald-400'
-                                                        : 'text-muted-foreground'
+                                                        : 'text-muted-foreground hover:text-foreground'
                                                 "
                                                 @click="togglePaid(entry)"
                                             >
                                                 <component
-                                                    :is="entry.paid_at ? ThumbsUpIcon : ThumbsDownIcon"
-                                                    class="size-4"
+                                                    :is="
+                                                        entry.paid_at
+                                                            ? ThumbsUpIcon
+                                                            : ThumbsDownIcon
+                                                    "
+                                                    class="size-5"
                                                     :class="{
                                                         'thumb-pop':
                                                             poppingId === entry.transaction_id,
                                                     }"
                                                     aria-hidden="true"
                                                 />
-                                            </Button>
+                                            </button>
                                             <span
                                                 v-if="poppingId === entry.transaction_id"
                                                 class="pointer-events-none absolute inset-0"
@@ -317,24 +357,33 @@ function openDetails(entry: TransactionEntry): void {
                                                 />
                                             </span>
                                         </span>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            aria-label="Editar transação"
-                                            @click="openEdit(entry)"
-                                        >
-                                            <PencilIcon class="size-4" aria-hidden="true" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            aria-label="Excluir transação"
-                                            @click="deleteEntry(entry)"
-                                        >
-                                            <Trash2Icon class="size-4" aria-hidden="true" />
-                                        </Button>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <button
+                                                    type="button"
+                                                    class="text-muted-foreground transition hover:text-foreground"
+                                                    :aria-label="
+                                                        $t('transactions.actions.more_options')
+                                                    "
+                                                >
+                                                    <EllipsisVerticalIcon class="size-5" />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" class="w-40">
+                                                <DropdownMenuItem @click="openDetails(entry)">
+                                                    {{ $t('transactions.actions.view') }}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem @click="openEdit(entry)">
+                                                    {{ $t('common.actions.edit') }}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    class="text-red-600 focus:text-red-600"
+                                                    @click="deleteEntry(entry)"
+                                                >
+                                                    {{ $t('common.actions.delete') }}
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -342,12 +391,14 @@ function openDetails(entry: TransactionEntry): void {
                     </Table>
                 </CardContent>
             </Card>
-            <div v-else class="p-6 text-center text-sm text-muted-foreground">empty</div>
+            <div v-else class="p-6 text-center text-sm text-muted-foreground">
+                {{ $t('common.state.empty') }}
+            </div>
 
             <Card v-if="summaries.length">
                 <CardContent>
                     <Tabs :default-value="summaries[0].code">
-                        <TabsList>
+                        <TabsList v-if="summaries.length > 1">
                             <TabsTrigger
                                 v-for="summary in summaries"
                                 :key="summary.code"
@@ -402,8 +453,10 @@ function openDetails(entry: TransactionEntry): void {
 
             <ConfirmDialog
                 :open="confirmOpen"
-                title="Excluir transação"
-                :description="`Excluir “${deleteTarget?.label}”? Esta ação não pode ser desfeita.`"
+                :title="$t('transactions.delete.title')"
+                :description="
+                    $t('transactions.delete.description', { label: deleteTarget?.label ?? '' })
+                "
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"
             />

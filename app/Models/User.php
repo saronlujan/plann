@@ -25,13 +25,16 @@ use Illuminate\Support\Carbon;
  * @property string $locale
  * @property UserTheme $theme
  * @property UserColor $color
- * @property Carbon|null $email_verified_at
+ * @property bool $sound_enabled
+ * @property string $sound_theme
+ * @property bool $notifications_enabled
+ * @property int $notify_days_before
  * @property string $password
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['tenant_id', 'name', 'email', 'google_id', 'avatar_url', 'phone', 'password', 'locale', 'theme', 'color'])]
+#[Fillable(['tenant_id', 'name', 'email', 'google_id', 'avatar_url', 'phone', 'password', 'locale', 'theme', 'color', 'sound_enabled', 'sound_theme', 'notifications_enabled', 'notify_days_before'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -46,10 +49,12 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'theme' => UserTheme::class,
             'color' => UserColor::class,
+            'sound_enabled' => 'boolean',
+            'notifications_enabled' => 'boolean',
+            'notify_days_before' => 'integer',
         ];
     }
 

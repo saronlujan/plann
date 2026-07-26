@@ -25,6 +25,7 @@ class Transaction extends Model
         'currency_id',
         'category_id',
         'movement_type',
+        'is_transfer',
         'type',
         'installment_frequency',
         'installments_total',
@@ -43,6 +44,7 @@ class Transaction extends Model
 
     protected $casts = [
         'movement_type' => TransactionMovementType::class,
+        'is_transfer' => 'boolean',
         'type' => TransactionType::class,
         'installment_frequency' => TransactionInstallmentFrequency::class,
         'effective_date' => 'date',

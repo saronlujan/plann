@@ -1,8 +1,10 @@
 <?php
 
+use App\Console\Commands\SendDueTransactionNotifications;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantSubscribed;
 use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -36,6 +38,9 @@ return Application::configure(basePath: dirname(__DIR__))
             before: SubstituteBindings::class,
             prepend: EnsureTenantContext::class,
         );
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command(SendDueTransactionNotifications::class)->dailyAt('08:00');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

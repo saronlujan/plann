@@ -13,6 +13,9 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware(['web', 'guest'])
                 ->group(base_path('routes/login.php'));
 
+            Route::middleware(['web', 'guest'])
+                ->group(base_path('routes/password.php'));
+
             Route::middleware(['web', 'auth', 'subscribed'])
                 ->group(base_path('routes/dashboard.php'));
 
@@ -28,12 +31,21 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware(['web', 'auth', 'subscribed'])
                 ->group(base_path('routes/settings.php'));
 
+            Route::middleware(['web', 'auth', 'subscribed'])
+                ->group(base_path('routes/budgets.php'));
+
+            Route::middleware(['web', 'auth', 'subscribed'])
+                ->group(base_path('routes/goals.php'));
+
             // Billing and preferences stay reachable even when the trial lapses.
             Route::middleware(['web', 'auth'])
                 ->group(base_path('routes/billing.php'));
 
             Route::middleware(['web', 'auth'])
                 ->group(base_path('routes/preferences.php'));
+
+            Route::middleware(['web', 'auth'])
+                ->group(base_path('routes/profile.php'));
 
             // TEMPORARY: dev-only helpers (e.g. force trial expiry) for Stripe testing.
             if (! $this->app->environment('production')) {

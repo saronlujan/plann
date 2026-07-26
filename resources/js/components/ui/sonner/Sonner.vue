@@ -13,7 +13,7 @@ const delegatedProps = reactiveOmit(props, 'class', 'toastOptions');
         class="toaster group"
         :style="{
             '--normal-bg': 'var(--popover)',
-            '--normal-text': 'var(--popover-foreground)',
+            '--normal-text': 'var(--primary)',
             '--normal-border': 'var(--border)',
             '--border-radius': 'var(--radius)',
             '--gray2': 'hsl(var(--popover) / 0.9)',

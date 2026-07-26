@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Preferences;
 
+use App\Enums\SoundTheme;
 use App\Enums\UserColor;
 use App\Enums\UserTheme;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,6 +25,10 @@ class UpdatePreferencesRequest extends FormRequest
             'locale' => ['sometimes', 'required', Rule::in(['pt', 'en', 'es'])],
             'theme' => ['sometimes', 'required', Rule::enum(UserTheme::class)],
             'color' => ['sometimes', 'required', Rule::enum(UserColor::class)],
+            'sound_enabled' => ['sometimes', 'required', 'boolean'],
+            'sound_theme' => ['sometimes', 'required', Rule::enum(SoundTheme::class)],
+            'notifications_enabled' => ['sometimes', 'required', 'boolean'],
+            'notify_days_before' => ['sometimes', 'required', 'integer', 'min:0', 'max:30'],
         ];
     }
 }

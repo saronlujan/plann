@@ -44,7 +44,7 @@ test('each settings module has its own focused page', function () {
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Settings/Categories')
             ->has('categories', 1)
-            ->has('categoryTypeOptions', 2));
+            ->has('categoryTypeOptions', 3));
 
     actingAs($user)->get('/settings/tags')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
@@ -73,6 +73,16 @@ test('users may create a category', function () {
     $category = Category::query()->where('name', 'Mercado')->where('type', 'expense')->first();
     expect($category)->not->toBeNull();
     expect($category?->color->value)->toBe('green');
+});
+
+test('a category may be dual-use (both)', function () {
+    $user = settingsUser('cat-both@example.com');
+
+    actingAs($user)
+        ->post('/settings/categories', ['name' => 'Hospedagem', 'type' => 'both', 'color' => 'blue'])
+        ->assertRedirect();
+
+    expect(Category::query()->where('name', 'Hospedagem')->where('type', 'both')->exists())->toBeTrue();
 });
 
 test('duplicate category name and type is rejected', function () {

@@ -18,13 +18,6 @@ enum TransactionInstallmentFrequency: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Weekly => 'Semanal',
-            self::Biweekly => 'Quinzenal',
-            self::Monthly => 'Mensal',
-            self::Bimonthly => 'Bimestral',
-            self::Semiannual => 'Semestral',
-            self::Annual => 'Anual',
-        };
+        return __('enums.transaction_installment_frequency.'.$this->value);
     }
 }

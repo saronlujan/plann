@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CheckIcon, XIcon } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { colorHex } from '@/lib/labelColors';
@@ -10,7 +11,7 @@ const model = defineModel<number[]>({ required: true });
 
 const props = withDefaults(
     defineProps<{ options: TagOption[]; disabled?: boolean; placeholder?: string }>(),
-    { disabled: false, placeholder: 'Selecione tags' },
+    { disabled: false, placeholder: () => trans('transactions.placeholders.tags') },
 );
 
 const open = ref(false);
@@ -68,7 +69,7 @@ function remove(id: number): void {
                     <button
                         type="button"
                         class="text-muted-foreground hover:text-foreground"
-                        :aria-label="`Remover ${tag.name}`"
+                        :aria-label="$t('transactions.actions.remove_tag', { name: tag.name })"
                         @click.stop="remove(tag.id)"
                     >
                         <XIcon class="size-3" />
@@ -84,7 +85,7 @@ function remove(id: number): void {
                 <input
                     v-model="search"
                     type="text"
-                    placeholder="Buscar tag..."
+                    :placeholder="$t('transactions.placeholders.search_tag')"
                     class="w-full bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
                 />
             </div>
@@ -114,7 +115,7 @@ function remove(id: number): void {
                     v-if="filteredOptions.length === 0"
                     class="px-2 py-3 text-center text-sm text-muted-foreground"
                 >
-                    Nenhuma tag encontrada.
+                    {{ $t('transactions.placeholders.no_tags_found') }}
                 </p>
             </div>
         </PopoverContent>

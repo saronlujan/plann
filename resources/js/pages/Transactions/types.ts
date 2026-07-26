@@ -67,6 +67,7 @@ export type TransactionEntry = {
     type: string;
     schedule_type: string;
     movement_type: 'income' | 'expense' | 'transfer';
+    is_transfer: boolean;
     label: string;
     currency_code: string;
     currency_symbol: string;

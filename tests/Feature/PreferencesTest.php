@@ -33,8 +33,10 @@ test('authenticated users may view preferences', function () {
             ->has('localeOptions', 3)
             ->has('themeOptions', 2)
             ->has('colorOptions', 10)
+            ->has('soundOptions', 5)
             ->where('preferences.theme', 'light')
-            ->where('preferences.color', 'zinc'));
+            ->where('preferences.color', 'zinc')
+            ->where('preferences.sound_theme', 'blip'));
 });
 
 test('users may update appearance and language preferences', function () {
@@ -53,6 +55,50 @@ test('users may update appearance and language preferences', function () {
     expect($user->locale)->toBe('es');
     expect($user->theme)->toBe(UserTheme::Dark);
     expect($user->color)->toBe(UserColor::Blue);
+});
+
+test('users may toggle the paid sound preference', function () {
+    $user = makePreferencesUser('prefs-sound@example.com');
+
+    expect($user->refresh()->sound_enabled)->toBeTrue();
+
+    actingAs($user)
+        ->patch('/preferences', ['sound_enabled' => false])
+        ->assertRedirect();
+
+    expect($user->refresh()->sound_enabled)->toBeFalse();
+});
+
+test('users may configure due-date notifications', function () {
+    $user = makePreferencesUser('prefs-notify@example.com');
+
+    expect($user->refresh()->notifications_enabled)->toBeFalse();
+
+    actingAs($user)
+        ->patch('/preferences', [
+            'notifications_enabled' => true,
+            'notify_days_before' => 5,
+        ])
+        ->assertRedirect();
+
+    $user->refresh();
+
+    expect($user->notifications_enabled)->toBeTrue();
+    expect($user->notify_days_before)->toBe(5);
+});
+
+test('users may pick which paid sound to play', function () {
+    $user = makePreferencesUser('prefs-sound-theme@example.com');
+
+    actingAs($user)
+        ->patch('/preferences', ['sound_theme' => 'coin'])
+        ->assertRedirect();
+
+    expect($user->refresh()->sound_theme)->toBe('coin');
+
+    actingAs($user)
+        ->patch('/preferences', ['sound_theme' => 'invalid'])
+        ->assertSessionHasErrors('sound_theme');
 });
 
 test('the header switcher may update only the locale', function () {

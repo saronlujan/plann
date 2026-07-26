@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getActiveLanguage, trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { CalendarIcon } from '@lucide/vue';
 import {
@@ -24,7 +25,7 @@ const props = withDefaults(
     }>(),
     {
         modelValue: null,
-        label: 'Data',
+        label: () => trans('common.date.label'),
         hint: '',
     },
 );
@@ -33,7 +34,9 @@ const emit = defineEmits<{
     'update:modelValue': [value: string];
 }>();
 
-const formatter = new DateFormatter('pt-BR', {
+const localeTag: Record<string, string> = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' };
+
+const formatter = new DateFormatter(localeTag[getActiveLanguage()] ?? 'pt-BR', {
     dateStyle: 'long',
 });
 
@@ -49,7 +52,7 @@ const calendarValue = computed({
 const buttonLabel = computed(() => {
     return calendarValue.value
         ? formatter.format(calendarValue.value.toDate(getLocalTimeZone()))
-        : 'Selecionar data';
+        : trans('common.date.placeholder');
 });
 
 const defaultPlaceholder = today(getLocalTimeZone());

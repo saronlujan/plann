@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('currency_id')->constrained()->restrictOnDelete();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
             $table->string('movement_type')->nullable();
+            $table->boolean('is_transfer')->default(false);
             $table->string('type');
             $table->string('installment_frequency')->nullable();
             $table->unsignedSmallInteger('installments_total')->nullable();

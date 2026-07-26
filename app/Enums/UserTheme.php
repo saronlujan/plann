@@ -10,9 +10,6 @@ enum UserTheme: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Light => 'Claro',
-            self::Dark => 'Escuro',
-        };
+        return __('enums.user_theme.'.$this->value);
     }
 }

@@ -81,22 +81,22 @@ function confirmDelete(): void {
 </script>
 
 <template>
-    <Head title="Contatos" />
+    <Head :title="$t('contacts.title')" />
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">Contatos</h1>
+                    <h1 class="text-lg font-semibold md:text-xl">{{ $t('contacts.title') }}</h1>
                     <span class="text-sm text-muted-foreground">
-                        Fornecedores e clientes usados nas suas transações.
+                        {{ $t('contacts.subtitle') }}
                     </span>
                 </div>
 
                 <Button
                     class="shrink-0 rounded-full"
                     size="icon-lg"
-                    aria-label="Adicionar contato"
+                    :aria-label="$t('contacts.add')"
                     @click="openCreate"
                 >
                     <PlusIcon />
@@ -108,10 +108,10 @@ function confirmDelete(): void {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Tipo</TableHead>
-                                <TableHead>Documento</TableHead>
-                                <TableHead>Contato</TableHead>
+                                <TableHead>{{ $t('contacts.table.name') }}</TableHead>
+                                <TableHead>{{ $t('contacts.table.type') }}</TableHead>
+                                <TableHead>{{ $t('contacts.table.document') }}</TableHead>
+                                <TableHead>{{ $t('contacts.table.contact') }}</TableHead>
                                 <TableHead class="text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -128,13 +128,15 @@ function confirmDelete(): void {
                                     </Badge>
                                 </TableCell>
                                 <TableCell class="text-sm text-muted-foreground">
-                                    {{ contact.document ?? '—' }}
+                                    {{ contact.document ?? $t('common.state.none') }}
                                 </TableCell>
                                 <TableCell class="text-sm text-muted-foreground">
                                     <div class="flex flex-col">
                                         <span v-if="contact.email">{{ contact.email }}</span>
                                         <span v-if="contact.phone">{{ contact.phone }}</span>
-                                        <span v-if="!contact.email && !contact.phone">—</span>
+                                        <span v-if="!contact.email && !contact.phone">{{
+                                            $t('common.state.none')
+                                        }}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell class="text-right">
@@ -143,7 +145,7 @@ function confirmDelete(): void {
                                             type="button"
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Editar contato"
+                                            :aria-label="$t('contacts.actions.edit')"
                                             @click="openEdit(contact)"
                                         >
                                             <PencilIcon class="size-4" aria-hidden="true" />
@@ -152,7 +154,7 @@ function confirmDelete(): void {
                                             type="button"
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Excluir contato"
+                                            :aria-label="$t('contacts.actions.delete')"
                                             @click="deleteContact(contact)"
                                         >
                                             <Trash2Icon class="size-4" aria-hidden="true" />
@@ -164,7 +166,9 @@ function confirmDelete(): void {
                     </Table>
                 </CardContent>
             </Card>
-            <div v-else class="p-6 text-center text-sm text-muted-foreground">empty</div>
+            <div v-else class="p-6 text-center text-sm text-muted-foreground">
+                {{ $t('common.state.empty') }}
+            </div>
 
             <ContactModal
                 v-model:open="modalOpen"
@@ -174,7 +178,7 @@ function confirmDelete(): void {
 
             <ConfirmDialog
                 :open="confirmOpen"
-                :description="`Excluir o contato “${deleteTarget?.name}”? Esta ação não pode ser desfeita.`"
+                :description="$t('contacts.delete_confirm', { name: deleteTarget?.name ?? '' })"
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"
             />

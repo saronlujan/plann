@@ -35,18 +35,7 @@ enum LabelColor: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Blue => 'Azul',
-            self::Indigo => 'Índigo',
-            self::Purple => 'Roxo',
-            self::Pink => 'Rosa',
-            self::Red => 'Vermelho',
-            self::Orange => 'Laranja',
-            self::Yellow => 'Amarelo',
-            self::Green => 'Verde',
-            self::Teal => 'Turquesa',
-            self::Zinc => 'Cinza',
-        };
+        return __('enums.label_color.'.$this->value);
     }
 
     /**

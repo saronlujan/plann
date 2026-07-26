@@ -18,20 +18,17 @@ return new class extends Migration
             $table->string('google_id')->nullable()->unique();
             $table->string('avatar_url')->nullable();
             $table->string('phone')->nullable();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('locale', 5)->default('pt');
             $table->string('theme')->default('light');
             $table->string('color')->default('zinc');
+            $table->boolean('sound_enabled')->default(true);
+            $table->string('sound_theme')->default('blip');
+            $table->boolean('notifications_enabled')->default(false);
+            $table->unsignedTinyInteger('notify_days_before')->default(3);
             $table->rememberToken();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
-        });
-
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
         });
 
         Schema::create('sessions', function (Blueprint $table) {
@@ -50,7 +47,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }
 };

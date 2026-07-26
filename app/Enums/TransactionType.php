@@ -12,10 +12,6 @@ enum TransactionType: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Unique => 'Única',
-            self::Recurring => 'Recorrente',
-            self::Installment => 'Parcelada',
-        };
+        return __('enums.transaction_type.'.$this->value);
     }
 }

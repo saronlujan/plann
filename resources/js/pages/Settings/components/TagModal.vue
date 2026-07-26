@@ -59,7 +59,10 @@ function submit(): void {
     const options = { preserveScroll: true, onSuccess: () => closeModal() };
 
     if (isEdit.value && props.entry) {
-        form.transform((data) => ({ ...data, _method: 'patch' })).post(updateTag(props.entry.id).url, options);
+        form.transform((data) => ({ ...data, _method: 'patch' })).post(
+            updateTag(props.entry.id).url,
+            options,
+        );
 
         return;
     }
@@ -72,26 +75,38 @@ function submit(): void {
     <Dialog v-model:open="dialogOpen">
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>{{ isEdit ? 'Editar tag' : 'Nova tag' }}</DialogTitle>
-                <DialogDescription>Rótulos livres para organizar transações.</DialogDescription>
+                <DialogTitle>{{
+                    isEdit
+                        ? $t('settings.tags.modal.edit_title')
+                        : $t('settings.tags.modal.create_title')
+                }}</DialogTitle>
+                <DialogDescription>{{ $t('settings.tags.modal.description') }}</DialogDescription>
             </DialogHeader>
 
             <Form class="gap-3" @submit.prevent="submit">
                 <FormGroup>
-                    <FormLabel for="tag-name">Nome</FormLabel>
-                    <Input id="tag-name" v-model="form.name" placeholder="Nome da tag" />
+                    <FormLabel for="tag-name">{{ $t('settings.tags.modal.name_label') }}</FormLabel>
+                    <Input
+                        id="tag-name"
+                        v-model="form.name"
+                        :placeholder="$t('settings.tags.modal.name_placeholder')"
+                    />
                     <FormError :message="form.errors.name" />
                 </FormGroup>
 
                 <FormGroup>
-                    <FormLabel>Cor</FormLabel>
+                    <FormLabel>{{ $t('settings.tags.modal.color_label') }}</FormLabel>
                     <ColorPicker v-model="form.color" />
                     <FormError :message="form.errors.color" />
                 </FormGroup>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" @click="closeModal">Cancelar</Button>
-                    <Button type="submit" :disabled="form.processing">Salvar</Button>
+                    <Button type="button" variant="outline" @click="closeModal">{{
+                        $t('common.actions.cancel')
+                    }}</Button>
+                    <Button type="submit" :disabled="form.processing">{{
+                        $t('common.actions.save')
+                    }}</Button>
                 </DialogFooter>
             </Form>
         </DialogContent>

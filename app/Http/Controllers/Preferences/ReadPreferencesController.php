@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Preferences;
 
+use App\Enums\SoundTheme;
 use App\Enums\UserColor;
 use App\Enums\UserTheme;
 use App\Http\Controllers\Controller;
@@ -20,6 +21,10 @@ class ReadPreferencesController extends Controller
                 'locale' => $user?->locale ?? 'pt',
                 'theme' => $user?->theme->value ?? UserTheme::Light->value,
                 'color' => $user?->color->value ?? UserColor::Zinc->value,
+                'sound_enabled' => $user?->sound_enabled ?? true,
+                'sound_theme' => $user?->sound_theme ?? SoundTheme::Blip->value,
+                'notifications_enabled' => $user?->notifications_enabled ?? false,
+                'notify_days_before' => $user?->notify_days_before ?? 3,
             ],
             'localeOptions' => [
                 ['value' => 'pt', 'label' => 'Português'],
@@ -34,6 +39,7 @@ class ReadPreferencesController extends Controller
                 fn (UserColor $color): array => ['value' => $color->value, 'label' => $color->label()],
                 UserColor::cases(),
             ),
+            'soundOptions' => SoundTheme::options(),
         ]);
     }
 }

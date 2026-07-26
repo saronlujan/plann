@@ -21,12 +21,24 @@ type Option = { value: string; label: string };
 type Account = {
     id: number;
     name: string;
+    kind: string;
     currency_id: number;
     currency_code: string;
     balance: string;
+    credit_limit: string | null;
+    closing_day: number | null;
+    due_day: number | null;
 };
 
-defineProps<{ accounts: Account[]; currencyOptions: Option[] }>();
+const props = defineProps<{
+    accounts: Account[];
+    currencyOptions: Option[];
+    kindOptions: Option[];
+}>();
+
+function kindLabel(kind: string): string {
+    return props.kindOptions.find((option) => option.value === kind)?.label ?? kind;
+}
 
 function formatBalance(account: Account): string {
     const value = Number.parseFloat(account.balance);
@@ -65,19 +77,23 @@ function confirmDelete(): void {
 </script>
 
 <template>
-    <Head title="Contas" />
+    <Head :title="$t('settings.accounts.title')" />
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">Contas</h1>
-                    <span class="text-sm text-muted-foreground"> Contas em moedas ativas. </span>
+                    <h1 class="text-lg font-semibold md:text-xl">
+                        {{ $t('settings.accounts.title') }}
+                    </h1>
+                    <span class="text-sm text-muted-foreground">
+                        {{ $t('settings.accounts.subtitle') }}
+                    </span>
                 </div>
                 <Button
                     size="icon-lg"
                     class="rounded-full"
-                    aria-label="Adicionar conta"
+                    :aria-label="$t('settings.accounts.add')"
                     :disabled="currencyOptions.length === 0"
                     @click="openModal(null)"
                 >
@@ -90,15 +106,23 @@ function confirmDelete(): void {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Moeda</TableHead>
-                                <TableHead class="text-right">Saldo</TableHead>
+                                <TableHead>{{ $t('settings.accounts.columns.name') }}</TableHead>
+                                <TableHead>{{ $t('settings.accounts.columns.kind') }}</TableHead>
+                                <TableHead>{{
+                                    $t('settings.accounts.columns.currency')
+                                }}</TableHead>
+                                <TableHead class="text-right">{{
+                                    $t('settings.accounts.columns.balance')
+                                }}</TableHead>
                                 <TableHead class="text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             <TableRow v-for="account in accounts" :key="account.id">
                                 <TableCell class="font-medium">{{ account.name }}</TableCell>
+                                <TableCell class="text-sm text-muted-foreground">{{
+                                    kindLabel(account.kind)
+                                }}</TableCell>
                                 <TableCell class="text-sm text-muted-foreground">{{
                                     account.currency_code
                                 }}</TableCell>
@@ -110,7 +134,7 @@ function confirmDelete(): void {
                                         <Button
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Editar"
+                                            :aria-label="$t('common.actions.edit')"
                                             @click="openModal(account)"
                                         >
                                             <PencilIcon class="size-4" />
@@ -118,7 +142,7 @@ function confirmDelete(): void {
                                         <Button
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Excluir"
+                                            :aria-label="$t('common.actions.delete')"
                                             @click="askDelete(account)"
                                         >
                                             <Trash2Icon class="size-4" />
@@ -130,16 +154,21 @@ function confirmDelete(): void {
                     </Table>
                 </CardContent>
             </Card>
-            <div v-else class="p-6 text-center text-sm text-muted-foreground">empty</div>
+            <div v-else class="p-6 text-center text-sm text-muted-foreground">
+                {{ $t('common.state.empty') }}
+            </div>
 
             <AccountModal
                 v-model:open="modalOpen"
                 :entry="editing"
                 :currency-options="currencyOptions"
+                :kind-options="kindOptions"
             />
             <ConfirmDialog
                 :open="confirmOpen"
-                :description="`Excluir “${deleteTarget?.name}”? Esta ação não pode ser desfeita.`"
+                :description="
+                    $t('settings.accounts.delete_confirm', { name: deleteTarget?.name ?? '' })
+                "
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"
             />

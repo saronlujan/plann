@@ -84,9 +84,10 @@ function submit(): void {
     const options = { preserveScroll: true, onSuccess: () => closeModal() };
 
     if (isEdit.value && props.entry) {
-        form
-            .transform((data) => ({ ...data, _method: 'patch' }))
-            .post(updateContact(props.entry.id).url, options);
+        form.transform((data) => ({ ...data, _method: 'patch' })).post(
+            updateContact(props.entry.id).url,
+            options,
+        );
 
         return;
     }
@@ -102,23 +103,31 @@ const textareaClass =
     <Dialog v-model:open="dialogOpen">
         <DialogContent class="sm:max-w-lg">
             <DialogHeader>
-                <DialogTitle>{{ isEdit ? 'Editar contato' : 'Novo contato' }}</DialogTitle>
-                <DialogDescription>Cadastre um fornecedor ou cliente.</DialogDescription>
+                <DialogTitle>{{
+                    isEdit ? $t('contacts.modal.edit_title') : $t('contacts.modal.create_title')
+                }}</DialogTitle>
+                <DialogDescription>{{ $t('contacts.modal.description') }}</DialogDescription>
             </DialogHeader>
 
             <Form class="gap-3" @submit.prevent="submit">
-                <div class="grid gap-4 md:grid-cols-2">
-                    <FormGroup class="md:col-span-2">
-                        <FormLabel for="c-name">Nome</FormLabel>
-                        <Input id="c-name" v-model="form.name" placeholder="Nome do contato" />
+                <div class="grid gap-4">
+                    <FormGroup>
+                        <FormLabel for="c-name">{{ $t('contacts.fields.name') }}</FormLabel>
+                        <Input
+                            id="c-name"
+                            v-model="form.name"
+                            :placeholder="$t('contacts.fields.name_placeholder')"
+                        />
                         <FormError :message="form.errors.name" />
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel for="c-type">Tipo</FormLabel>
+                        <FormLabel for="c-type">{{ $t('contacts.fields.type') }}</FormLabel>
                         <Select v-model="form.type">
                             <SelectTrigger id="c-type">
-                                <SelectValue placeholder="Selecione" />
+                                <SelectValue
+                                    :placeholder="$t('contacts.fields.type_placeholder')"
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -134,40 +143,45 @@ const textareaClass =
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel for="c-document">Documento</FormLabel>
-                        <Input id="c-document" v-model="form.document" placeholder="CPF / CNPJ" />
-                        <FormError :message="form.errors.document" />
-                    </FormGroup>
-
-                    <FormGroup>
-                        <FormLabel for="c-email">E-mail</FormLabel>
-                        <Input id="c-email" v-model="form.email" type="email" placeholder="email@exemplo.com" />
+                        <FormLabel for="c-email">{{ $t('contacts.fields.email') }}</FormLabel>
+                        <Input
+                            id="c-email"
+                            v-model="form.email"
+                            type="email"
+                            :placeholder="$t('contacts.fields.email_placeholder')"
+                        />
                         <FormError :message="form.errors.email" />
                     </FormGroup>
 
                     <FormGroup>
-                        <FormLabel>Telefone</FormLabel>
+                        <FormLabel>{{ $t('contacts.fields.phone') }}</FormLabel>
                         <PhoneInput v-model="form.phone" />
                         <FormError :message="form.errors.phone" />
                     </FormGroup>
 
-                    <FormGroup class="md:col-span-2">
-                        <FormLabel for="c-notes">Observações</FormLabel>
+                    <FormGroup>
+                        <FormLabel for="c-notes">{{ $t('contacts.fields.notes') }}</FormLabel>
                         <textarea
                             id="c-notes"
                             v-model="form.notes"
                             rows="3"
                             :class="textareaClass"
-                            placeholder="Notas sobre o contato"
+                            :placeholder="$t('contacts.fields.notes_placeholder')"
                         ></textarea>
                         <FormError :message="form.errors.notes" />
                     </FormGroup>
                 </div>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" @click="closeModal">Cancelar</Button>
+                    <Button type="button" variant="outline" @click="closeModal">{{
+                        $t('common.actions.cancel')
+                    }}</Button>
                     <Button type="submit" :disabled="form.processing">
-                        {{ form.processing ? 'Salvando...' : 'Salvar' }}
+                        {{
+                            form.processing
+                                ? $t('common.actions.saving')
+                                : $t('common.actions.save')
+                        }}
                     </Button>
                 </DialogFooter>
             </Form>

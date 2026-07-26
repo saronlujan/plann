@@ -8,11 +8,10 @@ enum CategoryType: string
 
     case Expense = 'expense';
 
+    case Both = 'both';
+
     public function label(): string
     {
-        return match ($this) {
-            self::Income => 'Receita',
-            self::Expense => 'Despesa',
-        };
+        return __('enums.category_type.'.$this->value);
     }
 }

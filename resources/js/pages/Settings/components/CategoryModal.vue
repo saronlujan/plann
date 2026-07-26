@@ -71,7 +71,10 @@ function submit(): void {
     const options = { preserveScroll: true, onSuccess: () => closeModal() };
 
     if (isEdit.value && props.entry) {
-        form.transform((data) => ({ ...data, _method: 'patch' })).post(updateCategory(props.entry.id).url, options);
+        form.transform((data) => ({ ...data, _method: 'patch' })).post(
+            updateCategory(props.entry.id).url,
+            options,
+        );
 
         return;
     }
@@ -84,22 +87,36 @@ function submit(): void {
     <Dialog v-model:open="dialogOpen">
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>{{ isEdit ? 'Editar categoria' : 'Nova categoria' }}</DialogTitle>
-                <DialogDescription>Categorias de receita ou despesa.</DialogDescription>
+                <DialogTitle>{{
+                    isEdit
+                        ? $t('settings.categories.modal.edit_title')
+                        : $t('settings.categories.modal.create_title')
+                }}</DialogTitle>
+                <DialogDescription>{{
+                    $t('settings.categories.modal.description')
+                }}</DialogDescription>
             </DialogHeader>
 
             <Form class="gap-3" @submit.prevent="submit">
                 <FormGroup>
-                    <FormLabel for="cat-name">Nome</FormLabel>
-                    <Input id="cat-name" v-model="form.name" placeholder="Nome da categoria" />
+                    <FormLabel for="cat-name">{{
+                        $t('settings.categories.modal.name_label')
+                    }}</FormLabel>
+                    <Input
+                        id="cat-name"
+                        v-model="form.name"
+                        :placeholder="$t('settings.categories.modal.name_placeholder')"
+                    />
                     <FormError :message="form.errors.name" />
                 </FormGroup>
 
                 <FormGroup>
-                    <FormLabel for="cat-type">Tipo</FormLabel>
+                    <FormLabel for="cat-type">{{
+                        $t('settings.categories.modal.type_label')
+                    }}</FormLabel>
                     <Select v-model="form.type">
                         <SelectTrigger id="cat-type">
-                            <SelectValue placeholder="Selecione" />
+                            <SelectValue :placeholder="$t('common.actions.select')" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem
@@ -115,14 +132,18 @@ function submit(): void {
                 </FormGroup>
 
                 <FormGroup>
-                    <FormLabel>Cor</FormLabel>
+                    <FormLabel>{{ $t('settings.categories.modal.color_label') }}</FormLabel>
                     <ColorPicker v-model="form.color" />
                     <FormError :message="form.errors.color" />
                 </FormGroup>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" @click="closeModal">Cancelar</Button>
-                    <Button type="submit" :disabled="form.processing">Salvar</Button>
+                    <Button type="button" variant="outline" @click="closeModal">{{
+                        $t('common.actions.cancel')
+                    }}</Button>
+                    <Button type="submit" :disabled="form.processing">{{
+                        $t('common.actions.save')
+                    }}</Button>
                 </DialogFooter>
             </Form>
         </DialogContent>

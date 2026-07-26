@@ -5,7 +5,10 @@ import { computed } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { expireTrial } from '@/routes/dev';
 import { index as billing } from '@/routes/billing';
-import { contacts, dashboard, logout, preferences } from '@/routes';
+import { edit as profile } from '@/routes/profile';
+import { index as budgets } from '@/routes/budgets';
+import { index as goals } from '@/routes/goals';
+import { accounts as accountsIndex, contacts, dashboard, logout, preferences } from '@/routes';
 import transactions from '@/routes/transactions';
 import { index as settingsAccounts } from '@/routes/settings/accounts';
 import { index as settingsCategories } from '@/routes/settings/categories';
@@ -80,6 +83,11 @@ const userInitials = computed(
                         </Link>
                     </li>
                     <li>
+                        <Link :href="accountsIndex().url" class="transition hover:text-muted-foreground">
+                            {{ $t('common.navbar.accounts') }}
+                        </Link>
+                    </li>
+                    <li>
                         <DropdownMenu>
                             <DropdownMenuTrigger as-child>
                                 <button
@@ -93,17 +101,33 @@ const userInitials = computed(
                             <DropdownMenuContent class="w-44" align="end">
                                 <DropdownMenuItem as-child>
                                     <Link :href="settingsCategories().url" class="w-full">
-                                        Categorias
+                                        {{ $t('common.settings_menu.categories') }}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>
-                                    <Link :href="settingsTags().url" class="w-full">Tags</Link>
+                                    <Link :href="settingsTags().url" class="w-full">
+                                        {{ $t('common.settings_menu.tags') }}
+                                    </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>
-                                    <Link :href="settingsAccounts().url" class="w-full">Contas</Link>
+                                    <Link :href="settingsAccounts().url" class="w-full">
+                                        {{ $t('common.settings_menu.accounts') }}
+                                    </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>
-                                    <Link :href="settingsCurrencies().url" class="w-full">Moedas</Link>
+                                    <Link :href="settingsCurrencies().url" class="w-full">
+                                        {{ $t('common.settings_menu.currencies') }}
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem as-child>
+                                    <Link :href="budgets().url" class="w-full">
+                                        {{ $t('common.settings_menu.budgets') }}
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem as-child>
+                                    <Link :href="goals().url" class="w-full">
+                                        {{ $t('common.settings_menu.goals') }}
+                                    </Link>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -131,6 +155,11 @@ const userInitials = computed(
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent class="w-52" align="end">
+                        <DropdownMenuItem as-child>
+                            <Link :href="profile().url" class="flex w-full items-center gap-2">
+                                <span>{{ $t('common.profile.profile') }}</span>
+                            </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem as-child>
                             <Link :href="preferences.url()" class="flex w-full items-center gap-2">
                                 <span>{{ $t('common.profile.preferences') }}</span>

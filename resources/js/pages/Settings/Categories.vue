@@ -29,9 +29,15 @@ function typeLabel(type: string): string {
 }
 
 function typeBadgeClass(type: string): string {
-    return type === 'income'
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400'
-        : 'border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400';
+    if (type === 'income') {
+        return 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400';
+    }
+
+    if (type === 'both') {
+        return 'border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-400';
+    }
+
+    return 'border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400';
 }
 
 const modalOpen = ref(false);
@@ -61,21 +67,23 @@ function confirmDelete(): void {
 </script>
 
 <template>
-    <Head title="Categorias" />
+    <Head :title="$t('settings.categories.title')" />
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">Categorias</h1>
+                    <h1 class="text-lg font-semibold md:text-xl">
+                        {{ $t('settings.categories.title') }}
+                    </h1>
                     <span class="text-sm text-muted-foreground">
-                        Categorias de receita e despesa.
+                        {{ $t('settings.categories.subtitle') }}
                     </span>
                 </div>
                 <Button
                     size="icon-lg"
                     class="rounded-full"
-                    aria-label="Adicionar categoria"
+                    :aria-label="$t('settings.categories.add')"
                     @click="openModal(null)"
                 >
                     <PlusIcon />
@@ -87,8 +95,8 @@ function confirmDelete(): void {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Tipo</TableHead>
+                                <TableHead>{{ $t('settings.categories.columns.name') }}</TableHead>
+                                <TableHead>{{ $t('settings.categories.columns.type') }}</TableHead>
                                 <TableHead class="text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -117,7 +125,7 @@ function confirmDelete(): void {
                                         <Button
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Editar"
+                                            :aria-label="$t('common.actions.edit')"
                                             @click="openModal(category)"
                                         >
                                             <PencilIcon class="size-4" />
@@ -125,7 +133,7 @@ function confirmDelete(): void {
                                         <Button
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Excluir"
+                                            :aria-label="$t('common.actions.delete')"
                                             @click="askDelete(category)"
                                         >
                                             <Trash2Icon class="size-4" />
@@ -137,7 +145,9 @@ function confirmDelete(): void {
                     </Table>
                 </CardContent>
             </Card>
-            <div v-else class="p-6 text-center text-sm text-muted-foreground">empty</div>
+            <div v-else class="p-6 text-center text-sm text-muted-foreground">
+                {{ $t('common.state.empty') }}
+            </div>
 
             <CategoryModal
                 v-model:open="modalOpen"
@@ -146,7 +156,9 @@ function confirmDelete(): void {
             />
             <ConfirmDialog
                 :open="confirmOpen"
-                :description="`Excluir “${deleteTarget?.name}”? Esta ação não pode ser desfeita.`"
+                :description="
+                    $t('settings.categories.delete_confirm', { name: deleteTarget?.name ?? '' })
+                "
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"
             />

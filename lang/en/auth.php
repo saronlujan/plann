@@ -1,0 +1,70 @@
+<?php
+
+return [
+    'ui' => [
+        'login' => [
+            'title' => 'Login',
+            'email_label' => 'Email:',
+            'email_placeholder' => 'johndoe@email.com',
+            'password_label' => 'Password',
+            'forgot_password' => 'Forgot Password?',
+            'remember' => 'Keep me signed in',
+            'submit' => 'Login',
+            'or_divider' => 'or sign in with',
+            'no_account' => "Don't have an account?",
+            'create_account' => 'Create an account',
+        ],
+
+        'register' => [
+            'title' => 'Sign up',
+            'name_label' => 'Name',
+            'name_placeholder' => 'Tanzir Rahman',
+            'email_label' => 'Email Address',
+            'email_placeholder' => 'hello@example.com',
+            'phone_label' => 'Phone',
+            'password_label' => 'Password',
+            'password_confirmation_label' => 'Confirm Password',
+            'terms_prefix' => 'By continuing, you agree to our',
+            'terms_link' => 'terms of service',
+            'submit' => 'Sign up',
+            'or_divider' => 'or sign up with',
+            'have_account' => 'Already have an account?',
+            'sign_in' => 'Sign in here',
+        ],
+
+        'social' => [
+            'google' => 'Continue with Google',
+            'google_not_configured' => 'Google login is not configured yet.',
+        ],
+
+        'forgot' => [
+            'title' => 'Forgot your password?',
+            'subtitle' => 'Enter your email and we will send you a code to reset your password.',
+            'email_label' => 'Email',
+            'email_placeholder' => 'johndoe@email.com',
+            'submit' => 'Send code',
+            'back_to_login' => 'Back to login',
+            'sent' => 'If the email exists, we sent a 6-digit code.',
+        ],
+
+        'reset' => [
+            'title' => 'Reset password',
+            'subtitle' => 'Enter the 6-digit code we emailed you and your new password.',
+            'email_label' => 'Email',
+            'pin_label' => 'Code',
+            'pin_hint' => 'Enter the 6 digits we sent you.',
+            'password_label' => 'New password',
+            'password_confirmation_label' => 'Confirm new password',
+            'verify_submit' => 'Verify code',
+            'set_new_password' => 'Code verified. Set your new password.',
+            'submit' => 'Reset password',
+            'invalid_pin' => 'Invalid or expired code.',
+            'success' => 'Password reset. Sign in with your new password.',
+            'email_subject' => 'Password reset code',
+            'email_greeting' => 'Hello, :name!',
+            'email_intro' => 'Use the code below to reset your password:',
+            'email_expires' => 'The code expires in :minutes minutes.',
+            'email_ignore' => 'If you did not request this, ignore this email.',
+        ],
+    ],
+];
