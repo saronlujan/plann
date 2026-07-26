@@ -20,6 +20,7 @@ class EnsureTenantContext
         if ($user === null) {
             $tenantContext->clear();
             $this->syncPostgresTenantContext(null);
+            app()->setLocale($this->guestLocale($request));
 
             return $next($request);
         }
@@ -40,6 +41,16 @@ class EnsureTenantContext
         $this->syncPostgresTenantContext($tenant->id);
 
         return $next($request);
+    }
+
+    /**
+     * Session-selected locale for guests (falls back to the app default).
+     */
+    private function guestLocale(Request $request): string
+    {
+        $locale = $request->session()->get('locale');
+
+        return in_array($locale, ['pt', 'es', 'en'], true) ? $locale : config('app.locale');
     }
 
     private function syncPostgresTenantContext(?int $tenantId): void

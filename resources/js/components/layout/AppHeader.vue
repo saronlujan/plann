@@ -48,11 +48,24 @@ const userInitials = computed(
     <header class="w-full border-b border-border bg-background/95 backdrop-blur">
         <div class="flex w-full items-center justify-between gap-4 px-4 py-4 lg:px-6 xl:px-8">
             <div class="relative z-20 flex items-center gap-3">
-                <div class="flex items-center gap-2">
+                <!-- <div class="flex flex-col items-start">
                     <p class="flex text-2xl text-primary">
-                        pla<span class="block font-bold">nn</span>.money
+                        <strong class="tracking-widest">mercante</strong>
                     </p>
-                </div>
+                    <span class="-mt-2 ml-2 opacity-50">money</span>
+                </div> -->
+                <Link
+                    :href="dashboard().url"
+                    class="relative inline-flex items-center gap-2"
+                    aria-label="Mercante Money"
+                >
+                    <img src="/img/logo.png" alt="Mercante" class="h-7 w-auto dark:invert" />
+                    <span
+                        class="rounded-full bg-primary px-2 py-0.5 text-xs leading-none font-bold tracking-wide text-white"
+                    >
+                        money
+                    </span>
+                </Link>
             </div>
             <div
                 class="absolute right-0 left-0 z-10 m-auto flex w-full items-center justify-center"
@@ -75,7 +88,10 @@ const userInitials = computed(
                         </Link>
                     </li>
                     <li>
-                        <Link :href="accountsIndex().url" class="transition hover:text-muted-foreground">
+                        <Link
+                            :href="accountsIndex().url"
+                            class="transition hover:text-muted-foreground"
+                        >
                             {{ $t('common.navbar.accounts') }}
                         </Link>
                     </li>

@@ -10,6 +10,9 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->routes(function () {
+            Route::middleware(['web'])
+                ->group(base_path('routes/locale.php'));
+
             Route::middleware(['web', 'guest'])
                 ->group(base_path('routes/login.php'));
 

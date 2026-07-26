@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'contact_type' => [
+        'provider' => 'Supplier',
+        'client' => 'Client',
+        'partner' => 'Partner',
+        'platform' => 'Platform',
+    ],
+
     'account_kind' => [
         'account' => 'Simple Account',
         'bank' => 'Bank Account',

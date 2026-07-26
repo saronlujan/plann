@@ -11,6 +11,7 @@ use App\Support\Accounts\AccountStatement;
 use App\Support\Accounts\CreditCardInvoice;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,6 +50,8 @@ class ReadAccountsController extends Controller
                     'due_day' => $account->due_day,
                 ];
 
+                $spark = $this->spark($statement, $account, $transactions, $now);
+
                 if ($account->isCreditCard()) {
                     $current = $invoice->current($account, $transactions, $now);
 
@@ -57,6 +60,7 @@ class ReadAccountsController extends Controller
                         'invoice_total' => $current['total'],
                         'invoice_due_date' => $current['due_date'],
                         'available' => $current['available'],
+                        'spark' => $spark,
                     ];
                 }
 
@@ -67,6 +71,7 @@ class ReadAccountsController extends Controller
                     'current_balance' => $statement->balanceAsOf($account, $transactions, $now),
                     'monthly_income' => $period['income'],
                     'monthly_expense' => $period['expense'],
+                    'spark' => $spark,
                 ];
             });
 
@@ -85,5 +90,23 @@ class ReadAccountsController extends Controller
                 ->all(),
             'kindOptions' => AccountKind::options(),
         ]);
+    }
+
+    /**
+     * End-of-month computed balance for the last 6 months (oldest → newest),
+     * used to draw the sparkline on each account card.
+     *
+     * @param  Collection<int, Transaction>  $transactions
+     * @return array<int, float>
+     */
+    private function spark(AccountStatement $statement, Account $account, Collection $transactions, CarbonImmutable $now): array
+    {
+        return collect(range(5, 0))
+            ->map(function (int $ago) use ($statement, $account, $transactions, $now): float {
+                $asOf = $ago === 0 ? $now : $now->subMonths($ago)->endOfMonth();
+
+                return (float) $statement->balanceAsOf($account, $transactions, $asOf);
+            })
+            ->all();
     }
 }

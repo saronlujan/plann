@@ -8,11 +8,12 @@ enum ContactType: string
 
     case Client = 'client';
 
+    case Partner = 'partner';
+
+    case Platform = 'platform';
+
     public function label(): string
     {
-        return match ($this) {
-            self::Provider => 'Fornecedor',
-            self::Client => 'Cliente',
-        };
+        return __('enums.contact_type.'.$this->value);
     }
 }

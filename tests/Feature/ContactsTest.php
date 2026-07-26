@@ -32,7 +32,7 @@ test('authenticated users may view their contacts', function () {
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Contacts/Index')
             ->has('contacts', 1)
-            ->has('typeOptions', 2));
+            ->has('typeOptions', 4));
 });
 
 test('users may create a contact', function () {

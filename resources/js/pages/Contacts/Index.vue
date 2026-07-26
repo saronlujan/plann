@@ -39,10 +39,18 @@ function typeLabel(type: string): string {
     return props.typeOptions.find((option) => option.value === type)?.label ?? type;
 }
 
+const typeBadgeClasses: Record<string, string> = {
+    provider:
+        'border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400',
+    client: 'border-indigo-200 bg-indigo-50 text-indigo-600 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-400',
+    partner:
+        'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400',
+    platform:
+        'border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-400',
+};
+
 function typeBadgeClass(type: string): string {
-    return type === 'provider'
-        ? 'border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400'
-        : 'border-indigo-200 bg-indigo-50 text-indigo-600 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-400';
+    return typeBadgeClasses[type] ?? typeBadgeClasses.client;
 }
 
 const modalOpen = ref(false);

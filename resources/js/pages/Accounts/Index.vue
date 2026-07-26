@@ -6,6 +6,7 @@ import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import RowActionsMenu from '@/components/RowActionsMenu.vue';
+import Sparkline from '@/components/Sparkline.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { accountKindIcon } from '@/lib/accountKind';
@@ -31,6 +32,7 @@ type Account = {
     invoice_total?: string;
     invoice_due_date?: string;
     available?: string | null;
+    spark: number[];
 };
 defineProps<{
     accounts: Account[];
@@ -107,7 +109,12 @@ function confirmDelete(): void {
                     class="block rounded-xl transition hover:opacity-90"
                 >
                     <Card>
-                        <CardContent class="flex flex-col gap-3 p-2">
+                        <CardContent class="relative flex flex-col gap-3 p-2">
+                            <Sparkline
+                                v-if="account.spark && account.spark.length > 1"
+                                :points="account.spark"
+                                class="pointer-events-none absolute right-2 bottom-2 opacity-80"
+                            />
                             <div class="flex items-center justify-between gap-2">
                                 <span class="flex min-w-0 items-center gap-2.5">
                                     <span
@@ -165,31 +172,33 @@ function confirmDelete(): void {
                             </template>
 
                             <template v-else>
-                                <span class="text-2xl font-semibold">
-                                    {{
-                                        formatMoney(
-                                            account.current_balance ?? '0',
-                                            account.currency_code,
-                                        )
-                                    }}
-                                </span>
-                                <div class="flex items-center gap-4 text-xs">
-                                    <span class="text-emerald-600 dark:text-emerald-400">
-                                        +{{
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="text-2xl font-semibold">
+                                        {{
                                             formatMoney(
-                                                account.monthly_income ?? '0',
+                                                account.current_balance ?? '0',
                                                 account.currency_code,
                                             )
                                         }}
                                     </span>
-                                    <span class="text-red-600 dark:text-red-400">
-                                        -{{
-                                            formatMoney(
-                                                account.monthly_expense ?? '0',
-                                                account.currency_code,
-                                            )
-                                        }}
-                                    </span>
+                                    <div class="flex items-center gap-4 text-xs font-semibold">
+                                        <span class="text-emerald-600 dark:text-emerald-400">
+                                            +{{
+                                                formatMoney(
+                                                    account.monthly_income ?? '0',
+                                                    account.currency_code,
+                                                )
+                                            }}
+                                        </span>
+                                        <span class="text-red-600 dark:text-red-400">
+                                            -{{
+                                                formatMoney(
+                                                    account.monthly_expense ?? '0',
+                                                    account.currency_code,
+                                                )
+                                            }}
+                                        </span>
+                                    </div>
                                 </div>
                             </template>
                         </CardContent>
