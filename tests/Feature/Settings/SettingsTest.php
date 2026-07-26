@@ -34,27 +34,25 @@ function settingsUser(string $email): User
     ]);
 }
 
-test('each settings module has its own focused page', function () {
+test('each module has its own focused page', function () {
     $user = settingsUser('settings@example.com');
     Category::create(['tenant_id' => $user->tenant_id, 'name' => 'Salário', 'type' => 'income']);
     Tag::create(['tenant_id' => $user->tenant_id, 'name' => 'fixo']);
 
-    actingAs($user)->get('/settings')->assertRedirect('/settings/categories');
-
-    actingAs($user)->get('/settings/categories')->assertSuccessful()
+    actingAs($user)->get('/categories')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
-            ->component('Settings/Categories')
+            ->component('Categories/Index')
             ->has('categories', 1)
             ->has('categoryTypeOptions', 3));
 
-    actingAs($user)->get('/settings/tags')->assertSuccessful()
+    actingAs($user)->get('/tags')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
-            ->component('Settings/Tags')
+            ->component('Tags/Index')
             ->has('tags', 1));
 
-    actingAs($user)->get('/settings/currencies')->assertSuccessful()
+    actingAs($user)->get('/currencies')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
-            ->component('Settings/Currencies')
+            ->component('Currencies/Index')
             ->has('currencies'));
 });
 
@@ -62,7 +60,7 @@ test('users may create a category', function () {
     $user = settingsUser('cat-create@example.com');
 
     actingAs($user)
-        ->post('/settings/categories', ['name' => 'Mercado', 'type' => 'expense', 'color' => 'green'])
+        ->post('/categories', ['name' => 'Mercado', 'type' => 'expense', 'color' => 'green'])
         ->assertRedirect();
 
     $category = Category::query()->where('name', 'Mercado')->where('type', 'expense')->first();
@@ -74,7 +72,7 @@ test('a category may be dual-use (both)', function () {
     $user = settingsUser('cat-both@example.com');
 
     actingAs($user)
-        ->post('/settings/categories', ['name' => 'Hospedagem', 'type' => 'both', 'color' => 'blue'])
+        ->post('/categories', ['name' => 'Hospedagem', 'type' => 'both', 'color' => 'blue'])
         ->assertRedirect();
 
     expect(Category::query()->where('name', 'Hospedagem')->where('type', 'both')->exists())->toBeTrue();
@@ -85,12 +83,12 @@ test('duplicate category name and type is rejected', function () {
     Category::create(['tenant_id' => $user->tenant_id, 'name' => 'Mercado', 'type' => 'expense']);
 
     actingAs($user)
-        ->post('/settings/categories', ['name' => 'Mercado', 'type' => 'expense', 'color' => 'red'])
+        ->post('/categories', ['name' => 'Mercado', 'type' => 'expense', 'color' => 'red'])
         ->assertSessionHasErrors('name');
 
     // Same name but different type is allowed.
     actingAs($user)
-        ->post('/settings/categories', ['name' => 'Mercado', 'type' => 'income', 'color' => 'red'])
+        ->post('/categories', ['name' => 'Mercado', 'type' => 'income', 'color' => 'red'])
         ->assertSessionDoesntHaveErrors();
 });
 
@@ -99,13 +97,13 @@ test('users may update and delete a category', function () {
     $category = Category::create(['tenant_id' => $user->tenant_id, 'name' => 'Mercado', 'type' => 'expense']);
 
     actingAs($user)
-        ->patch('/settings/categories/'.$category->id, ['name' => 'Feira', 'type' => 'expense', 'color' => 'blue'])
+        ->patch('/categories/'.$category->id, ['name' => 'Feira', 'type' => 'expense', 'color' => 'blue'])
         ->assertRedirect();
 
     expect($category->fresh()?->name)->toBe('Feira');
 
     actingAs($user)
-        ->delete('/settings/categories/'.$category->id)
+        ->delete('/categories/'.$category->id)
         ->assertRedirect();
 
     expect(Category::query()->whereKey($category->id)->exists())->toBeFalse();
@@ -114,12 +112,12 @@ test('users may update and delete a category', function () {
 test('users may create and delete a tag', function () {
     $user = settingsUser('tag-cd@example.com');
 
-    actingAs($user)->post('/settings/tags', ['name' => 'urgente', 'color' => 'purple'])->assertRedirect();
+    actingAs($user)->post('/tags', ['name' => 'urgente', 'color' => 'purple'])->assertRedirect();
 
     $tag = Tag::query()->where('name', 'urgente')->first();
     expect($tag)->not->toBeNull();
 
-    actingAs($user)->delete('/settings/tags/'.$tag->id)->assertRedirect();
+    actingAs($user)->delete('/tags/'.$tag->id)->assertRedirect();
     expect(Tag::query()->whereKey($tag->id)->exists())->toBeFalse();
 });
 
@@ -131,11 +129,11 @@ test('a tenant cannot modify another tenant category', function () {
     app(TenantContext::class)->clear();
 
     actingAs($attacker)
-        ->patch('/settings/categories/'.$victimCategory->id, ['name' => 'Hack', 'type' => 'income'])
+        ->patch('/categories/'.$victimCategory->id, ['name' => 'Hack', 'type' => 'income'])
         ->assertNotFound();
 
     actingAs($attacker)
-        ->delete('/settings/categories/'.$victimCategory->id)
+        ->delete('/categories/'.$victimCategory->id)
         ->assertNotFound();
 
     expect($victimCategory->fresh()?->name)->toBe('Privada');
@@ -205,14 +203,14 @@ test('users may manage the active currencies', function () {
     $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
 
     actingAs($user)
-        ->patch('/settings/currencies', ['currency_ids' => [$brl->id, $usd->id]])
+        ->patch('/currencies', ['currency_ids' => [$brl->id, $usd->id]])
         ->assertRedirect();
 
     expect($user->tenant()->first()->activeCurrencies()->pluck('code')->sort()->values()->all())
         ->toBe(['BRL', 'USD']);
 
     actingAs($user)
-        ->patch('/settings/currencies', ['currency_ids' => [$brl->id]])
+        ->patch('/currencies', ['currency_ids' => [$brl->id]])
         ->assertRedirect();
 
     expect($user->tenant()->first()->activeCurrencies()->pluck('code')->all())->toBe(['BRL']);

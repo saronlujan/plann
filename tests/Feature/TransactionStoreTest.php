@@ -309,7 +309,7 @@ it('keeps existing transactions when a category type changes', function () {
     ]);
 
     actingAs($user)
-        ->patch('/settings/categories/'.$category->id, ['name' => 'Mercado', 'type' => 'income', 'color' => 'green'])
+        ->patch('/categories/'.$category->id, ['name' => 'Mercado', 'type' => 'income', 'color' => 'green'])
         ->assertRedirect();
 
     expect($category->fresh()?->type->value)->toBe('income');

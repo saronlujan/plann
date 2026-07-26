@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { colorHex } from '@/lib/labelColors';
-import { destroy as destroyTag } from '@/routes/settings/tags';
+import { destroy as destroyTag } from '@/routes/tags';
 import TagModal from './components/TagModal.vue';
 
 type Tag = { id: number; name: string; color: string };
@@ -50,23 +50,23 @@ function confirmDelete(): void {
 </script>
 
 <template>
-    <Head :title="$t('settings.tags.title')" />
+    <Head :title="$t('tags.title')" />
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-col">
                     <h1 class="text-lg font-semibold md:text-xl">
-                        {{ $t('settings.tags.title') }}
+                        {{ $t('tags.title') }}
                     </h1>
                     <span class="text-sm text-muted-foreground">
-                        {{ $t('settings.tags.subtitle') }}
+                        {{ $t('tags.subtitle') }}
                     </span>
                 </div>
                 <Button
                     size="icon-lg"
                     class="rounded-full"
-                    :aria-label="$t('settings.tags.add')"
+                    :aria-label="$t('tags.add')"
                     @click="openModal(null)"
                 >
                     <PlusIcon />
@@ -78,7 +78,7 @@ function confirmDelete(): void {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>{{ $t('settings.tags.columns.name') }}</TableHead>
+                                <TableHead>{{ $t('tags.columns.name') }}</TableHead>
                                 <TableHead class="text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -111,14 +111,14 @@ function confirmDelete(): void {
                 class="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground"
             >
                 <DatabaseIcon class="size-4 shrink-0" />
-                {{ $t('settings.tags.empty') }}
+                {{ $t('tags.empty') }}
             </div>
 
             <TagModal v-model:open="modalOpen" :entry="editing" />
             <ConfirmDialog
                 :open="confirmOpen"
                 :description="
-                    $t('settings.tags.delete_confirm', { name: deleteTarget?.name ?? '' })
+                    $t('tags.delete_confirm', { name: deleteTarget?.name ?? '' })
                 "
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"

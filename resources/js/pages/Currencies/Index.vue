@@ -3,7 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
-import { update as updateCurrencies } from '@/routes/settings/currencies';
+import { update as updateCurrencies } from '@/routes/currencies';
 
 type CurrencyRow = { id: number; code: string; name: string; symbol: string; active: boolean };
 
@@ -19,16 +19,16 @@ function toggleCurrency(currency: CurrencyRow, active: boolean): void {
 </script>
 
 <template>
-    <Head :title="$t('settings.currencies.title')" />
+    <Head :title="$t('currencies.title')" />
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
             <div class="flex flex-col">
                 <h1 class="text-lg font-semibold md:text-xl">
-                    {{ $t('settings.currencies.title') }}
+                    {{ $t('currencies.title') }}
                 </h1>
                 <span class="text-sm text-muted-foreground">
-                    {{ $t('settings.currencies.subtitle') }}
+                    {{ $t('currencies.subtitle') }}
                 </span>
             </div>
 
@@ -44,7 +44,7 @@ function toggleCurrency(currency: CurrencyRow, active: boolean): void {
                         <Switch
                             :model-value="currency.active"
                             :aria-label="
-                                $t('settings.currencies.activate', { code: currency.code })
+                                $t('currencies.activate', { code: currency.code })
                             "
                             @update:model-value="(value) => toggleCurrency(currency, value)"
                         />

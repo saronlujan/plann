@@ -20,7 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { store as storeCategory, update as updateCategory } from '@/routes/settings/categories';
+import { store as storeCategory, update as updateCategory } from '@/routes/categories';
 
 type Option = { value: string; label: string };
 type Category = { id: number; name: string; type: string; color: string };
@@ -89,30 +89,30 @@ function submit(): void {
             <DialogHeader>
                 <DialogTitle>{{
                     isEdit
-                        ? $t('settings.categories.modal.edit_title')
-                        : $t('settings.categories.modal.create_title')
+                        ? $t('categories.modal.edit_title')
+                        : $t('categories.modal.create_title')
                 }}</DialogTitle>
                 <DialogDescription>{{
-                    $t('settings.categories.modal.description')
+                    $t('categories.modal.description')
                 }}</DialogDescription>
             </DialogHeader>
 
             <Form class="gap-3" @submit.prevent="submit">
                 <FormGroup>
                     <FormLabel for="cat-name">{{
-                        $t('settings.categories.modal.name_label')
+                        $t('categories.modal.name_label')
                     }}</FormLabel>
                     <Input
                         id="cat-name"
                         v-model="form.name"
-                        :placeholder="$t('settings.categories.modal.name_placeholder')"
+                        :placeholder="$t('categories.modal.name_placeholder')"
                     />
                     <FormError :message="form.errors.name" />
                 </FormGroup>
 
                 <FormGroup>
                     <FormLabel for="cat-type">{{
-                        $t('settings.categories.modal.type_label')
+                        $t('categories.modal.type_label')
                     }}</FormLabel>
                     <Select v-model="form.type">
                         <SelectTrigger id="cat-type">
@@ -132,7 +132,7 @@ function submit(): void {
                 </FormGroup>
 
                 <FormGroup>
-                    <FormLabel>{{ $t('settings.categories.modal.color_label') }}</FormLabel>
+                    <FormLabel>{{ $t('categories.modal.color_label') }}</FormLabel>
                     <ColorPicker v-model="form.color" />
                     <FormError :message="form.errors.color" />
                 </FormGroup>

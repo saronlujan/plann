@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormError, FormGroup, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { store as storeTag, update as updateTag } from '@/routes/settings/tags';
+import { store as storeTag, update as updateTag } from '@/routes/tags';
 
 type Tag = { id: number; name: string; color: string };
 
@@ -77,25 +77,25 @@ function submit(): void {
             <DialogHeader>
                 <DialogTitle>{{
                     isEdit
-                        ? $t('settings.tags.modal.edit_title')
-                        : $t('settings.tags.modal.create_title')
+                        ? $t('tags.modal.edit_title')
+                        : $t('tags.modal.create_title')
                 }}</DialogTitle>
-                <DialogDescription>{{ $t('settings.tags.modal.description') }}</DialogDescription>
+                <DialogDescription>{{ $t('tags.modal.description') }}</DialogDescription>
             </DialogHeader>
 
             <Form class="gap-3" @submit.prevent="submit">
                 <FormGroup>
-                    <FormLabel for="tag-name">{{ $t('settings.tags.modal.name_label') }}</FormLabel>
+                    <FormLabel for="tag-name">{{ $t('tags.modal.name_label') }}</FormLabel>
                     <Input
                         id="tag-name"
                         v-model="form.name"
-                        :placeholder="$t('settings.tags.modal.name_placeholder')"
+                        :placeholder="$t('tags.modal.name_placeholder')"
                     />
                     <FormError :message="form.errors.name" />
                 </FormGroup>
 
                 <FormGroup>
-                    <FormLabel>{{ $t('settings.tags.modal.color_label') }}</FormLabel>
+                    <FormLabel>{{ $t('tags.modal.color_label') }}</FormLabel>
                     <ColorPicker v-model="form.color" />
                     <FormError :message="form.errors.color" />
                 </FormGroup>

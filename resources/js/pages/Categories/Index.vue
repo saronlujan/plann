@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { colorHex } from '@/lib/labelColors';
-import { destroy as destroyCategory } from '@/routes/settings/categories';
+import { destroy as destroyCategory } from '@/routes/categories';
 import CategoryModal from './components/CategoryModal.vue';
 
 type Option = { value: string; label: string };
@@ -68,23 +68,23 @@ function confirmDelete(): void {
 </script>
 
 <template>
-    <Head :title="$t('settings.categories.title')" />
+    <Head :title="$t('categories.title')" />
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-col">
                     <h1 class="text-lg font-semibold md:text-xl">
-                        {{ $t('settings.categories.title') }}
+                        {{ $t('categories.title') }}
                     </h1>
                     <span class="text-sm text-muted-foreground">
-                        {{ $t('settings.categories.subtitle') }}
+                        {{ $t('categories.subtitle') }}
                     </span>
                 </div>
                 <Button
                     size="icon-lg"
                     class="rounded-full"
-                    :aria-label="$t('settings.categories.add')"
+                    :aria-label="$t('categories.add')"
                     @click="openModal(null)"
                 >
                     <PlusIcon />
@@ -96,8 +96,8 @@ function confirmDelete(): void {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>{{ $t('settings.categories.columns.name') }}</TableHead>
-                                <TableHead>{{ $t('settings.categories.columns.type') }}</TableHead>
+                                <TableHead>{{ $t('categories.columns.name') }}</TableHead>
+                                <TableHead>{{ $t('categories.columns.type') }}</TableHead>
                                 <TableHead class="text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -139,7 +139,7 @@ function confirmDelete(): void {
                 class="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground"
             >
                 <DatabaseIcon class="size-4 shrink-0" />
-                {{ $t('settings.categories.empty') }}
+                {{ $t('categories.empty') }}
             </div>
 
             <CategoryModal
@@ -150,7 +150,7 @@ function confirmDelete(): void {
             <ConfirmDialog
                 :open="confirmOpen"
                 :description="
-                    $t('settings.categories.delete_confirm', { name: deleteTarget?.name ?? '' })
+                    $t('categories.delete_confirm', { name: deleteTarget?.name ?? '' })
                 "
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"

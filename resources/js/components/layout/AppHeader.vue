@@ -8,9 +8,9 @@ import { index as billing } from '@/routes/billing';
 import { edit as profile } from '@/routes/profile';
 import { accounts as accountsIndex, contacts, dashboard, logout, preferences } from '@/routes';
 import transactions from '@/routes/transactions';
-import { index as settingsCategories } from '@/routes/settings/categories';
-import { index as settingsCurrencies } from '@/routes/settings/currencies';
-import { index as settingsTags } from '@/routes/settings/tags';
+import { index as categoriesIndex } from '@/routes/categories';
+import { index as currenciesIndex } from '@/routes/currencies';
+import { index as tagsIndex } from '@/routes/tags';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -97,17 +97,17 @@ const userInitials = computed(
                             </DropdownMenuTrigger>
                             <DropdownMenuContent class="w-44" align="end">
                                 <DropdownMenuItem as-child>
-                                    <Link :href="settingsCategories().url" class="w-full">
+                                    <Link :href="categoriesIndex().url" class="w-full">
                                         {{ $t('common.settings_menu.categories') }}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>
-                                    <Link :href="settingsTags().url" class="w-full">
+                                    <Link :href="tagsIndex().url" class="w-full">
                                         {{ $t('common.settings_menu.tags') }}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>
-                                    <Link :href="settingsCurrencies().url" class="w-full">
+                                    <Link :href="currenciesIndex().url" class="w-full">
                                         {{ $t('common.settings_menu.currencies') }}
                                     </Link>
                                 </DropdownMenuItem>
