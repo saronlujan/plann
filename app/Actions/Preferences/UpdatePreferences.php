@@ -9,7 +9,7 @@ class UpdatePreferences
     /**
      * Persist whichever appearance/language preferences were provided.
      *
-     * @param  array{locale?: string, theme?: string, color?: string, sound_enabled?: bool, sound_theme?: string, notifications_enabled?: bool, notify_days_before?: int}  $data
+     * @param  array{locale?: string, theme?: string, color?: string, sound_enabled?: bool, sound_theme?: string, notifications_enabled?: bool, notify_days_before?: int, default_currency_id?: int|null}  $data
      */
     public function handle(User $user, array $data): void
     {
@@ -21,6 +21,7 @@ class UpdatePreferences
             'sound_theme',
             'notifications_enabled',
             'notify_days_before',
+            'default_currency_id',
         ])));
     }
 }

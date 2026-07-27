@@ -31,12 +31,13 @@ use Illuminate\Support\Carbon;
  * @property string $sound_theme
  * @property bool $notifications_enabled
  * @property int $notify_days_before
+ * @property int|null $default_currency_id
  * @property string $password
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['tenant_id', 'name', 'email', 'google_id', 'avatar_url', 'phone', 'password', 'locale', 'theme', 'color', 'sound_enabled', 'sound_theme', 'notifications_enabled', 'notify_days_before'])]
+#[Fillable(['tenant_id', 'name', 'email', 'google_id', 'avatar_url', 'phone', 'password', 'locale', 'theme', 'color', 'sound_enabled', 'sound_theme', 'notifications_enabled', 'notify_days_before', 'default_currency_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -85,6 +86,17 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification(): void
     {
         app(SendEmailVerificationPin::class)->handle($this);
+    }
+
+    /**
+     * Preferred currency for new records. Null falls back to the tenant's first
+     * active currency.
+     *
+     * @return BelongsTo<Currency, $this>
+     */
+    public function defaultCurrency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'default_currency_id');
     }
 
     /**

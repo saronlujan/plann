@@ -31,11 +31,13 @@ const props = defineProps<{
         sound_theme: SoundValue;
         notifications_enabled: boolean;
         notify_days_before: number;
+        default_currency_id: number | null;
     };
     localeOptions: Option[];
     themeOptions: Option[];
     colorOptions: Option[];
     soundOptions: Option[];
+    currencyOptions: Option[];
 }>();
 
 const locale = ref(props.preferences.locale);
@@ -45,6 +47,8 @@ const soundEnabled = ref(props.preferences.sound_enabled);
 const soundTheme = ref<SoundValue>(props.preferences.sound_theme);
 const notificationsEnabled = ref(props.preferences.notifications_enabled);
 const notifyDaysBefore = ref(String(props.preferences.notify_days_before));
+// '' is the wire format for "no preference"; it maps back to null on submit.
+const defaultCurrencyId = ref(props.preferences.default_currency_id?.toString() ?? '');
 
 const daysBeforeOptions: Option[] = [
     { value: '1', label: trans('preferences.days_before.n1') },
@@ -67,6 +71,8 @@ function persist(): void {
             sound_theme: soundTheme.value,
             notifications_enabled: notificationsEnabled.value,
             notify_days_before: Number(notifyDaysBefore.value),
+            default_currency_id:
+                defaultCurrencyId.value === '' ? null : Number(defaultCurrencyId.value),
         },
         { preserveScroll: true, preserveState: true },
     );
@@ -231,6 +237,37 @@ function selectColor(value: string): void {
                             <SelectContent>
                                 <SelectItem
                                     v-for="option in soundOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                <!-- Nothing to prefer when the workspace has a single currency. -->
+                <div
+                    v-if="currencyOptions.length > 1"
+                    class="mt-5 grid grid-cols-12 gap-5 border-t border-b border-zinc-100 pt-5 pb-5 dark:border-zinc-800"
+                >
+                    <div class="col-span-12 flex flex-col lg:col-span-4">
+                        <h2 class="font-medium">{{ $t('preferences.default_currency.title') }}</h2>
+                        <span class="text-xs font-medium text-zinc-400 dark:text-zinc-500">{{
+                            $t('preferences.default_currency.description')
+                        }}</span>
+                    </div>
+                    <div class="col-span-12 lg:col-span-8">
+                        <Select v-model="defaultCurrencyId" @update:model-value="persist">
+                            <SelectTrigger class="mt-1 max-w-xs">
+                                <SelectValue
+                                    :placeholder="$t('preferences.default_currency.placeholder')"
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="option in currencyOptions"
                                     :key="option.value"
                                     :value="option.value"
                                 >

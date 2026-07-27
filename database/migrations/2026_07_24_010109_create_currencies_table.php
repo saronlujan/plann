@@ -18,6 +18,12 @@ return new class extends Migration
             $table->string('symbol', 8);
             $table->timestamps();
         });
+
+        // users.default_currency_id is declared with the users table (which is
+        // created first); the constraint can only be added now.
+        Schema::table('users', function (Blueprint $table): void {
+            $table->foreign('default_currency_id')->references('id')->on('currencies')->nullOnDelete();
+        });
     }
 
     /**
@@ -25,6 +31,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropForeign(['default_currency_id']);
+        });
+
         Schema::dropIfExists('currencies');
     }
 };

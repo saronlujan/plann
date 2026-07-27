@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +43,8 @@ const props = withDefaults(
     { entry: null },
 );
 
+const page = usePage<{ auth?: { user?: { default_currency_id?: number | null } | null } }>();
+
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
 const dialogOpen = computed({
@@ -52,11 +54,23 @@ const dialogOpen = computed({
 
 const isEdit = computed(() => props.entry != null);
 
+// The user's preferred currency wins; fall back to the first active one when no
+// preference is set or the preferred currency is no longer active.
+function defaultCurrencyValue(): string | undefined {
+    const preferred = page.props.auth?.user?.default_currency_id;
+    const match =
+        preferred == null
+            ? undefined
+            : props.currencyOptions.find((option) => option.value === preferred.toString());
+
+    return (match ?? props.currencyOptions[0])?.value;
+}
+
 function buildValues() {
     return {
         name: props.entry?.name ?? '',
         kind: props.entry?.kind ?? props.kindOptions[0]?.value ?? 'account',
-        currency_id: props.entry?.currency_id.toString() ?? props.currencyOptions[0]?.value ?? '',
+        currency_id: props.entry?.currency_id.toString() ?? defaultCurrencyValue() ?? '',
         balance: props.entry?.balance ?? '',
         credit_limit: props.entry?.credit_limit ?? '',
         closing_day: props.entry?.closing_day?.toString() ?? '',

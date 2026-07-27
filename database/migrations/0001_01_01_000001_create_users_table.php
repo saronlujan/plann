@@ -27,6 +27,9 @@ return new class extends Migration
             $table->string('sound_theme')->default('blip');
             $table->boolean('notifications_enabled')->default(false);
             $table->unsignedTinyInteger('notify_days_before')->default(3);
+            // Preferred currency for new records. Constrained in the currencies
+            // migration, which is the first point where that table exists.
+            $table->unsignedBigInteger('default_currency_id')->nullable();
             $table->rememberToken();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->timestamps();

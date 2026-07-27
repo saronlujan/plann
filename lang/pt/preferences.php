@@ -32,6 +32,13 @@ return [
         'placeholder' => 'Selecione um som',
     ],
 
+    'default_currency' => [
+        'title' => 'Moeda Padrão',
+        'description' => 'Moeda pré-selecionada ao criar lançamentos e contas.',
+        'placeholder' => 'Selecione uma moeda',
+        'none' => 'Sem preferência',
+    ],
+
     'notifications' => [
         'title' => 'Notificações',
         'description' => 'Receba um e-mail quando uma transação vence hoje ou está prestes a vencer.',

@@ -32,6 +32,13 @@ return [
         'placeholder' => 'Selecciona un sonido',
     ],
 
+    'default_currency' => [
+        'title' => 'Moneda Predeterminada',
+        'description' => 'Moneda preseleccionada al crear movimientos y cuentas.',
+        'placeholder' => 'Selecciona una moneda',
+        'none' => 'Sin preferencia',
+    ],
+
     'notifications' => [
         'title' => 'Notificaciones',
         'description' => 'Recibe un correo cuando una transacción vence hoy o está por vencer.',

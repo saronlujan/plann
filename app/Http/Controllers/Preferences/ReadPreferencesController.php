@@ -6,6 +6,7 @@ use App\Enums\SoundTheme;
 use App\Enums\UserColor;
 use App\Enums\UserTheme;
 use App\Http\Controllers\Controller;
+use App\Models\Currency;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,6 +26,7 @@ class ReadPreferencesController extends Controller
                 'sound_theme' => $user->sound_theme ?? SoundTheme::Blip->value,
                 'notifications_enabled' => $user->notifications_enabled ?? false,
                 'notify_days_before' => $user->notify_days_before ?? 3,
+                'default_currency_id' => $user->default_currency_id,
             ],
             'localeOptions' => [
                 ['value' => 'pt', 'label' => 'Português'],
@@ -40,6 +42,31 @@ class ReadPreferencesController extends Controller
                 UserColor::cases(),
             ),
             'soundOptions' => SoundTheme::options(),
+            'currencyOptions' => $this->activeCurrencyOptions($request),
         ]);
+    }
+
+    /**
+     * The currencies this workspace has activated — the only valid choices for a
+     * default.
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    private function activeCurrencyOptions(Request $request): array
+    {
+        $tenant = $request->user()?->tenant;
+
+        if ($tenant === null) {
+            return [];
+        }
+
+        return $tenant->activeCurrencies()
+            ->orderBy('code')
+            ->get()
+            ->map(fn (Currency $currency): array => [
+                'value' => (string) $currency->id,
+                'label' => $currency->code.' - '.$currency->name,
+            ])
+            ->all();
     }
 }

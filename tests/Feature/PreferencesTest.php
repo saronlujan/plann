@@ -2,6 +2,7 @@
 
 use App\Enums\UserColor;
 use App\Enums\UserTheme;
+use App\Models\Currency;
 use App\Models\Tenant;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -19,6 +20,24 @@ function makePreferencesUser(string $email, string $locale = 'pt'): User
         'password' => 'password',
         'locale' => $locale,
     ]);
+}
+
+/**
+ * @return array{0: User, 1: Tenant}
+ */
+function preferencesFixture(string $email): array
+{
+    $tenant = Tenant::create(['name' => 'Tenant '.$email]);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => $email,
+        'password' => 'password',
+        'locale' => 'pt',
+    ]);
+
+    return [$user, $tenant];
 }
 
 test('authenticated users may view preferences', function () {
@@ -126,4 +145,78 @@ test('preferences update rejects an unsupported color', function () {
             'color' => 'brown',
         ])
         ->assertSessionHasErrors('color');
+});
+
+test('a user may set a default currency from the active ones', function () {
+    [$user, $tenant] = preferencesFixture('default-currency@example.com');
+
+    $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+    $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
+    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
+
+    actingAs($user)
+        ->patch(route('preferences.update'), ['default_currency_id' => $usd->id])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($user->refresh()->default_currency_id)->toBe($usd->id);
+});
+
+test('a currency the workspace has not activated is rejected', function () {
+    [$user, $tenant] = preferencesFixture('inactive-currency@example.com');
+
+    $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+    $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
+    // Only BRL is active for this workspace.
+    $tenant->syncCurrencyActivations([$brl->id]);
+
+    actingAs($user)
+        ->patch(route('preferences.update'), ['default_currency_id' => $usd->id])
+        ->assertSessionHasErrors('default_currency_id');
+
+    expect($user->refresh()->default_currency_id)->toBeNull();
+});
+
+test('another tenant currency activation does not authorize the choice', function () {
+    [$user] = preferencesFixture('cross-tenant-currency@example.com');
+
+    $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
+
+    // A *different* workspace activates USD; this user still may not pick it.
+    [, $otherTenant] = preferencesFixture('other-workspace@example.com');
+    $otherTenant->syncCurrencyActivations([$usd->id]);
+
+    actingAs($user)
+        ->patch(route('preferences.update'), ['default_currency_id' => $usd->id])
+        ->assertSessionHasErrors('default_currency_id');
+
+    expect($user->refresh()->default_currency_id)->toBeNull();
+});
+
+test('the default currency may be cleared back to no preference', function () {
+    [$user, $tenant] = preferencesFixture('clear-currency@example.com');
+
+    $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+    $tenant->syncCurrencyActivations([$brl->id]);
+    $user->update(['default_currency_id' => $brl->id]);
+
+    actingAs($user)
+        ->patch(route('preferences.update'), ['default_currency_id' => null])
+        ->assertSessionHasNoErrors();
+
+    expect($user->refresh()->default_currency_id)->toBeNull();
+});
+
+test('the preferences page exposes the active currencies and the current choice', function () {
+    [$user, $tenant] = preferencesFixture('currency-options@example.com');
+
+    $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+    $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
+    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
+    $user->update(['default_currency_id' => $usd->id]);
+
+    actingAs($user)->get(route('preferences'))->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->where('preferences.default_currency_id', $usd->id)
+            ->has('currencyOptions', 2));
 });

@@ -32,6 +32,13 @@ return [
         'placeholder' => 'Select a sound',
     ],
 
+    'default_currency' => [
+        'title' => 'Default Currency',
+        'description' => 'Pre-selected currency when creating transactions and accounts.',
+        'placeholder' => 'Select a currency',
+        'none' => 'No preference',
+    ],
+
     'notifications' => [
         'title' => 'Notifications',
         'description' => 'Get an email when a transaction is due today or coming due.',

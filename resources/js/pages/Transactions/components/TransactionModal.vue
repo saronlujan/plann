@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
@@ -72,6 +72,8 @@ const props = withDefaults(
     },
 );
 
+const page = usePage<{ auth?: { user?: { default_currency_id?: number | null } | null } }>();
+
 const emit = defineEmits<{
     'update:open': [value: boolean];
 }>();
@@ -95,7 +97,17 @@ function todayIsoDate(): string {
     return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
-const defaultCurrencyId = computed(() => props.currencyOptions[0]?.id.toString() ?? '');
+// The user's preferred currency wins; fall back to the first active one when no
+// preference is set or the preferred currency is no longer active.
+const defaultCurrencyId = computed(() => {
+    const preferred = page.props.auth?.user?.default_currency_id;
+    const match =
+        preferred == null
+            ? undefined
+            : props.currencyOptions.find((currency) => currency.id === preferred);
+
+    return (match ?? props.currencyOptions[0])?.id.toString() ?? '';
+});
 const defaultAccountId = computed(() => {
     const firstCurrencyId = defaultCurrencyId.value;
 
