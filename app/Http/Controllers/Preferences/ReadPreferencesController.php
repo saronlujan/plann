@@ -61,6 +61,7 @@ class ReadPreferencesController extends Controller
         }
 
         return $tenant->activeCurrencies()
+            ->usable()
             ->orderBy('code')
             ->get()
             ->map(fn (Currency $currency): array => [

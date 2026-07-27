@@ -18,6 +18,14 @@ return [
         'open' => 'Open',
     ],
 
+    'errors' => [
+        'cannot_become_transfer' => 'An entry cannot become a transfer. Delete it and create a new transfer instead.',
+    ],
+
+    'defaults' => [
+        'transfer_description' => 'Transfer',
+    ],
+
     'movement' => [
         'expense' => 'Expense',
         'income' => 'Income',
@@ -60,14 +68,13 @@ return [
     ],
 
     'recurrence' => [
-        'title' => 'Recurrence Scope',
-        'subtitle' => 'Choose which occurrences in this series are affected.',
+        'title' => 'This is a recurring transaction.',
     ],
 
     'recurrence_scope' => [
-        'all' => 'Entire series',
-        'one' => 'Only this occurrence',
-        'forward' => 'This and future ones',
+        'all' => 'Edit all transactions',
+        'one' => 'Edit only this transaction',
+        'forward' => 'Edit this and the following transactions',
     ],
 
     'installment' => [
@@ -85,17 +92,18 @@ return [
         'amount' => 'Amount',
         'interest' => 'Account interest',
         'description' => 'Description',
+        'description_optional' => 'Description (optional)',
         'category' => 'Category',
         'tags' => 'Tags',
         'repeat_until' => 'Repeat until (optional)',
         'repeat_until_short' => 'Repeat until',
-        'apply_change_to' => 'Apply change to',
         'installments_total' => 'Number of installments',
         'frequency' => 'Period',
         'status' => 'Status',
         'date' => 'Date',
         'installment' => 'Installment',
         'adjustment' => 'Adjustment',
+        'attachment' => 'Attach a file to this transaction',
     ],
 
     'placeholders' => [
@@ -111,12 +119,12 @@ return [
         'no_tags' => 'No tags registered',
         'no_tags_found' => 'No tags found.',
         'search_tag' => 'Search tag...',
-        'scope' => 'Select the scope',
         'installments_total' => '12',
         'frequency' => 'Select the period',
     ],
 
     'hints' => [
         'repeat_until' => 'Leave blank for an endless recurrence.',
+        'attachment' => 'Image (JPG, PNG, WEBP) or PDF, up to 10 MB.',
     ],
 ];

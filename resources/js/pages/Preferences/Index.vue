@@ -2,7 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { CheckIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -50,13 +50,15 @@ const notifyDaysBefore = ref(String(props.preferences.notify_days_before));
 // '' is the wire format for "no preference"; it maps back to null on submit.
 const defaultCurrencyId = ref(props.preferences.default_currency_id?.toString() ?? '');
 
-const daysBeforeOptions: Option[] = [
+// Computed, not a plain array: setup runs before the locale messages land, so
+// eager labels freeze as their own translation keys.
+const daysBeforeOptions = computed<Option[]>(() => [
     { value: '1', label: trans('preferences.days_before.n1') },
     { value: '3', label: trans('preferences.days_before.n3') },
     { value: '5', label: trans('preferences.days_before.n5') },
     { value: '7', label: trans('preferences.days_before.n7') },
     { value: '10', label: trans('preferences.days_before.n10') },
-];
+]);
 
 function persist(): void {
     applyAppearance(theme.value, color.value);

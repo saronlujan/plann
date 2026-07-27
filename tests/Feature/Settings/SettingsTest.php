@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PlanSlug;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Currency;
@@ -199,6 +200,8 @@ test('account creation requires an active currency', function () {
 
 test('users may manage the active currencies', function () {
     $user = settingsUser('cur-manage@example.com');
+    // Managing more than one currency is a Pro capability.
+    $user->tenant()->first()->update(['plan_slug' => PlanSlug::Pro->value]);
     $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
     $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
 
@@ -234,4 +237,55 @@ test('a tenant cannot modify another tenant account', function () {
         ->assertNotFound();
 
     expect($victimAccount->fresh())->not->toBeNull();
+});
+
+test('the currencies page flags an active currency with no account', function () {
+    $user = settingsUser('currency-warning@example.com');
+    $tenant = $user->tenant()->firstOrFail();
+
+    $brl = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+    $usd = Currency::create(['code' => 'USD', 'name' => 'Dollar', 'symbol' => '$']);
+    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
+
+    Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $brl->id,
+        'name' => 'Conta BRL',
+        'balance' => 0,
+    ]);
+
+    // The page drives its warning off has_accounts, so USD must come back false.
+    actingAs($user)->get('/currencies')->assertSuccessful()
+        ->assertInertia(function (Assert $page) use ($brl, $usd): void {
+            $rows = collect($page->toArray()['props']['currencies'])->keyBy('id');
+
+            expect($rows[$brl->id]['has_accounts'])->toBeTrue();
+            expect($rows[$usd->id]['has_accounts'])->toBeFalse();
+        });
+});
+
+test('another workspace account does not clear the missing-account warning', function () {
+    $user = settingsUser('currency-warning-scope@example.com');
+    $tenant = $user->tenant()->firstOrFail();
+
+    $usd = Currency::create(['code' => 'USD', 'name' => 'Dollar', 'symbol' => '$']);
+    $tenant->syncCurrencyActivations([$usd->id]);
+
+    // A different workspace holds the only USD account.
+    $otherUser = settingsUser('currency-warning-other@example.com');
+    Account::create([
+        'tenant_id' => $otherUser->tenant_id,
+        'currency_id' => $usd->id,
+        'name' => 'Conta USD alheia',
+        'balance' => 0,
+    ]);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    actingAs($user)->get('/currencies')->assertSuccessful()
+        ->assertInertia(function (Assert $page) use ($usd): void {
+            $rows = collect($page->toArray()['props']['currencies'])->keyBy('id');
+
+            expect($rows[$usd->id]['has_accounts'])->toBeFalse();
+        });
 });

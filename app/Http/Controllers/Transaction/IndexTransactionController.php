@@ -26,7 +26,9 @@ class IndexTransactionController extends Controller
         $tenant = $request->user()?->tenant()->with('activeCurrencies')->first();
         abort_if($tenant === null, 403);
 
+        // Only currencies with an account: the rest cannot hold a transaction.
         $activeCurrencies = $tenant->activeCurrencies()
+            ->usable()
             ->orderBy('code')
             ->get(['currencies.id', 'currencies.code', 'currencies.name', 'currencies.symbol']);
         $activeCurrencyIds = $activeCurrencies->pluck('id')->all();

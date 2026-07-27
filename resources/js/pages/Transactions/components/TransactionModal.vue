@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed, watch } from 'vue';
+import { Info } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import DatePicker from '@/components/ui/date-picker/DatePicker.vue';
 import {
     Dialog,
-    DialogContent,
     DialogFooter,
     DialogHeader,
+    DialogScrollContent,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Form, FormCard, FormError, FormGroup, FormLabel } from '@/components/ui/form';
+import { Form, FormError, FormGroup, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -20,6 +23,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { colorHex } from '@/lib/labelColors';
 import { cn } from '@/lib/utils';
 import transactions from '@/routes/transactions';
@@ -85,11 +90,14 @@ const dialogOpen = computed({
 
 const isEdit = computed(() => props.entry != null);
 
-const recurrenceScopeOptions: Option[] = [
-    { value: 'all', label: trans('transactions.recurrence_scope.all') },
+// Narrowest scope first: the wider the reach, the further down the list.
+// Computed, not a plain array: setup runs before the locale messages land, so
+// eager labels freeze as their own translation keys.
+const recurrenceScopeOptions = computed<Option[]>(() => [
     { value: 'one', label: trans('transactions.recurrence_scope.one') },
     { value: 'forward', label: trans('transactions.recurrence_scope.forward') },
-];
+    { value: 'all', label: trans('transactions.recurrence_scope.all') },
+]);
 
 function todayIsoDate(): string {
     const now = new Date();
@@ -139,7 +147,7 @@ function buildInitialValues(): TransactionFormData {
             interest_amount: '',
             installment_frequency: entry.installment_frequency ?? 'monthly',
             installments_total: entry.installments_total?.toString() ?? '',
-            recurrence_scope: 'all',
+            recurrence_scope: 'one',
             occurrence_date: entry.date,
             attachment: null as File | null,
         };
@@ -160,7 +168,7 @@ function buildInitialValues(): TransactionFormData {
         interest_amount: '',
         installment_frequency: 'monthly',
         installments_total: '',
-        recurrence_scope: 'all',
+        recurrence_scope: 'one',
         occurrence_date: todayIsoDate(),
         attachment: null as File | null,
     };
@@ -179,6 +187,28 @@ const destinationAccountOptions = computed(() =>
 const isInstallmentType = computed(() => form.type === 'installment');
 const isRecurringType = computed(() => form.type === 'recurring');
 const isTransferMovement = computed(() => form.movement_type === 'transfer');
+
+// Becoming a transfer would need a second leg in another account, which an edit
+// cannot create — the server rejects it, so the option is not offered either.
+const availableMovementTypes = computed(() =>
+    isEdit.value
+        ? props.movementTypeOptions.filter((option) => option.value !== 'transfer')
+        : props.movementTypeOptions,
+);
+
+// Drives the amount field: the symbol prefix, and how many decimals it takes.
+const selectedCurrency = computed(() =>
+    props.currencyOptions.find((currency) => currency.id.toString() === form.currency_id),
+);
+
+// A transfer names itself, so the field is optional there and the label says so.
+const descriptionLabel = computed(() =>
+    trans(
+        isTransferMovement.value
+            ? 'transactions.fields.description_optional'
+            : 'transactions.fields.description',
+    ),
+);
 const showInstallmentFields = computed(() => isInstallmentType.value && !isTransferMovement.value);
 
 // Categories carry a type (income / expense / both). Show the ones matching the
@@ -233,6 +263,22 @@ function closeModal(): void {
     emit('update:open', false);
 }
 
+// Narrower than what the server accepts on purpose: receipts are photos and
+// PDFs, and the hint promises exactly that.
+const ATTACHMENT_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf';
+
+// The file input stays hidden until asked for: most entries have no receipt, and
+// an empty file field in every form is just noise.
+const attachmentEnabled = ref(false);
+
+function toggleAttachment(enabled: boolean): void {
+    attachmentEnabled.value = enabled;
+
+    if (!enabled) {
+        form.attachment = null;
+    }
+}
+
 function submitTransaction(): void {
     const options = {
         preserveScroll: true,
@@ -262,6 +308,7 @@ watch(
             return;
         }
 
+        attachmentEnabled.value = false;
         form.defaults(buildInitialValues());
         form.reset();
         form.clearErrors();
@@ -311,6 +358,22 @@ watch(
     },
 );
 
+// Turning a series into a one-off is a change to the whole series, not to a
+// single occurrence — the scope picker is hidden by then, so reset what it holds
+// or the edit would silently create an override instead.
+watch(
+    () => form.type,
+    (type) => {
+        if (type !== 'recurring') {
+            form.recurrence_scope = 'all';
+
+            return;
+        }
+
+        form.recurrence_scope = 'one';
+    },
+);
+
 // Drop a selected category that no longer matches the chosen movement type.
 watch(
     () => form.movement_type,
@@ -329,7 +392,11 @@ watch(
 
 <template>
     <Dialog v-model:open="dialogOpen">
-        <DialogContent
+        <!--
+            Scroll lives on the overlay: this form runs past the viewport on a
+            laptop once the installment or recurrence fields open up.
+        -->
+        <DialogScrollContent
             class="gap-4 overflow-hidden border-none p-0 **:data-[slot=dialog-close]:text-white **:data-[slot=dialog-close]:hover:bg-white/20 sm:max-w-2xl"
         >
             <div :class="cn('px-6 pt-6 pb-4', movementHeaderClass)">
@@ -340,10 +407,10 @@ watch(
                 <div
                     role="radiogroup"
                     :aria-label="$t('transactions.modal.movement_type_group')"
-                    class="mt-3 grid grid-cols-3 gap-2"
+                    :class="cn('mt-3 grid gap-2', isEdit ? 'grid-cols-2' : 'grid-cols-3')"
                 >
                     <button
-                        v-for="option in movementTypeOptions"
+                        v-for="option in availableMovementTypes"
                         :key="option.value"
                         type="button"
                         role="radio"
@@ -368,9 +435,7 @@ watch(
             <Form class="space-y-5 px-6 pb-6" @submit.prevent="submitTransaction">
                 <div class="grid gap-4 md:grid-cols-2">
                     <FormGroup class="md:col-span-2">
-                        <FormLabel for="tx-description">{{
-                            $t('transactions.fields.description')
-                        }}</FormLabel>
+                        <FormLabel for="tx-description">{{ descriptionLabel }}</FormLabel>
                         <Input
                             id="tx-description"
                             v-model="form.description"
@@ -385,13 +450,12 @@ watch(
                         <FormLabel for="tx-amount">{{
                             $t('transactions.fields.amount')
                         }}</FormLabel>
-                        <Input
+                        <CurrencyInput
                             id="tx-amount"
                             v-model="form.amount"
-                            type="number"
-                            step="0.01"
-                            min="0"
                             name="amount"
+                            :symbol="selectedCurrency?.symbol"
+                            :code="selectedCurrency?.code"
                             :placeholder="$t('transactions.placeholders.amount')"
                         />
                         <FormError :message="form.errors.amount" />
@@ -469,6 +533,43 @@ watch(
                             <FormError :message="form.errors.installment_frequency" />
                         </FormGroup>
                     </div>
+
+                    <!--
+                        Tinted like a notice, and placed right under the amount and
+                        type: those are what people come back to edit, and the scope
+                        decides what the edit lands on.
+                    -->
+                    <FormGroup
+                        v-if="isEdit && isRecurringType"
+                        class="rounded-lg border border-amber-200 bg-amber-50 p-4 md:col-span-2 dark:border-amber-900 dark:bg-amber-950"
+                    >
+                        <FormLabel
+                            id="tx-recurrence-scope-label"
+                            class="text-amber-700 dark:text-amber-400"
+                        >
+                            {{ $t('transactions.recurrence.title') }}
+                        </FormLabel>
+                        <!--
+                            A radio group, not a select: which occurrences an edit
+                            touches is consequential enough that all three choices
+                            should be visible without opening anything.
+                        -->
+                        <RadioGroup
+                            v-model="form.recurrence_scope"
+                            aria-labelledby="tx-recurrence-scope-label"
+                            class="gap-2"
+                        >
+                            <label
+                                v-for="option in recurrenceScopeOptions"
+                                :key="option.value"
+                                class="flex cursor-pointer items-center gap-2.5 text-sm"
+                            >
+                                <RadioGroupItem :value="option.value" :aria-label="option.label" />
+                                {{ option.label }}
+                            </label>
+                        </RadioGroup>
+                        <FormError :message="form.errors.recurrence_scope" />
+                    </FormGroup>
 
                     <!--
                         With a single active currency there is nothing to choose: the
@@ -613,39 +714,55 @@ watch(
                         <FormError :message="form.errors.tags" />
                     </FormGroup>
 
+                    <FormGroup class="md:col-span-2">
+                        <div class="flex items-center gap-2.5">
+                            <Switch
+                                id="tx-attachment-toggle"
+                                size="sm"
+                                :model-value="attachmentEnabled"
+                                @update:model-value="toggleAttachment"
+                            />
+                            <FormLabel for="tx-attachment-toggle" class="cursor-pointer">
+                                {{ $t('transactions.fields.attachment') }}
+                            </FormLabel>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <button
+                                            type="button"
+                                            class="text-muted-foreground transition-colors hover:text-foreground"
+                                            :aria-label="$t('transactions.hints.attachment')"
+                                        >
+                                            <Info class="size-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {{ $t('transactions.hints.attachment') }}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+
+                        <Input
+                            v-if="attachmentEnabled"
+                            id="tx-attachment"
+                            type="file"
+                            name="attachment"
+                            :accept="ATTACHMENT_ACCEPT"
+                            class="cursor-pointer file:mr-3 file:cursor-pointer file:text-sm file:text-muted-foreground"
+                            @update:model-value="
+                                (value) => (form.attachment = value as File | null)
+                            "
+                        />
+                        <FormError :message="form.errors.attachment" />
+                    </FormGroup>
+
                     <!--
                         A recurring transaction runs open-endedly, so there is no end
                         date to ask for. effective_until stays in the payload as an
                         empty value and the projector treats null as "no end".
                     -->
                 </div>
-
-                <FormCard
-                    v-if="isEdit && isRecurringType"
-                    :title="$t('transactions.recurrence.title')"
-                    :subtitle="$t('transactions.recurrence.subtitle')"
-                >
-                    <FormGroup>
-                        <FormLabel for="tx-recurrence-scope">{{
-                            $t('transactions.fields.apply_change_to')
-                        }}</FormLabel>
-                        <Select v-model="form.recurrence_scope">
-                            <SelectTrigger id="tx-recurrence-scope">
-                                <SelectValue :placeholder="$t('transactions.placeholders.scope')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="option in recurrenceScopeOptions"
-                                    :key="option.value"
-                                    :value="option.value"
-                                >
-                                    {{ option.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormError :message="form.errors.recurrence_scope" />
-                    </FormGroup>
-                </FormCard>
 
                 <DialogFooter>
                     <Button type="button" variant="outline" @click="closeModal">{{
@@ -660,6 +777,6 @@ watch(
                     </Button>
                 </DialogFooter>
             </Form>
-        </DialogContent>
+        </DialogScrollContent>
     </Dialog>
 </template>

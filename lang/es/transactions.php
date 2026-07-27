@@ -18,6 +18,14 @@ return [
         'open' => 'Pendiente',
     ],
 
+    'errors' => [
+        'cannot_become_transfer' => 'No se puede convertir un movimiento en transferencia. Elimínalo y crea una transferencia nueva.',
+    ],
+
+    'defaults' => [
+        'transfer_description' => 'Transferencia',
+    ],
+
     'movement' => [
         'expense' => 'Gasto',
         'income' => 'Ingreso',
@@ -60,14 +68,13 @@ return [
     ],
 
     'recurrence' => [
-        'title' => 'Alcance de la Recurrencia',
-        'subtitle' => 'Elige qué ocurrencias de esta serie se verán afectadas.',
+        'title' => 'Esta es una transacción recurrente.',
     ],
 
     'recurrence_scope' => [
-        'all' => 'Toda la serie',
-        'one' => 'Solo esta ocurrencia',
-        'forward' => 'Esta y las futuras',
+        'all' => 'Editar todas las transacciones',
+        'one' => 'Editar solo esta transacción',
+        'forward' => 'Editar esta y las próximas transacciones',
     ],
 
     'installment' => [
@@ -85,17 +92,18 @@ return [
         'amount' => 'Importe',
         'interest' => 'Interés de la cuenta',
         'description' => 'Descripción',
+        'description_optional' => 'Descripción (opcional)',
         'category' => 'Categoría',
         'tags' => 'Etiquetas',
         'repeat_until' => 'Repetir hasta (opcional)',
         'repeat_until_short' => 'Repetir hasta',
-        'apply_change_to' => 'Aplicar cambio a',
         'installments_total' => 'Cantidad de cuotas',
         'frequency' => 'Período',
         'status' => 'Estado',
         'date' => 'Fecha',
         'installment' => 'Cuota',
         'adjustment' => 'Ajuste',
+        'attachment' => 'Adjuntar un archivo a esta transacción',
     ],
 
     'placeholders' => [
@@ -111,12 +119,12 @@ return [
         'no_tags' => 'No hay etiquetas registradas',
         'no_tags_found' => 'No se encontraron etiquetas.',
         'search_tag' => 'Buscar etiqueta...',
-        'scope' => 'Selecciona el alcance',
         'installments_total' => '12',
         'frequency' => 'Selecciona el período',
     ],
 
     'hints' => [
         'repeat_until' => 'Déjalo en blanco para una recurrencia sin fin.',
+        'attachment' => 'Imagen (JPG, PNG, WEBP) o PDF, hasta 10 MB.',
     ],
 ];

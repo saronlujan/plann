@@ -22,6 +22,9 @@ return new class extends Migration
             $table->unsignedTinyInteger('closing_day')->nullable();
             $table->unsignedTinyInteger('due_day')->nullable();
             $table->timestamps();
+
+            // Target of the composite foreign keys that keep children in-tenant.
+            $table->unique(['tenant_id', 'id']);
         });
     }
 

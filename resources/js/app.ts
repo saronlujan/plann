@@ -7,6 +7,7 @@ import AppearanceSync from '@/components/layout/AppAppearanceSync.vue';
 import LocaleSync from '@/components/layout/AppLocaleSync.vue';
 import { Toaster } from '@/components/ui/sonner';
 import { resolveLocaleMessages, setLocaleMessages } from '@/lib/i18n';
+import { registerServiceWorker } from '@/lib/pwa';
 import 'vue-sonner/style.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -77,3 +78,5 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
+
+registerServiceWorker();

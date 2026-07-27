@@ -113,3 +113,16 @@ test('a tenant cannot view another tenant account statement', function () {
 
     actingAs($attacker)->get('/accounts/'.$account->id)->assertNotFound();
 });
+
+test('the accounts page ships the currency symbol for the money fields', function () {
+    [$user, , $currency] = statementFixture('acc-symbol@example.com');
+    $user->tenant()->firstOrFail()->syncCurrencyActivations([$currency->id]);
+
+    // The modal prefixes balance and credit limit with the symbol, and picks the
+    // decimal places off the code (guaraní and peso take none).
+    actingAs($user)->get('/accounts')->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->has('currencyOptions', 1)
+            ->where('currencyOptions.0.code', 'BRL')
+            ->where('currencyOptions.0.symbol', 'R$'));
+});

@@ -5,7 +5,9 @@ namespace App\Services\Billing;
 use App\Models\Plan;
 use App\Models\Tenant;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Invoice;
+use Throwable;
 
 class BillingService
 {
@@ -42,6 +44,10 @@ class BillingService
     /**
      * Recent invoices as flat arrays (empty when the tenant has no Stripe customer yet).
      *
+     * Never throws. This is the page a locked-out tenant is redirected to, so a
+     * Stripe outage or a stale customer id must degrade to "no invoices", not to
+     * a 500 that leaves them with nowhere to go.
+     *
      * @return array<int, array<string, mixed>>
      */
     public function invoices(Tenant $tenant): array
@@ -50,18 +56,22 @@ class BillingService
             return [];
         }
 
-        return $tenant->invoices()
-            ->map(fn (Invoice $invoice): array => [
-                'id' => $invoice->asStripeInvoice()->id,
-                'date' => $invoice->date()->toDateString(),
-                'total' => $invoice->total(),
-                'status' => $invoice->asStripeInvoice()->status,
-            ])
-            ->all();
-    }
+        try {
+            return $tenant->invoices()
+                ->map(fn (Invoice $invoice): array => [
+                    'id' => $invoice->asStripeInvoice()->id,
+                    'date' => $invoice->date()->toDateString(),
+                    'total' => $invoice->total(),
+                    'status' => $invoice->asStripeInvoice()->status,
+                ])
+                ->all();
+        } catch (Throwable $exception) {
+            Log::warning('Could not load Stripe invoices.', [
+                'tenant_id' => $tenant->id,
+                'exception' => $exception->getMessage(),
+            ]);
 
-    public function canAddUser(Tenant $tenant): bool
-    {
-        return $tenant->canAddUser();
+            return [];
+        }
     }
 }

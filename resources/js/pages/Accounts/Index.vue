@@ -16,6 +16,7 @@ import { destroy as destroyAccount, show as showAccount } from '@/routes/account
 import AccountModal from './components/AccountModal.vue';
 
 type Option = { value: string; label: string };
+type CurrencyOption = Option & { code: string; symbol: string };
 type Account = {
     id: number;
     name: string;
@@ -36,7 +37,7 @@ type Account = {
 };
 defineProps<{
     accounts: Account[];
-    currencyOptions: Option[];
+    currencyOptions: CurrencyOption[];
     kindOptions: Option[];
 }>();
 

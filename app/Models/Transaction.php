@@ -6,6 +6,7 @@ use App\Enums\TransactionInstallmentFrequency;
 use App\Enums\TransactionMovementType;
 use App\Enums\TransactionType;
 use App\Models\Concerns\BelongsToTenant;
+use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Database\Factories\TransactionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -117,6 +118,13 @@ class Transaction extends Model
      */
     public function tags(): BelongsToMany
     {
-        return $this->belongsToMany(Tag::class);
+        // Eager loading builds the relation on a bare instance, so tenant_id may
+        // not be populated yet; the request's tenant context is the fallback.
+        // withPivotValue both fills tenant_id on attach/sync and constrains reads,
+        // so the pivot can never bridge two workspaces.
+        $relation = $this->belongsToMany(Tag::class);
+        $tenantId = $this->tenant_id ?? app(TenantContext::class)->tenantId();
+
+        return $tenantId === null ? $relation : $relation->withPivotValue('tenant_id', $tenantId);
     }
 }

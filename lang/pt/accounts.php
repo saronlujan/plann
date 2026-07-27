@@ -3,7 +3,7 @@
 return [
     'title' => 'Contas',
     'subtitle' => 'Saldos e extrato das suas contas.',
-    'empty' => 'Nenhuma conta. Crie contas em Configurações.',
+    'empty' => 'Você ainda não tem contas. Crie a primeira no botão acima.',
     'balance' => 'Saldo atual',
     'month_income' => 'Entradas do mês',
     'month_expense' => 'Saídas do mês',

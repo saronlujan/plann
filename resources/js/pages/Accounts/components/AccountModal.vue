@@ -2,6 +2,7 @@
 import { useForm, usePage } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import {
     Dialog,
     DialogContent,
@@ -22,6 +23,7 @@ import {
 import { store as storeAccount, update as updateAccount } from '@/routes/accounts';
 
 type Option = { value: string; label: string };
+type CurrencyOption = Option & { code: string; symbol: string };
 type Account = {
     id: number;
     name: string;
@@ -36,7 +38,7 @@ type Account = {
 const props = withDefaults(
     defineProps<{
         open: boolean;
-        currencyOptions: Option[];
+        currencyOptions: CurrencyOption[];
         kindOptions: Option[];
         entry?: Account | null;
     }>(),
@@ -81,6 +83,11 @@ function buildValues() {
 const form = useForm(buildValues());
 
 const isCard = computed(() => form.kind === 'credit_card');
+
+// Drives the money fields: the symbol prefix, and how many decimals they take.
+const selectedCurrency = computed(() =>
+    props.currencyOptions.find((option) => option.value === form.currency_id),
+);
 
 watch(
     () => [props.open, props.entry] as const,
@@ -185,11 +192,12 @@ function submit(): void {
                     <FormLabel for="acc-balance">{{
                         $t('accounts.modal.balance_label')
                     }}</FormLabel>
-                    <Input
+                    <CurrencyInput
                         id="acc-balance"
                         v-model="form.balance"
-                        type="number"
-                        step="0.01"
+                        allow-negative
+                        :symbol="selectedCurrency?.symbol"
+                        :code="selectedCurrency?.code"
                         :placeholder="$t('accounts.modal.balance_placeholder')"
                     />
                     <FormError :message="form.errors.balance" />
@@ -200,11 +208,11 @@ function submit(): void {
                         <FormLabel for="acc-limit">{{
                             $t('accounts.modal.credit_limit_label')
                         }}</FormLabel>
-                        <Input
+                        <CurrencyInput
                             id="acc-limit"
                             v-model="form.credit_limit"
-                            type="number"
-                            step="0.01"
+                            :symbol="selectedCurrency?.symbol"
+                            :code="selectedCurrency?.code"
                             :placeholder="$t('accounts.modal.credit_limit_placeholder')"
                         />
                         <FormError :message="form.errors.credit_limit" />

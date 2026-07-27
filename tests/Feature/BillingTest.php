@@ -1,9 +1,11 @@
 <?php
 
+use App\Enums\PlanFeature;
 use App\Enums\PlanSlug;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
@@ -79,21 +81,20 @@ it('keeps billing reachable even when the trial has lapsed', function () {
             ->where('status.subscribed', false));
 });
 
-it('enforces the plan seat limit', function () {
-    [$tenant] = billingTenantUser('seats@example.com');
+it('separates the plans by capability, not by seats', function () {
+    [$tenant] = billingTenantUser('features@example.com');
 
-    // Basic: 1 seat, already taken by the owner.
-    expect($tenant->maxUsers())->toBe(1);
-    expect($tenant->canAddUser())->toBeFalse();
+    expect($tenant->hasFeature(PlanFeature::MultiCurrency))->toBeFalse();
 
     $tenant->update(['plan_slug' => PlanSlug::Pro->value]);
-    $tenant->refresh();
 
-    // Pro: 5 seats.
-    expect($tenant->maxUsers())->toBe(5);
-    expect($tenant->canAddUser())->toBeTrue();
+    expect($tenant->fresh()->hasFeature(PlanFeature::MultiCurrency))->toBeTrue();
+});
 
-    User::factory()->count(4)->create(['tenant_id' => $tenant->id]);
+it('allows a single user per workspace', function () {
+    [$tenant] = billingTenantUser('single-user@example.com');
 
-    expect($tenant->fresh()->canAddUser())->toBeFalse();
+    // The app is personal: the schema itself refuses a second user.
+    expect(fn () => User::factory()->create(['tenant_id' => $tenant->id]))
+        ->toThrow(QueryException::class);
 });

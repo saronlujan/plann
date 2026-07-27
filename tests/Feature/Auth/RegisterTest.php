@@ -5,6 +5,8 @@ use App\Models\Currency;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Notifications\EmailVerificationPinNotification;
+use Database\Seeders\CountrySeeder;
+use Database\Seeders\CurrencySeeder;
 use Illuminate\Support\Facades\Notification;
 
 test('guests may view the register page', function () {
@@ -13,12 +15,16 @@ test('guests may view the register page', function () {
 
 test('users may register and create an initial tenant', function () {
     Notification::fake();
+    app(CurrencySeeder::class)->run();
+    app(CountrySeeder::class)->run();
 
     // A fresh signup lands on the verification step, not the dashboard.
     $this->post('/register', [
         'name' => 'Novo Usuario',
         'email' => 'novo@example.com',
         'phone' => '+55 11987654321',
+        'country_code' => 'BR',
+        'currency_code' => 'BRL',
         'password' => 'password',
         'password_confirmation' => 'password',
     ])->assertRedirect(route('verification.notice'));

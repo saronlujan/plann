@@ -9,12 +9,14 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { clearServiceWorkerCaches } from '@/lib/pwa';
 import { accounts as accountsIndex, contacts, dashboard, logout, preferences } from '@/routes';
 import { index as billing } from '@/routes/billing';
 import { index as categoriesIndex } from '@/routes/categories';
 import { index as currenciesIndex } from '@/routes/currencies';
 import { expireTrial } from '@/routes/dev';
 import { edit as profile } from '@/routes/profile';
+import { index as reportsIndex } from '@/routes/reports';
 import { index as tagsIndex } from '@/routes/tags';
 import transactions from '@/routes/transactions';
 
@@ -96,8 +98,11 @@ const userInitials = computed(
                         </Link>
                     </li>
                     <li>
-                        <Link :href="contacts().url" class="transition hover:text-muted-foreground">
-                            {{ $t('common.navbar.contacts') }}
+                        <Link
+                            :href="reportsIndex().url"
+                            class="transition hover:text-muted-foreground"
+                        >
+                            {{ $t('common.navbar.reports') }}
                         </Link>
                     </li>
                     <li>
@@ -112,6 +117,11 @@ const userInitials = computed(
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent class="w-44" align="end">
+                                <DropdownMenuItem as-child>
+                                    <Link :href="contacts().url" class="w-full">
+                                        {{ $t('common.settings_menu.contacts') }}
+                                    </Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem as-child>
                                     <Link :href="categoriesIndex().url" class="w-full">
                                         {{ $t('common.settings_menu.categories') }}
@@ -173,6 +183,7 @@ const userInitials = computed(
                                 :href="logout().url"
                                 method="post"
                                 class="flex w-full items-center gap-2 text-red-600 focus:text-red-600"
+                                @success="clearServiceWorkerCaches"
                             >
                                 <span>{{ $t('common.profile.logout') }}</span>
                             </Link>

@@ -72,27 +72,27 @@ function summaryRows(summary: TransactionSummary): { label: string; value: strin
     return [
         {
             label: trans('transactions.summary.income'),
-            value: formatCurrency(summary.income, summary.symbol),
+            value: formatCurrency(summary.income, summary.symbol, { code: summary.code }),
         },
         {
             label: trans('transactions.summary.expenses'),
-            value: formatCurrency(summary.expenses, summary.symbol),
+            value: formatCurrency(summary.expenses, summary.symbol, { code: summary.code }),
         },
         {
             label: trans('transactions.summary.total'),
-            value: formatCurrency(summary.total, summary.symbol),
+            value: formatCurrency(summary.total, summary.symbol, { code: summary.code }),
         },
         {
             label: trans('transactions.summary.expected_income'),
-            value: formatCurrency(summary.expected_income, summary.symbol),
+            value: formatCurrency(summary.expected_income, summary.symbol, { code: summary.code }),
         },
         {
             label: trans('transactions.summary.expected_expense'),
-            value: formatCurrency(summary.expected_expense, summary.symbol),
+            value: formatCurrency(summary.expected_expense, summary.symbol, { code: summary.code }),
         },
         {
             label: trans('transactions.summary.expected_total'),
-            value: formatCurrency(summary.expected_total, summary.symbol),
+            value: formatCurrency(summary.expected_total, summary.symbol, { code: summary.code }),
         },
     ];
 }
@@ -335,6 +335,7 @@ function openDetails(entry: TransactionEntry): void {
                                 >
                                     {{
                                         formatCurrency(signedAmount(entry), entry.currency_symbol, {
+                                            code: entry.currency_code,
                                             signed: true,
                                         })
                                     }}

@@ -3,7 +3,7 @@
 return [
     'title' => 'Accounts',
     'subtitle' => 'Balances and statement of your accounts.',
-    'empty' => 'No accounts. Create accounts in Settings.',
+    'empty' => 'No accounts yet. Create your first one with the button above.',
     'balance' => 'Current balance',
     'month_income' => 'Income this month',
     'month_expense' => 'Expenses this month',

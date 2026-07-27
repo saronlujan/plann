@@ -95,4 +95,13 @@ return [
         'basic' => 'Basic',
         'pro' => 'Pro',
     ],
+
+    'plan_slug_description' => [
+        'basic' => 'Lo esencial para organizar tus finanzas en una moneda.',
+        'pro' => 'Para quien maneja más de una moneda.',
+    ],
+
+    'plan_feature' => [
+        'multi_currency' => 'Múltiples monedas',
+    ],
 ];

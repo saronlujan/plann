@@ -31,8 +31,10 @@ class CreateCheckoutController extends Controller
         }
 
         $checkout = $builder->checkout([
-            'success_url' => route('billing.index'),
-            'cancel_url' => route('billing.index'),
+            // The flag tells the billing page to pull the subscription straight
+            // from Stripe instead of waiting for the webhook to land.
+            'success_url' => route('billing.index', ['checkout' => 'success']),
+            'cancel_url' => route('billing.index', ['checkout' => 'cancelled']),
         ]);
 
         // Send the browser to Stripe Checkout (works for both Inertia and plain requests).

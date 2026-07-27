@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { CheckIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
@@ -15,13 +16,13 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
-import { checkout, portal } from '@/routes/billing';
+import { checkout, portal, refresh } from '@/routes/billing';
 
 type Plan = {
     slug: string;
     name: string;
     description: string | null;
-    max_users: number;
+    features: string[];
     monthly_price_cents: number;
     annual_price_cents: number;
     available: boolean;
@@ -38,6 +39,40 @@ type Status = {
 };
 
 type Invoice = { id: string; date: string; total: string; status: string };
+
+// Mirrors the transactions list: status is a rounded badge, coloured by meaning
+// rather than printed as the raw Stripe string.
+const invoiceBadgeClass: Record<string, string> = {
+    paid: 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400',
+    open: 'border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400',
+    draft: 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400',
+    uncollectible:
+        'border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400',
+    void: 'border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500',
+};
+
+function invoiceStatusLabel(status: string): string {
+    const key = `billing.invoices.statuses.${status}`;
+    const label = trans(key);
+
+    // Stripe may add statuses we have not translated; show the raw value rather
+    // than the untranslated key.
+    return label === key ? status : label;
+}
+
+const refreshing = ref(false);
+
+function refreshSubscription(): void {
+    router.post(
+        refresh().url,
+        {},
+        {
+            preserveScroll: true,
+            onStart: () => (refreshing.value = true),
+            onFinish: () => (refreshing.value = false),
+        },
+    );
+}
 
 const props = defineProps<{
     plans: Plan[];
@@ -101,7 +136,7 @@ function subscribe(plan: Plan): void {
             </div>
 
             <Card>
-                <CardContent class="flex flex-wrap items-center justify-between gap-3 p-5">
+                <CardContent class="flex-row flex-wrap items-center justify-between gap-3 p-5">
                     <div class="flex items-center gap-2">
                         <Badge
                             :variant="
@@ -125,6 +160,20 @@ function subscribe(plan: Plan): void {
                     >
                         {{ $t('billing.manage_payment') }}
                     </a>
+                    <!--
+                        Escape hatch for someone who paid but is still locked out:
+                        pulls the subscription from Stripe on demand.
+                    -->
+                    <Button
+                        v-else
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        :disabled="refreshing"
+                        @click="refreshSubscription"
+                    >
+                        {{ $t('billing.refresh.action') }}
+                    </Button>
                 </CardContent>
             </Card>
 
@@ -155,8 +204,21 @@ function subscribe(plan: Plan): void {
                             </p>
                         </div>
 
-                        <p class="text-sm text-muted-foreground">
-                            {{ $t('billing.plan.up_to_users', { count: String(plan.max_users) }) }}
+                        <ul
+                            v-if="plan.features.length > 0"
+                            class="space-y-1 text-sm text-muted-foreground"
+                        >
+                            <li
+                                v-for="feature in plan.features"
+                                :key="feature"
+                                class="flex items-center gap-2"
+                            >
+                                <CheckIcon class="size-4 shrink-0" aria-hidden="true" />
+                                <span>{{ feature }}</span>
+                            </li>
+                        </ul>
+                        <p v-else class="text-sm text-muted-foreground">
+                            {{ $t('billing.plan.no_features') }}
                         </p>
 
                         <Button
@@ -171,13 +233,15 @@ function subscribe(plan: Plan): void {
                 </Card>
             </div>
 
-            <Card>
+            <h2 class="font-medium">{{ $t('billing.invoices.title') }}</h2>
+
+            <Card class="gap-0 overflow-hidden p-0 md:p-0">
                 <CardContent class="p-0">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>{{ $t('billing.invoices.invoice') }}</TableHead>
                                 <TableHead>{{ $t('billing.invoices.date') }}</TableHead>
+                                <TableHead>{{ $t('billing.invoices.invoice') }}</TableHead>
                                 <TableHead>{{ $t('billing.invoices.status') }}</TableHead>
                                 <TableHead class="text-right">{{
                                     $t('billing.invoices.total')
@@ -189,12 +253,22 @@ function subscribe(plan: Plan): void {
                                 {{ $t('billing.invoices.empty') }}
                             </TableEmpty>
                             <TableRow v-for="invoice in invoices" :key="invoice.id">
+                                <TableCell class="text-sm whitespace-nowrap text-muted-foreground">
+                                    {{ invoice.date }}
+                                </TableCell>
                                 <TableCell class="font-mono text-xs">{{ invoice.id }}</TableCell>
-                                <TableCell>{{ invoice.date }}</TableCell>
-                                <TableCell>{{ invoice.status }}</TableCell>
-                                <TableCell class="text-right whitespace-nowrap">{{
-                                    invoice.total
-                                }}</TableCell>
+                                <TableCell>
+                                    <Badge
+                                        variant="outline"
+                                        class="rounded-full"
+                                        :class="invoiceBadgeClass[invoice.status]"
+                                    >
+                                        {{ invoiceStatusLabel(invoice.status) }}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell class="text-right font-medium whitespace-nowrap">
+                                    {{ invoice.total }}
+                                </TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

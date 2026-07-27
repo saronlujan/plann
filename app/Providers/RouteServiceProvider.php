@@ -13,6 +13,9 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware(['web'])
                 ->group(base_path('routes/locale.php'));
 
+            Route::middleware(['web'])
+                ->group(base_path('routes/pwa.php'));
+
             Route::middleware(['web', 'guest'])
                 ->group(base_path('routes/login.php'));
 
@@ -46,6 +49,9 @@ class RouteServiceProvider extends ServiceProvider
 
             Route::middleware(['web', 'auth', 'verified', 'subscribed'])
                 ->group(base_path('routes/currencies.php'));
+
+            Route::middleware(['web', 'auth', 'verified', 'subscribed'])
+                ->group(base_path('routes/reports.php'));
 
             // Billing and preferences stay reachable even when the trial lapses,
             // but still require a confirmed address.

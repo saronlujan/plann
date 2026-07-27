@@ -14,9 +14,11 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('account_id')->constrained()->nullOnDelete();
+            // Plain columns: the constraint is composite (see below), because a
+            // single-column FK would happily accept another tenant's account.
+            $table->unsignedBigInteger('account_id')->nullable();
             $table->foreignId('currency_id')->constrained()->restrictOnDelete();
-            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('category_id')->nullable();
             $table->string('movement_type')->nullable();
             $table->boolean('is_transfer')->default(false);
             $table->string('type');
@@ -34,6 +36,16 @@ return new class extends Migration
             $table->decimal('adjustment_amount', 18, 2)->default(0);
             $table->string('description');
             $table->timestamps();
+
+            // Target of tag_transaction's composite foreign key.
+            $table->unique(['tenant_id', 'id']);
+
+            // The tenant travels with the reference, so a row can only ever point
+            // at a parent inside its own workspace. Deletes are left as NO ACTION
+            // so a tenant-wide cascade can still unwind in a single statement;
+            // the models null these out explicitly on delete.
+            $table->foreign(['tenant_id', 'account_id'])->references(['tenant_id', 'id'])->on('accounts');
+            $table->foreign(['tenant_id', 'category_id'])->references(['tenant_id', 'id'])->on('categories');
 
             $table->index(['tenant_id', 'series_uuid']);
             $table->index(['tenant_id', 'effective_date']);

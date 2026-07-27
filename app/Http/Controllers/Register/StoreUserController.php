@@ -18,6 +18,8 @@ class StoreUserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
+            'country_code' => $validated['country_code'],
+            'currency_code' => $validated['currency_code'],
             'password' => $validated['password'],
         ]);
 

@@ -1,17 +1,50 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import PhoneInput from '@/components/PhoneInput.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { login } from '../../routes';
 import { store as registerStore } from '../../routes/register';
 
+type CountryOption = { value: string; label: string; currency: string };
+
 const props = defineProps<{
     googleOAuthEnabled: boolean;
+    defaultCountry: string | null;
+    countryOptions: CountryOption[];
+    currencyOptions: { value: string; label: string }[];
 }>();
+
+// The server guesses from the browser's languages; the list order is only the
+// last resort.
+const initialCountry =
+    props.countryOptions.find((option) => option.value === props.defaultCountry) ??
+    props.countryOptions[0];
+
+// Gates country-specific behaviour later on.
+const country = ref(initialCountry?.value ?? '');
+
+// The currency the workspace opens on. It follows the country by default, but
+// stays editable: someone in Brazil may well want to track USD.
+const currency = ref(initialCountry?.currency ?? props.currencyOptions[0]?.value ?? '');
+
+watch(country, (code) => {
+    const selected = props.countryOptions.find((option) => option.value === code);
+
+    if (selected) {
+        currency.value = selected.currency;
+    }
+});
 
 const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
 </script>
@@ -52,6 +85,60 @@ const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
                     />
                     <span v-if="errors.email" class="text-sm text-red-600">{{ errors.email }}</span>
                 </label>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="block space-y-2">
+                        <span class="text-sm font-medium text-zinc-700">{{
+                            $t('auth.ui.register.country_label')
+                        }}</span>
+                        <Select v-model="country">
+                            <SelectTrigger class="w-full">
+                                <SelectValue
+                                    :placeholder="$t('auth.ui.register.country_placeholder')"
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="option in countryOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <input type="hidden" name="country_code" :value="country" />
+                        <span v-if="errors.country_code" class="text-sm text-red-600">{{
+                            errors.country_code
+                        }}</span>
+                    </div>
+
+                    <div class="block space-y-2">
+                        <span class="text-sm font-medium text-zinc-700">{{
+                            $t('auth.ui.register.currency_label')
+                        }}</span>
+                        <Select v-model="currency">
+                            <SelectTrigger class="w-full">
+                                <SelectValue
+                                    :placeholder="$t('auth.ui.register.currency_placeholder')"
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="option in currencyOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <input type="hidden" name="currency_code" :value="currency" />
+                        <span v-if="errors.currency_code" class="text-sm text-red-600">{{
+                            errors.currency_code
+                        }}</span>
+                    </div>
+                </div>
 
                 <div class="block space-y-2">
                     <span class="text-sm font-medium text-zinc-700">{{

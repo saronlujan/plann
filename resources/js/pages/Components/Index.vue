@@ -44,6 +44,7 @@ import {
     NavigationMenuTrigger,
     navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { RangeCalendar } from '@/components/ui/range-calendar';
 import {
     Table,
@@ -70,6 +71,13 @@ const rangeDate = shallowRef<{ start: DateValue; end: DateValue }>({
 });
 const dialogOpen = ref(false);
 const drawerOpen = ref(false);
+
+const radioValue = ref('one');
+const radioOptions = [
+    { value: 'one', label: 'Only this one' },
+    { value: 'forward', label: 'This and the following' },
+    { value: 'all', label: 'All of them' },
+];
 
 const initials = computed(() => {
     return name.value
@@ -485,6 +493,27 @@ const invoices = [
                             </AlertAction>
                         </Alert>
                     </div>
+                </article>
+
+                <article
+                    class="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm shadow-zinc-950/5"
+                >
+                    <p class="text-xs font-medium tracking-[0.3em] text-zinc-500 uppercase">
+                        Radio Group
+                    </p>
+
+                    <RadioGroup v-model="radioValue" class="mt-4">
+                        <label
+                            v-for="option in radioOptions"
+                            :key="option.value"
+                            class="flex cursor-pointer items-center gap-2.5 text-sm text-zinc-700"
+                        >
+                            <RadioGroupItem :value="option.value" />
+                            {{ option.label }}
+                        </label>
+                    </RadioGroup>
+
+                    <p class="mt-4 text-xs text-zinc-500">Selected: {{ radioValue }}</p>
                 </article>
 
                 <article

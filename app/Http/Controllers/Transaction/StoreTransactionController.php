@@ -71,7 +71,11 @@ class StoreTransactionController extends Controller
         $seriesUuid = (string) Str::uuid();
         $attachmentPath = $this->attachments->store($request->file('attachment'));
 
-        DB::transaction(function () use ($validated, $sourceAccount, $destinationAccount, $seriesUuid, $attachmentPath): void {
+        // Naming a transfer is optional: both legs still need a description, and
+        // the list already shows which accounts are involved underneath it.
+        $description = trim((string) ($validated['description'] ?? '')) ?: __('transactions.defaults.transfer_description');
+
+        DB::transaction(function () use ($validated, $description, $sourceAccount, $destinationAccount, $seriesUuid, $attachmentPath): void {
             Transaction::query()->create([
                 'tenant_id' => $sourceAccount->tenant_id,
                 'account_id' => $sourceAccount->id,
@@ -88,7 +92,7 @@ class StoreTransactionController extends Controller
                 'paid_at' => $validated['effective_date'],
                 'amount' => $validated['amount'],
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
-                'description' => $validated['description'],
+                'description' => $description,
             ]);
 
             Transaction::query()->create([
@@ -107,7 +111,7 @@ class StoreTransactionController extends Controller
                 'paid_at' => $validated['effective_date'],
                 'amount' => $validated['amount'],
                 'adjustment_amount' => 0,
-                'description' => $validated['description'],
+                'description' => $description,
             ]);
         });
 

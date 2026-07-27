@@ -17,7 +17,6 @@ class PlanSeeder extends Seeder
                     'name' => $plan->label(),
                     'description' => $plan->description(),
                     'monthly_price_cents' => $plan->monthlyPriceCents(),
-                    'max_users' => $plan->maxUsers(),
                     'sort_order' => $plan->sortOrder(),
                     'is_active' => true,
                 ],

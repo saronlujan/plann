@@ -23,7 +23,6 @@ class PlanFactory extends Factory
             'name' => PlanSlug::Basic->label(),
             'description' => PlanSlug::Basic->description(),
             'monthly_price_cents' => PlanSlug::Basic->monthlyPriceCents(),
-            'max_users' => PlanSlug::Basic->maxUsers(),
             'stripe_price_id' => null,
             'sort_order' => PlanSlug::Basic->sortOrder(),
             'is_active' => true,
@@ -37,7 +36,6 @@ class PlanFactory extends Factory
             'name' => PlanSlug::Pro->label(),
             'description' => PlanSlug::Pro->description(),
             'monthly_price_cents' => PlanSlug::Pro->monthlyPriceCents(),
-            'max_users' => PlanSlug::Pro->maxUsers(),
             'sort_order' => PlanSlug::Pro->sortOrder(),
         ]);
     }

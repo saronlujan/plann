@@ -31,7 +31,9 @@ return new class extends Migration
             // migration, which is the first point where that table exists.
             $table->unsignedBigInteger('default_currency_id')->nullable();
             $table->rememberToken();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+            // The app is single-user by design: one workspace, one person. The
+            // unique index is what actually guarantees it.
+            $table->foreignId('tenant_id')->unique()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
 

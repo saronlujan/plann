@@ -188,6 +188,7 @@ const payOpen = ref(false);
                 v-model:open="payOpen"
                 :account-id="account.id"
                 :pay-accounts="payAccounts"
+                :currency-code="account.currency_code"
                 :suggested-amount="invoice.outstanding"
                 :today="today"
             />

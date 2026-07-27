@@ -19,7 +19,7 @@ return [
         'current_badge' => 'Actual',
         'per_month' => '/mes',
         'billed_annually' => 'facturado anualmente :value',
-        'up_to_users' => 'Hasta :count usuario(s).',
+        'no_features' => 'Lo esencial para el día a día.',
     ],
 
     'actions' => [
@@ -30,10 +30,25 @@ return [
     ],
 
     'invoices' => [
+        'title' => 'Facturas',
         'invoice' => 'Factura',
         'date' => 'Fecha',
         'status' => 'Estado',
         'total' => 'Total',
+        'statuses' => [
+            'draft' => 'Borrador',
+            'open' => 'Pendiente',
+            'paid' => 'Pagada',
+            'uncollectible' => 'Incobrable',
+            'void' => 'Anulada',
+        ],
         'empty' => 'Aún no hay facturas.',
+    ],
+
+    'refresh' => [
+        'found' => 'Suscripción confirmada. ¡Acceso liberado!',
+        'not_found' => 'No encontramos una suscripción activa en Stripe.',
+        'failed' => 'No pudimos consultar Stripe ahora. Inténtalo en un momento.',
+        'action' => 'Ya pagué, actualizar estado',
     ],
 ];

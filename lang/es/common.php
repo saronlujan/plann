@@ -4,8 +4,8 @@ return [
     'navbar' => [
         'dashboard' => 'Dashboard',
         'transactions' => 'Transacciones',
-        'contacts' => 'Contactos',
         'accounts' => 'Cuentas',
+        'reports' => 'Informes',
         'settings' => 'Ajustes',
     ],
 
@@ -17,6 +17,7 @@ return [
     ],
 
     'settings_menu' => [
+        'contacts' => 'Contactos',
         'categories' => 'Categorías',
         'tags' => 'Etiquetas',
         'accounts' => 'Cuentas',

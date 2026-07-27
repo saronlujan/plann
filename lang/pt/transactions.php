@@ -18,6 +18,14 @@ return [
         'open' => 'Em aberto',
     ],
 
+    'errors' => [
+        'cannot_become_transfer' => 'Não é possível transformar um lançamento em transferência. Exclua e crie uma transferência nova.',
+    ],
+
+    'defaults' => [
+        'transfer_description' => 'Transferência',
+    ],
+
     'movement' => [
         'expense' => 'Despesa',
         'income' => 'Receita',
@@ -60,14 +68,13 @@ return [
     ],
 
     'recurrence' => [
-        'title' => 'Escopo da Recorrência',
-        'subtitle' => 'Escolha quais ocorrências desta série serão afetadas.',
+        'title' => 'Esta é uma transação recorrente.',
     ],
 
     'recurrence_scope' => [
-        'all' => 'Toda a série',
-        'one' => 'Somente esta ocorrência',
-        'forward' => 'Esta e as futuras',
+        'all' => 'Editar todas as transações',
+        'one' => 'Editar apenas esta transação',
+        'forward' => 'Editar esta e as próximas transações',
     ],
 
     'installment' => [
@@ -85,17 +92,18 @@ return [
         'amount' => 'Valor',
         'interest' => 'Juros da conta',
         'description' => 'Descrição',
+        'description_optional' => 'Descrição (opcional)',
         'category' => 'Categoria',
         'tags' => 'Tags',
         'repeat_until' => 'Repetir até (opcional)',
         'repeat_until_short' => 'Repetir até',
-        'apply_change_to' => 'Aplicar alteração a',
         'installments_total' => 'Quantidade de parcelas',
         'frequency' => 'Período',
         'status' => 'Status',
         'date' => 'Data',
         'installment' => 'Parcela',
         'adjustment' => 'Ajuste',
+        'attachment' => 'Adicionar anexo desta transação',
     ],
 
     'placeholders' => [
@@ -111,12 +119,12 @@ return [
         'no_tags' => 'Nenhuma tag cadastrada',
         'no_tags_found' => 'Nenhuma tag encontrada.',
         'search_tag' => 'Buscar tag...',
-        'scope' => 'Selecione o escopo',
         'installments_total' => '12',
         'frequency' => 'Selecione o período',
     ],
 
     'hints' => [
         'repeat_until' => 'Deixe em branco para uma recorrência sem fim.',
+        'attachment' => 'Imagem (JPG, PNG, WEBP) ou PDF, até 10 MB.',
     ],
 ];

@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $name
  * @property string|null $description
  * @property int $monthly_price_cents
- * @property int $max_users
  * @property string|null $stripe_price_id
  * @property int $sort_order
  * @property bool $is_active
@@ -29,7 +28,6 @@ class Plan extends Model
         'name',
         'description',
         'monthly_price_cents',
-        'max_users',
         'stripe_price_id',
         'sort_order',
         'is_active',
@@ -38,7 +36,6 @@ class Plan extends Model
     protected $casts = [
         'slug' => PlanSlug::class,
         'monthly_price_cents' => 'integer',
-        'max_users' => 'integer',
         'sort_order' => 'integer',
         'is_active' => 'boolean',
     ];

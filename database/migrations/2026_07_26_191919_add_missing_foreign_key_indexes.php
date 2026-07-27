@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * Tables whose tenant_id is already the leading column of a composite
  * unique/index (categories, tags, contacts, user_pins, transaction_notifications,
- * transactions) are already covered and are left alone.
+ * transactions) are already covered and are left alone, as is users.tenant_id,
+ * which is unique because the app is single-user per workspace.
  */
 return new class extends Migration
 {
@@ -28,10 +29,6 @@ return new class extends Migration
             // The dashboard builds one overview per active currency.
             $table->index(['tenant_id', 'currency_id', 'effective_date'], 'transactions_tenant_currency_date_index');
             $table->index('category_id', 'transactions_category_id_index');
-        });
-
-        Schema::table('users', function (Blueprint $table): void {
-            $table->index('tenant_id', 'users_tenant_id_index');
         });
 
         Schema::table('tag_transaction', function (Blueprint $table): void {
@@ -52,10 +49,6 @@ return new class extends Migration
             $table->dropIndex('transactions_tenant_id_account_id_index');
             $table->dropIndex('transactions_tenant_currency_date_index');
             $table->dropIndex('transactions_category_id_index');
-        });
-
-        Schema::table('users', function (Blueprint $table): void {
-            $table->dropIndex('users_tenant_id_index');
         });
 
         Schema::table('tag_transaction', function (Blueprint $table): void {

@@ -160,3 +160,37 @@ test('period navigation keeps recurring transactions visible in the target month
 
     expect(collect($response->inertiaProps('entries'))->pluck('kind')->all())->toContain('base');
 });
+
+test('the currency picker only lists currencies that have an account', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Moedas']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'usable-currencies@example.com',
+        'password' => 'password',
+    ]);
+
+    $brl = Currency::create(['code' => 'BRL', 'name' => 'Brazilian Real', 'symbol' => 'R$']);
+    $usd = Currency::create(['code' => 'USD', 'name' => 'United States Dollar', 'symbol' => '$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
+
+    Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $brl->id,
+        'name' => 'Conta BRL',
+        'balance' => 0,
+    ]);
+
+    // USD is activated but has no account, so picking it would leave the account
+    // select empty and the form unsubmittable.
+    actingAs($user)
+        ->get('/transactions')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->has('currencyOptions', 1)
+            ->where('currencyOptions.0.code', 'BRL'));
+});

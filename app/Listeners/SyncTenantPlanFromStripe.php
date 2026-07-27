@@ -3,15 +3,22 @@
 namespace App\Listeners;
 
 use App\Enums\PlanSlug;
-use App\Models\Plan;
 use App\Models\Tenant;
+use App\Services\Billing\SyncStripeSubscriptions;
 use Laravel\Cashier\Events\WebhookReceived;
 
+/**
+ * Keeps the local subscription state in step with Stripe.
+ *
+ * Runs the same mirroring the checkout return does, so both paths converge on
+ * identical rows. The webhook remains the durable channel — it is what catches
+ * renewals, failed payments and cancellations that happen with nobody looking at
+ * the screen.
+ */
 class SyncTenantPlanFromStripe
 {
-    /**
-     * Keep the tenant's plan_slug (seat limit) in sync with its Stripe subscription.
-     */
+    public function __construct(private readonly SyncStripeSubscriptions $sync) {}
+
     public function handle(WebhookReceived $event): void
     {
         $type = $event->payload['type'] ?? '';
@@ -37,17 +44,12 @@ class SyncTenantPlanFromStripe
             return;
         }
 
+        // A deletion event carries a status Stripe has already terminated, so the
+        // shared mirror closes it out; the plan drops back to the entry tier.
+        $this->sync->mirror($tenant, $object);
+
         if ($type === 'customer.subscription.deleted') {
             $tenant->update(['plan_slug' => PlanSlug::Basic->value]);
-
-            return;
-        }
-
-        $priceId = $object['items']['data'][0]['price']['id'] ?? null;
-        $plan = $priceId === null ? null : Plan::query()->where('stripe_price_id', $priceId)->first();
-
-        if ($plan !== null) {
-            $tenant->update(['plan_slug' => $plan->slug->value]);
         }
     }
 }

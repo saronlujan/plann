@@ -19,7 +19,7 @@ return [
         'current_badge' => 'Current',
         'per_month' => '/month',
         'billed_annually' => 'billed annually :value',
-        'up_to_users' => 'Up to :count user(s).',
+        'no_features' => 'The essentials for everyday use.',
     ],
 
     'actions' => [
@@ -30,10 +30,25 @@ return [
     ],
 
     'invoices' => [
+        'title' => 'Invoices',
         'invoice' => 'Invoice',
         'date' => 'Date',
         'status' => 'Status',
         'total' => 'Total',
+        'statuses' => [
+            'draft' => 'Draft',
+            'open' => 'Open',
+            'paid' => 'Paid',
+            'uncollectible' => 'Uncollectible',
+            'void' => 'Void',
+        ],
         'empty' => 'No invoices yet.',
+    ],
+
+    'refresh' => [
+        'found' => 'Subscription confirmed. Access unlocked!',
+        'not_found' => 'No active subscription found on Stripe.',
+        'failed' => 'We could not reach Stripe right now. Try again shortly.',
+        'action' => 'I already paid, refresh status',
     ],
 ];

@@ -28,7 +28,9 @@ class StoreTransactionRequest extends FormRequest
         return [
             'movement_type' => ['required', Rule::enum(TransactionMovementType::class)],
             'type' => ['required', Rule::enum(TransactionType::class)],
-            'description' => ['required', 'string', 'max:255'],
+            // A transfer already says what it is — the list shows "origin → destination"
+            // under it — so naming it is optional and defaults to "Transfer".
+            'description' => [Rule::requiredIf(! $isTransfer), 'nullable', 'string', 'max:255'],
             'currency_id' => ['required', 'integer', 'exists:currencies,id'],
             'account_id' => [
                 'integer',

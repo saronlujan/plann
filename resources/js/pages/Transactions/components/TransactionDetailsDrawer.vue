@@ -97,7 +97,10 @@ const hasAdjustment = computed(
             <div class="flex-1 overflow-y-auto px-4 pb-4">
                 <div class="mb-4 text-2xl font-semibold" :class="amountClass(entry)">
                     {{
-                        formatCurrency(signedAmount(entry), entry.currency_symbol, { signed: true })
+                        formatCurrency(signedAmount(entry), entry.currency_symbol, {
+                            signed: true,
+                            code: entry.currency_code,
+                        })
                     }}
                     <span class="text-sm font-normal text-muted-foreground">
                         {{ entry.currency_code }}
@@ -137,7 +140,11 @@ const hasAdjustment = computed(
                             {{ $t('transactions.fields.adjustment') }}
                         </dt>
                         <dd class="font-medium">
-                            {{ formatCurrency(entry.adjustment_amount, entry.currency_symbol) }}
+                            {{
+                                formatCurrency(entry.adjustment_amount, entry.currency_symbol, {
+                                    code: entry.currency_code,
+                                })
+                            }}
                         </dd>
                     </div>
                     <div class="flex items-center justify-between gap-4 py-2">

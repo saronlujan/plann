@@ -17,6 +17,11 @@ class Country extends Model
         'name',
         'code',
         'currency_id',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     /**

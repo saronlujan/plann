@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Listeners\SyncTenantPlanFromStripe;
 use App\Models\Tenant;
 use App\Support\Tenancy\TenantContext;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageManagerInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(TenantContext::class);
+
+        // GD ships with every PHP build this app targets; Imagick would need a
+        // per-host extension for no gain on plain receipt photos.
+        $this->app->singleton(ImageManagerInterface::class, fn (): ImageManager => new ImageManager(new Driver()));
     }
 
     /**

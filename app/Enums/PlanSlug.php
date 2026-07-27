@@ -15,21 +15,27 @@ enum PlanSlug: string
 
     public function description(): string
     {
-        return match ($this) {
-            self::Basic => 'Para uso individual: 1 usuário.',
-            self::Pro => 'Para times pequenos: até 5 usuários.',
-        };
+        return __('enums.plan_slug_description.'.$this->value);
     }
 
     /**
-     * Maximum number of users allowed on a tenant subscribed to this plan.
+     * Capabilities unlocked by this plan.
+     *
+     * This is the single place a feature moves between tiers.
+     *
+     * @return array<int, PlanFeature>
      */
-    public function maxUsers(): int
+    public function features(): array
     {
         return match ($this) {
-            self::Basic => 1,
-            self::Pro => 5,
+            self::Basic => [],
+            self::Pro => PlanFeature::cases(),
         };
+    }
+
+    public function hasFeature(PlanFeature $feature): bool
+    {
+        return in_array($feature, $this->features(), true);
     }
 
     /**

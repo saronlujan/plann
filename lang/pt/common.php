@@ -4,8 +4,8 @@ return [
     'navbar' => [
         'dashboard' => 'Dashboard',
         'transactions' => 'Financeiro',
-        'contacts' => 'Contatos',
         'accounts' => 'Contas',
+        'reports' => 'Relatórios',
         'settings' => 'Configurações',
     ],
 
@@ -17,6 +17,7 @@ return [
     ],
 
     'settings_menu' => [
+        'contacts' => 'Contatos',
         'categories' => 'Categorias',
         'tags' => 'Tags',
         'accounts' => 'Contas',

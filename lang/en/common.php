@@ -4,8 +4,8 @@ return [
     'navbar' => [
         'dashboard' => 'Dashboard',
         'transactions' => 'Finance',
-        'contacts' => 'Contacts',
         'accounts' => 'Accounts',
+        'reports' => 'Reports',
         'settings' => 'Settings',
     ],
 
@@ -17,6 +17,7 @@ return [
     ],
 
     'settings_menu' => [
+        'contacts' => 'Contacts',
         'categories' => 'Categories',
         'tags' => 'Tags',
         'accounts' => 'Accounts',

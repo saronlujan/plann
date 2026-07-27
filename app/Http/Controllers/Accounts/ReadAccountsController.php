@@ -82,10 +82,13 @@ class ReadAccountsController extends Controller
             'currencyOptions' => Currency::query()
                 ->whereIn('id', $activeCurrencyIds)
                 ->orderBy('code')
-                ->get(['id', 'code', 'name'])
+                ->get(['id', 'code', 'name', 'symbol'])
                 ->map(fn (Currency $currency): array => [
                     'value' => (string) $currency->id,
                     'label' => $currency->code.' - '.$currency->name,
+                    // Prefix and decimal places for the money fields in the modal.
+                    'code' => $currency->code,
+                    'symbol' => $currency->symbol,
                 ])
                 ->all(),
             'kindOptions' => AccountKind::options(),

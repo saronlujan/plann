@@ -38,6 +38,10 @@ class UpdateTransactionController extends Controller
             }
         }
 
+        if ($this->leavesTransfer($transaction, $validated)) {
+            $this->unpairTransfer($transaction);
+        }
+
         $previousAttachment = $transaction->attachment_path;
 
         $transaction->fill($this->payload($validated, $transaction, $attachmentPath));
@@ -49,6 +53,60 @@ class UpdateTransactionController extends Controller
         return to_route('transactions.index', [
             'period' => $transaction->effective_date->format('Y-m'),
         ]);
+    }
+
+    /**
+     * The series a transaction belongs to after the edit.
+     *
+     * On a transfer the series is what ties the two legs together, not a
+     * recurrence — so a one-off transfer keeps it, or its pair would come apart
+     * the first time someone corrected the amount.
+     */
+    private function resolveSeriesUuid(string $scheduleType, Transaction $transaction): ?string
+    {
+        if (in_array($scheduleType, [TransactionType::Recurring->value, TransactionType::Installment->value], true)) {
+            return $transaction->series_uuid ?? (string) Str::uuid();
+        }
+
+        return $transaction->is_transfer ? $transaction->series_uuid : null;
+    }
+
+    /**
+     * Whether this edit turns a transfer leg into a plain income or expense.
+     *
+     * Editing the amount of a transfer keeps its movement type, so only a real
+     * change of type counts — otherwise every edit would break the pairing.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function leavesTransfer(Transaction $transaction, array $validated): bool
+    {
+        return $transaction->is_transfer
+            && $validated['movement_type'] !== $transaction->movement_type?->value;
+    }
+
+    /**
+     * Drops the transfer pairing from both legs.
+     *
+     * Half a transfer is not a transfer, so the other leg stops being one too.
+     * Neither row is deleted: both movements really happened and still affect
+     * their accounts, so removing one would silently change a balance. What is
+     * left is an ordinary entry the user can edit or delete.
+     */
+    private function unpairTransfer(Transaction $transaction): void
+    {
+        $series = $transaction->series_uuid;
+
+        if ($series !== null) {
+            Transaction::query()
+                ->where('series_uuid', $series)
+                ->whereKeyNot($transaction->getKey())
+                ->update(['is_transfer' => false, 'series_uuid' => null]);
+        }
+
+        // Left unsaved on purpose: the update below persists them.
+        $transaction->is_transfer = false;
+        $transaction->series_uuid = null;
     }
 
     /**
@@ -70,15 +128,13 @@ class UpdateTransactionController extends Controller
             'installment_number' => $validated['installment_number'] ?? null,
             'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
             'attachment_path' => $attachmentPath,
-            'series_uuid' => in_array($scheduleType, [TransactionType::Recurring->value, TransactionType::Installment->value], true)
-                ? ($transaction->series_uuid ?? (string) Str::uuid())
-                : null,
+            'series_uuid' => $this->resolveSeriesUuid($scheduleType, $transaction),
             'effective_date' => $validated['effective_date'],
             'effective_until' => $validated['effective_until'] ?? null,
             'adjustment_month' => $validated['adjustment_month'] ?? null,
             'amount' => $validated['amount'],
             'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
-            'description' => $validated['description'],
+            'description' => $validated['description'] ?? $transaction->description,
         ];
     }
 
@@ -113,7 +169,7 @@ class UpdateTransactionController extends Controller
                 'adjustment_month' => $occurrenceDate->toDateString(),
                 'amount' => $validated['amount'],
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
-                'description' => $validated['description'],
+                'description' => $validated['description'] ?? $transaction->description,
             ]);
 
             $occurrence->tags()->sync($validated['tags'] ?? []);
@@ -160,7 +216,7 @@ class UpdateTransactionController extends Controller
                 'adjustment_month' => null,
                 'amount' => $validated['amount'],
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
-                'description' => $validated['description'],
+                'description' => $validated['description'] ?? $transaction->description,
             ]);
 
             $following->tags()->sync($validated['tags'] ?? []);

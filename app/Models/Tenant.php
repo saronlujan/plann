@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\PlanFeature;
 use App\Enums\PlanSlug;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Cashier\Billable;
@@ -20,6 +22,7 @@ class Tenant extends Model
     protected $fillable = [
         'name',
         'plan_slug',
+        'country_id',
     ];
 
     /**
@@ -55,19 +58,21 @@ class Tenant extends Model
     }
 
     /**
-     * Maximum number of users allowed for the current plan.
+     * Whether the current plan unlocks a given capability.
      */
-    public function maxUsers(): int
+    public function hasFeature(PlanFeature $feature): bool
     {
-        return ($this->plan_slug ?? PlanSlug::Basic)->maxUsers();
+        return $this->plan_slug->hasFeature($feature);
     }
 
     /**
-     * Whether the tenant can still add another user under its plan seat limit.
+     * Drives country-specific behaviour and the workspace's starting currency.
+     *
+     * @return BelongsTo<Country, $this>
      */
-    public function canAddUser(): bool
+    public function country(): BelongsTo
     {
-        return $this->users()->count() < $this->maxUsers();
+        return $this->belongsTo(Country::class);
     }
 
     /**
@@ -108,28 +113,6 @@ class Tenant extends Model
             ->all();
 
         $this->currencies()->sync($syncData);
-    }
-
-    /**
-     * @param  array<int, int>  $currencyIds
-     */
-    public function ensureCurrencyAssets(array $currencyIds): void
-    {
-        Currency::query()
-            ->whereIn('id', $currencyIds)
-            ->orderBy('code')
-            ->get()
-            ->each(function (Currency $currency): void {
-                $this->accounts()->updateOrCreate(
-                    [
-                        'currency_id' => $currency->id,
-                        'name' => sprintf('%s account', $currency->code),
-                    ],
-                    [
-                        'balance' => 0,
-                    ],
-                );
-            });
     }
 
     /**

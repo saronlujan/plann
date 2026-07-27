@@ -40,6 +40,20 @@ class Category extends Model
     /**
      * @return BelongsTo<Tenant, $this>
      */
+    /**
+     * The composite foreign key is NO ACTION, so the link has to be cleared here.
+     * Losing a label must never take the transaction with it.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Category $model): void {
+            Transaction::query()->where('category_id', $model->id)->update(['category_id' => null]);
+        });
+    }
+
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

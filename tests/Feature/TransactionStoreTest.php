@@ -319,3 +319,138 @@ it('keeps existing transactions when a category type changes', function () {
     expect($category->fresh()?->type->value)->toBe('income');
     expect($transaction->fresh()?->category_id)->toBe($category->id);
 });
+
+it('names a transfer automatically when no description is given', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Transfer']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'unnamed-transfer@example.com',
+        'password' => 'password',
+        'locale' => 'pt',
+    ]);
+
+    $currency = Currency::create([
+        'code' => 'BRL',
+        'name' => 'Brazilian Real',
+        'symbol' => 'R$',
+    ]);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $sourceAccount = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta Origem',
+        'balance' => 0,
+    ]);
+
+    $destinationAccount = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta Destino',
+        'balance' => 0,
+    ]);
+
+    // The list already shows "origin → destination" underneath, so naming the
+    // transfer adds nothing and is not worth blocking the form over.
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'transfer',
+            'type' => 'unique',
+            'description' => '',
+            'currency_id' => $currency->id,
+            'account_id' => $sourceAccount->id,
+            'destination_account_id' => $destinationAccount->id,
+            'effective_date' => '2026-12-15',
+            'amount' => 250,
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect('/transactions?period=2026-12');
+
+    $descriptions = Transaction::query()->pluck('description');
+
+    expect($descriptions)->toHaveCount(2);
+    expect($descriptions->unique()->all())->toBe(['Transferência']);
+});
+
+it('keeps the description when a transfer is named', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Named Transfer']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'named-transfer@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $sourceAccount = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta Origem',
+        'balance' => 0,
+    ]);
+
+    $destinationAccount = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta Destino',
+        'balance' => 0,
+    ]);
+
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'transfer',
+            'type' => 'unique',
+            'description' => 'Guardar para a reserva',
+            'currency_id' => $currency->id,
+            'account_id' => $sourceAccount->id,
+            'destination_account_id' => $destinationAccount->id,
+            'effective_date' => '2026-12-15',
+            'amount' => 250,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Transaction::query()->pluck('description')->unique()->all())->toBe(['Guardar para a reserva']);
+});
+
+it('still requires a description outside transfers', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Expense']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'unnamed-expense@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+        'balance' => 0,
+    ]);
+
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => '',
+            'currency_id' => $currency->id,
+            'account_id' => $account->id,
+            'effective_date' => '2026-12-15',
+            'amount' => 250,
+        ])
+        ->assertSessionHasErrors('description');
+
+    expect(Transaction::query()->count())->toBe(0);
+});

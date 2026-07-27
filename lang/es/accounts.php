@@ -3,7 +3,7 @@
 return [
     'title' => 'Cuentas',
     'subtitle' => 'Saldos y extracto de tus cuentas.',
-    'empty' => 'Sin cuentas. Crea cuentas en Ajustes.',
+    'empty' => 'Aún no tienes cuentas. Crea la primera con el botón de arriba.',
     'balance' => 'Saldo actual',
     'month_income' => 'Ingresos del mes',
     'month_expense' => 'Gastos del mes',

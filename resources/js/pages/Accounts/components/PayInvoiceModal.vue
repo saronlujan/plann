@@ -2,6 +2,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import {
     Dialog,
     DialogContent,
@@ -27,6 +28,7 @@ const props = defineProps<{
     open: boolean;
     accountId: number;
     payAccounts: Option[];
+    currencyCode: string;
     suggestedAmount: string;
     today: string;
 }>();
@@ -113,7 +115,11 @@ function submit(): void {
                     <FormLabel for="pay-amount">{{
                         $t('accounts.invoice.pay.amount_label')
                     }}</FormLabel>
-                    <Input id="pay-amount" v-model="form.amount" type="number" step="0.01" />
+                    <CurrencyInput
+                        id="pay-amount"
+                        v-model="form.amount"
+                        :code="props.currencyCode"
+                    />
                     <FormError :message="form.errors.amount" />
                 </FormGroup>
 

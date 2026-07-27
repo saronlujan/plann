@@ -46,6 +46,17 @@ class Account extends Model
         'due_day' => 'integer',
     ];
 
+    /**
+     * The composite foreign key is NO ACTION, so the link has to be cleared here.
+     * Losing a source must never take the transaction with it.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Account $model): void {
+            Transaction::query()->where('account_id', $model->id)->update(['account_id' => null]);
+        });
+    }
+
     public function isCreditCard(): bool
     {
         return $this->kind === AccountKind::CreditCard;

@@ -95,4 +95,13 @@ return [
         'basic' => 'Basic',
         'pro' => 'Pro',
     ],
+
+    'plan_slug_description' => [
+        'basic' => 'The essentials to organise your finances in one currency.',
+        'pro' => 'For anyone dealing with more than one currency.',
+    ],
+
+    'plan_feature' => [
+        'multi_currency' => 'Multiple currencies',
+    ],
 ];

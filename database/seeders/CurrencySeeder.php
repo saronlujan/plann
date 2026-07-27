@@ -12,7 +12,7 @@ class CurrencySeeder extends Seeder
         $currencies = [
             ['code' => 'BRL', 'name' => 'Brazilian Real', 'symbol' => 'R$'],
             ['code' => 'ARS', 'name' => 'Argentine Peso', 'symbol' => '$'],
-            ['code' => 'PYG', 'name' => 'Paraguayan Guarani', 'symbol' => 'Gs.'],
+            ['code' => 'PYG', 'name' => 'Paraguayan Guarani', 'symbol' => '₲'],
             ['code' => 'USD', 'name' => 'United States Dollar', 'symbol' => '$'],
             ['code' => 'USDT', 'name' => 'Tether', 'symbol' => '₮'],
         ];

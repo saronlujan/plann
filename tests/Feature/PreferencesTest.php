@@ -2,9 +2,11 @@
 
 use App\Enums\UserColor;
 use App\Enums\UserTheme;
+use App\Models\Account;
 use App\Models\Currency;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Tenancy\TenantContext;
 use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
@@ -215,8 +217,29 @@ test('the preferences page exposes the active currencies and the current choice'
     $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
     $user->update(['default_currency_id' => $usd->id]);
 
+    app(TenantContext::class)->setTenantId($tenant->id);
+    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $brl->id, 'name' => 'Conta BRL', 'balance' => 0]);
+    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $usd->id, 'name' => 'Conta USD', 'balance' => 0]);
+
     actingAs($user)->get(route('preferences'))->assertSuccessful()
         ->assertInertia(fn ($page) => $page
             ->where('preferences.default_currency_id', $usd->id)
             ->has('currencyOptions', 2));
+});
+
+test('a currency with no account is not offered as a default', function () {
+    [$user, $tenant] = preferencesFixture('currency-without-account@example.com');
+
+    $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+    $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
+    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $brl->id, 'name' => 'Conta BRL', 'balance' => 0]);
+
+    // USD is activated but has nowhere to hold money, so it is not a real choice.
+    actingAs($user)->get(route('preferences'))->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->has('currencyOptions', 1)
+            ->where('currencyOptions.0.value', (string) $brl->id));
 });

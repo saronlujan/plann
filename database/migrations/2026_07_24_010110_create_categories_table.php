@@ -20,6 +20,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'type', 'name']);
+            // Target of the composite foreign keys that keep children in-tenant.
+            $table->unique(['tenant_id', 'id']);
         });
     }
 
