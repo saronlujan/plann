@@ -2,8 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { CheckIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
-import { Button } from '@/components/ui/button';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -21,6 +20,7 @@ import { DEFAULT_COLOR_HEX, isCustomColor } from '@/lib/labelColors';
 import { playSound } from '@/lib/sound';
 import type { SoundValue } from '@/lib/sound';
 import { update as updatePreferences } from '@/routes/preferences';
+import ThemeCard from './components/ThemeCard.vue';
 
 type Option = { value: string; label: string };
 
@@ -62,9 +62,7 @@ const daysBeforeOptions = computed<Option[]>(() => [
     { value: '10', label: trans('preferences.days_before.n10') },
 ]);
 
-function persist(): void {
-    applyAppearance(theme.value, color.value);
-
+function write(): void {
     router.patch(
         updatePreferences().url,
         {
@@ -81,6 +79,33 @@ function persist(): void {
         { preserveScroll: true, preserveState: true },
     );
 }
+
+function persist(): void {
+    applyAppearance(theme.value, color.value);
+    write();
+}
+
+/**
+ * The colour wheel reports every pixel of a drag. Repainting is cheap and has to
+ * keep up, but one request per pixel is what makes it stutter — so the interface
+ * follows the pointer while the write waits for it to settle.
+ */
+let pendingWrite: ReturnType<typeof setTimeout> | undefined;
+
+function persistWhenSettled(): void {
+    applyAppearance(theme.value, color.value);
+
+    clearTimeout(pendingWrite);
+    pendingWrite = setTimeout(write, 300);
+}
+
+// Leaving mid-drag would otherwise drop the colour the user just settled on.
+onBeforeUnmount(() => {
+    if (pendingWrite !== undefined) {
+        clearTimeout(pendingWrite);
+        write();
+    }
+});
 
 function selectSound(): void {
     playSound(soundTheme.value);
@@ -117,7 +142,8 @@ function commitCustomColor(value: string): void {
 
     customHex.value = candidate.toLowerCase();
     customDraft.value = customHex.value;
-    selectColor(customHex.value);
+    color.value = customHex.value as ColorValue;
+    persistWhenSettled();
 }
 
 /** Leaving a half-typed value behind would strand the field: put it back. */
@@ -177,17 +203,16 @@ function restoreCustomDraft(): void {
                         }}</span>
                     </div>
                     <div class="col-span-12 lg:col-span-8">
-                        <div class="mt-1 flex gap-2">
-                            <Button
+                        <!-- Scrolls rather than wraps: three cards do not fit a phone. -->
+                        <div class="mt-1 flex gap-3 overflow-x-auto pb-1 md:gap-5">
+                            <ThemeCard
                                 v-for="option in themeOptions"
                                 :key="option.value"
-                                type="button"
-                                :variant="theme === option.value ? 'default' : 'outline'"
-                                :aria-pressed="theme === option.value"
-                                @click="selectTheme(option.value)"
-                            >
-                                {{ option.label }}
-                            </Button>
+                                :value="option.value as ThemeValue"
+                                :label="option.label"
+                                :selected="theme === option.value"
+                                @select="selectTheme"
+                            />
                         </div>
                     </div>
                 </div>
@@ -202,7 +227,7 @@ function restoreCustomDraft(): void {
                         }}</span>
                     </div>
                     <div class="col-span-12 lg:col-span-8">
-                        <div class="mt-1 flex flex-wrap gap-3">
+                        <div class="mt-1 flex flex-wrap items-center gap-3">
                             <button
                                 v-for="option in colorOptions"
                                 :key="option.value"
@@ -226,17 +251,20 @@ function restoreCustomDraft(): void {
                                     aria-hidden="true"
                                 />
                             </button>
-                        </div>
-
-                        <div class="mt-3 flex items-center gap-2">
-                            <span class="text-sm text-muted-foreground">
-                                {{ $t('common.color.custom') }}
-                            </span>
 
                             <!--
-                                The native input is the colour wheel: it costs
-                                nothing, it is keyboard reachable and it is the
-                                picker the user already knows.
+                                A rule rather than a literal bar: it keeps its
+                                weight at any zoom and is hidden from screen
+                                readers, which have nothing to gain from it.
+                            -->
+                            <span class="mx-1 h-6 w-px shrink-0 bg-border" aria-hidden="true" />
+
+                            <!--
+                                Sits with the palette rather than under it, set
+                                apart so it still reads as the odd one out. The
+                                native input is the colour wheel: it costs nothing,
+                                it is keyboard reachable and it is the picker the
+                                user already knows.
                             -->
                             <label
                                 class="relative flex size-9 cursor-pointer items-center justify-center rounded-full border transition"

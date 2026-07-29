@@ -224,3 +224,54 @@ test('the report shows an empty state without an active currency', function () {
     actingAs($user)->get(route('reports.index'))->assertSuccessful()
         ->assertInertia(fn ($page) => $page->where('ready', false));
 });
+
+test('the report may be downloaded as a pdf for the selected period', function () {
+    [$user, $account, $currency] = reportsFixture('reports-pdf@example.com');
+
+    $category = Category::create([
+        'tenant_id' => $user->tenant_id,
+        'name' => 'Serviços',
+        'type' => 'income',
+        'color' => 'green',
+    ]);
+
+    reportsEntry($account, $currency, 'income', '2026-03-10', 1500.00, $category->id, '2026-03-10');
+    reportsEntry($account, $currency, 'expense', '2026-03-12', 400.00, null, null);
+
+    $response = actingAs($user)->get('/reports/export?from=2026-03&to=2026-03');
+
+    $response->assertSuccessful();
+    $response->assertHeader('content-type', 'application/pdf');
+    // Accents are folded out of the name so it survives any filesystem.
+    $response->assertDownload('relatorio-financeiro-2026-03-2026-03.pdf');
+
+    // A real document, not an empty shell: the header of every PDF starts here.
+    expect($response->getContent())->toStartWith('%PDF');
+});
+
+test('the pdf covers the same period the screen was showing', function () {
+    [$user, $account, $currency] = reportsFixture('reports-pdf-period@example.com');
+
+    reportsEntry($account, $currency, 'income', '2026-05-10', 900.00, null, '2026-05-10');
+
+    // Out of range on purpose: asking for March must not pull May in.
+    $march = actingAs($user)->get('/reports/export?from=2026-03&to=2026-03');
+    $may = actingAs($user)->get('/reports/export?from=2026-05&to=2026-05');
+
+    $march->assertDownload('relatorio-financeiro-2026-03-2026-03.pdf');
+    $may->assertDownload('relatorio-financeiro-2026-05-2026-05.pdf');
+    expect($march->getContent())->not->toBe($may->getContent());
+});
+
+test('a workspace with no account has no report to download', function () {
+    $tenant = Tenant::create(['name' => 'Tenant vazio']);
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'email' => 'reports-pdf-empty@example.com',
+        'locale' => 'pt',
+    ]);
+
+    actingAs($user)->get('/reports/export')->assertNotFound();
+});

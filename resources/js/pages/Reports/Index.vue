@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { DownloadIcon } from '@lucide/vue';
 import { computed } from 'vue';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import DatePicker from '@/components/ui/date-picker/DatePicker.vue';
 import {
@@ -21,7 +23,7 @@ import {
 } from '@/components/ui/table';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { colorHex } from '@/lib/labelColors';
-import { index as reportsIndex } from '@/routes/reports';
+import { exportMethod as exportReport, index as reportsIndex } from '@/routes/reports';
 
 type Option = { value: string; label: string };
 type MonthlyRow = { month: string; label: string; income: string; expenses: string; net: string };
@@ -73,6 +75,20 @@ function applyFilter(patch: Record<string, string>): void {
     );
 }
 
+// A plain link, not an Inertia visit: the response is a file, and a visit would
+// try to parse it as a page. The filters ride along so the PDF covers exactly
+// the period on screen.
+const exportUrl = computed(
+    () =>
+        exportReport({
+            query: {
+                from: props.filters?.from ?? '',
+                to: props.filters?.to ?? '',
+                currency_id: String(props.filters?.currency_id ?? ''),
+            },
+        }).url,
+);
+
 const netClass = (value: string) => (Number(value) < 0 ? 'text-red-600' : 'text-emerald-600');
 
 // The report is month-based but DatePicker speaks full dates: show the first of
@@ -91,9 +107,18 @@ function dateAsMonth(date: string): string {
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
-            <div class="flex flex-col">
-                <h1 class="text-lg font-semibold md:text-xl">{{ $t('reports.title') }}</h1>
-                <span class="text-sm text-muted-foreground">{{ $t('reports.subtitle') }}</span>
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-col">
+                    <h1 class="text-lg font-semibold md:text-xl">{{ $t('reports.title') }}</h1>
+                    <span class="text-sm text-muted-foreground">{{ $t('reports.subtitle') }}</span>
+                </div>
+
+                <Button v-if="ready" as-child variant="outline">
+                    <a :href="exportUrl" download>
+                        <DownloadIcon class="size-4" />
+                        {{ $t('reports.export_pdf') }}
+                    </a>
+                </Button>
             </div>
 
             <Card v-if="!ready">

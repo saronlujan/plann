@@ -118,6 +118,11 @@ const userInitials = computed(
                             </DropdownMenuTrigger>
                             <DropdownMenuContent class="w-44" align="end">
                                 <DropdownMenuItem as-child>
+                                    <Link :href="servicesIndex().url" class="w-full">
+                                        {{ $t('common.settings_menu.services') }}
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem as-child>
                                     <Link :href="contacts().url" class="w-full">
                                         {{ $t('common.settings_menu.contacts') }}
                                     </Link>
@@ -125,11 +130,6 @@ const userInitials = computed(
                                 <DropdownMenuItem as-child>
                                     <Link :href="categoriesIndex().url" class="w-full">
                                         {{ $t('common.settings_menu.categories') }}
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem as-child>
-                                    <Link :href="servicesIndex().url" class="w-full">
-                                        {{ $t('common.settings_menu.services') }}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>

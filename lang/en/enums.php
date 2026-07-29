@@ -42,6 +42,7 @@ return [
     ],
 
     'user_theme' => [
+        'system' => 'System',
         'light' => 'Light',
         'dark' => 'Dark',
     ],

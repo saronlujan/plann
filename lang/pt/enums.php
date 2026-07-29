@@ -42,6 +42,7 @@ return [
     ],
 
     'user_theme' => [
+        'system' => 'Sistema',
         'light' => 'Claro',
         'dark' => 'Escuro',
     ],

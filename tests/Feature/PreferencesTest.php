@@ -52,7 +52,7 @@ test('authenticated users may view preferences', function () {
             ->component('Preferences/Index')
             ->where('locale', 'pt')
             ->has('localeOptions', 3)
-            ->has('themeOptions', 2)
+            ->has('themeOptions', 3)
             ->has('colorOptions', 10)
             ->has('soundOptions', 5)
             ->where('preferences.theme', 'light')
@@ -261,4 +261,14 @@ test('an accent that is neither in the palette nor a hex is rejected', function 
 
     // Nothing got through: the accent is still the default.
     expect($user->fresh()?->color)->toBe('zinc');
+});
+
+test('the theme may defer to whatever the device is set to', function () {
+    $user = makePreferencesUser('theme-system@example.com');
+
+    actingAs($user)
+        ->patch('/preferences', ['theme' => 'system'])
+        ->assertRedirect();
+
+    expect($user->fresh()?->theme)->toBe(UserTheme::System);
 });

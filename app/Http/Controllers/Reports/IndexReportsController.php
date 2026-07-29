@@ -9,8 +9,6 @@ use App\Models\Currency;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Support\Reports\ReportBuilder;
-use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,8 +26,8 @@ class IndexReportsController extends Controller
             return Inertia::render('Reports/Index', ['ready' => false]);
         }
 
-        $currency = $this->resolveCurrency($currencies, $request->integer('currency_id'));
-        [$from, $to] = $this->resolvePeriod($request);
+        $currency = $request->currency($currencies);
+        [$from, $to] = $request->period();
 
         $transactions = Transaction::query()
             ->where('currency_id', $currency->id)
@@ -62,51 +60,5 @@ class IndexReportsController extends Controller
                 $to,
             ),
         ]);
-    }
-
-    /**
-     * @param  Collection<int, Currency>  $currencies
-     */
-    private function resolveCurrency(Collection $currencies, int $requested): Currency
-    {
-        return $currencies->firstWhere('id', $requested) ?? $currencies->first();
-    }
-
-    /**
-     * Defaults to the year to date, which is the range people actually want when
-     * they open a report. The range is clamped so a wide span cannot be used to
-     * project hundreds of months.
-     *
-     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
-     */
-    private function resolvePeriod(IndexReportsRequest $request): array
-    {
-        $now = CarbonImmutable::now()->startOfMonth();
-
-        $to = $this->parseMonth($request->string('to')->toString()) ?? $now;
-        $from = $this->parseMonth($request->string('from')->toString()) ?? $now->startOfYear();
-
-        if ($from->greaterThan($to)) {
-            [$from, $to] = [$to, $from];
-        }
-
-        if ($from->diffInMonths($to) > 35) {
-            $from = $to->subMonths(35);
-        }
-
-        return [$from, $to];
-    }
-
-    private function parseMonth(string $month): ?CarbonImmutable
-    {
-        if ($month === '') {
-            return null;
-        }
-
-        try {
-            return CarbonImmutable::createFromFormat('Y-m-d', $month.'-01')->startOfMonth();
-        } catch (\Throwable) {
-            return null;
-        }
     }
 }

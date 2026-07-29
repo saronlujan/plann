@@ -4,6 +4,19 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        {{--
+            "system" is the one choice the server cannot resolve: only the browser
+            knows what the device is set to. Inline and first in the head so it
+            lands before the first paint — moved any later, the page would flash
+            the wrong theme on its way to the right one.
+        --}}
+        <script>
+            if (@json($appearance ?? 'light') === 'system'
+                && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        </script>
+
         {{-- The mark flips with the system theme, so it stays legible in either tab bar. --}}
         <link rel="icon" href="/favicon.ico" media="(prefers-color-scheme: light)">
         <link rel="icon" href="/favicon-white.ico" media="(prefers-color-scheme: dark)">

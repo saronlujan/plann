@@ -12,7 +12,7 @@
  */
 import { isCustomColor } from '@/lib/labelColors';
 
-export type ThemeValue = 'light' | 'dark';
+export type ThemeValue = 'system' | 'light' | 'dark';
 export type ColorValue =
     | 'blue'
     | 'indigo'
@@ -76,14 +76,46 @@ export function paletteSwatch(color: string): string {
     return palette[color as ColorValue]?.primary ?? 'oklch(0.205 0 0)';
 }
 
-export function applyAppearance(theme: ThemeValue = 'light', color: string = 'zinc'): void {
+const DARK_QUERY = '(prefers-color-scheme: dark)';
+
+/** What "system" resolves to right now. */
+function prefersDark(): boolean {
+    return typeof window !== 'undefined' && window.matchMedia(DARK_QUERY).matches;
+}
+
+/**
+ * The device can change its mind — sunset, a scheduled switch, a manual toggle —
+ * and someone deferring to it expects the page to follow without a reload.
+ * Registered once, and only while "system" is the choice.
+ */
+let unwatchSystem: (() => void) | undefined;
+
+function watchSystemTheme(active: boolean): void {
+    unwatchSystem?.();
+    unwatchSystem = undefined;
+
+    if (!active || typeof window === 'undefined') {
+        return;
+    }
+
+    const query = window.matchMedia(DARK_QUERY);
+    const onChange = (event: MediaQueryListEvent): void => {
+        document.documentElement.classList.toggle('dark', event.matches);
+    };
+
+    query.addEventListener('change', onChange);
+    unwatchSystem = () => query.removeEventListener('change', onChange);
+}
+
+export function applyAppearance(theme: ThemeValue = 'system', color: string = 'zinc'): void {
     if (typeof document === 'undefined') {
         return;
     }
 
     const root = document.documentElement;
 
-    root.classList.toggle('dark', theme === 'dark');
+    root.classList.toggle('dark', theme === 'system' ? prefersDark() : theme === 'dark');
+    watchSystemTheme(theme === 'system');
 
     // "zinc" maps to null: it clears the overrides so the theme-aware defaults
     // from resources/css/app.css take over again.
