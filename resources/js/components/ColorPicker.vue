@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { Input } from '@/components/ui/input';
-import { colorHex, DEFAULT_COLOR_HEX, isCustomColor, LABEL_COLORS } from '@/lib/labelColors';
+import { useCustomColor } from '@/composables/useCustomColor';
+import { DEFAULT_COLOR_HEX, LABEL_COLORS } from '@/lib/labelColors';
 import { cn } from '@/lib/utils';
 
 const props = withDefaults(defineProps<{ size?: 'default' | 'lg' }>(), { size: 'default' });
@@ -12,49 +13,18 @@ const model = defineModel<string>({ required: true });
 // there without changing how they look everywhere else.
 const swatchSize = computed(() => (props.size === 'lg' ? 'size-6' : 'size-5'));
 
-const isCustom = computed(() => isCustomColor(model.value));
-
-/**
- * What the custom swatch shows and the native picker opens on. A palette colour
- * is still a starting point, so switching to custom does not jump to black.
- */
-const customHex = ref(isCustom.value ? model.value.toLowerCase() : colorHex(model.value));
-
-/** Free text while it is being typed: only a complete colour reaches the model. */
-const draft = ref(customHex.value);
-
-watch(model, (value) => {
-    if (isCustomColor(value)) {
-        customHex.value = value.toLowerCase();
-        draft.value = customHex.value;
-    }
-});
-
-function commit(value: string): void {
-    const candidate = value.startsWith('#') ? value : `#${value}`;
-
-    if (!isCustomColor(candidate)) {
-        return;
-    }
-
-    customHex.value = candidate.toLowerCase();
-    model.value = customHex.value;
-}
-
-/** Typing is committed as soon as it forms a colour, and ignored until then. */
-function onDraftInput(value: string): void {
-    draft.value = value;
-    commit(value);
-}
-
-/** Leaving a half-typed value behind would strand the field: put it back. */
-function onDraftBlur(): void {
-    draft.value = isCustom.value ? model.value.toLowerCase() : customHex.value;
-}
-
-function selectCustom(): void {
-    model.value = customHex.value;
-}
+const {
+    isCustom,
+    hex: customHex,
+    draft,
+    apply: commit,
+    onInput: onDraftInput,
+    onBlur: onDraftBlur,
+    select: selectCustom,
+} = useCustomColor(
+    () => model.value,
+    (hex) => (model.value = hex),
+);
 </script>
 
 <template>

@@ -89,7 +89,7 @@ class DashboardController extends Controller
     ): array {
         $transactions = Transaction::query()
             ->where('currency_id', $currency->id)
-            ->with(['currency', 'account', 'lines'])
+            ->with(TransactionProjector::RELATIONS)
             ->get();
 
         $series = collect(range(5, 0))

@@ -21,6 +21,18 @@ use Illuminate\Support\Collection;
 class TransactionProjector
 {
     /**
+     * What mapEntry() reads off every transaction it expands.
+     *
+     * Declared here rather than repeated at each call site because forgetting one
+     * costs a query per transaction and shows up as nothing worse than a slow
+     * page — the kind of regression that survives review. Callers pass this to
+     * with() instead of listing relations by hand.
+     *
+     * @var array<int, string>
+     */
+    public const RELATIONS = ['currency', 'account', 'tags:id', 'lines'];
+
+    /**
      * Expand every transaction into the entries visible within the given period.
      *
      * @param  Collection<int, Transaction>  $transactions

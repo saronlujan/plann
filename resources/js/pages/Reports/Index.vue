@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { DownloadIcon } from '@lucide/vue';
 import { computed } from 'vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import DatePicker from '@/components/ui/date-picker/DatePicker.vue';
@@ -107,19 +108,14 @@ function dateAsMonth(date: string): string {
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">{{ $t('reports.title') }}</h1>
-                    <span class="text-sm text-muted-foreground">{{ $t('reports.subtitle') }}</span>
-                </div>
-
+            <PageHeader :title="$t('reports.title')" :subtitle="$t('reports.subtitle')">
                 <Button v-if="ready" as-child variant="outline">
                     <a :href="exportUrl" download>
                         <DownloadIcon class="size-4" />
                         {{ $t('reports.export_pdf') }}
                     </a>
                 </Button>
-            </div>
+            </PageHeader>
 
             <Card v-if="!ready">
                 <p class="text-sm text-muted-foreground">{{ $t('reports.empty') }}</p>

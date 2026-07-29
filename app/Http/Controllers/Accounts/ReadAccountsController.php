@@ -11,6 +11,7 @@ use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Support\Accounts\AccountStatement;
 use App\Support\Accounts\CreditCardInvoice;
+use App\Support\Transactions\TransactionProjector;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class ReadAccountsController extends Controller
             ->map(function (Account $account) use ($statement, $invoice, $now, $monthStart): array {
                 $transactions = Transaction::query()
                     ->where('account_id', $account->id)
-                    ->with(['currency', 'account'])
+                    ->with(TransactionProjector::RELATIONS)
                     ->get();
 
                 // Fields the edit modal needs, present on every account. `balance`

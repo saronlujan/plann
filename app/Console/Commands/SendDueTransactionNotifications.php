@@ -44,7 +44,7 @@ class SendDueTransactionNotifications extends Command
                 return;
             }
 
-            $transactions = Transaction::query()->with(['currency', 'account'])->get();
+            $transactions = Transaction::query()->with(TransactionProjector::RELATIONS)->get();
 
             if ($transactions->isEmpty()) {
                 return;

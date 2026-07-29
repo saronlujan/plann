@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { DatabaseIcon, PlusIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import RowActionsMenu from '@/components/RowActionsMenu.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -71,15 +72,7 @@ function confirmDelete(): void {
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">
-                        {{ $t('services.title') }}
-                    </h1>
-                    <span class="text-sm text-muted-foreground">
-                        {{ $t('services.subtitle') }}
-                    </span>
-                </div>
+            <PageHeader :title="$t('services.title')" :subtitle="$t('services.subtitle')">
                 <Button
                     size="icon-lg"
                     class="rounded-full"
@@ -88,7 +81,7 @@ function confirmDelete(): void {
                 >
                     <PlusIcon />
                 </Button>
-            </div>
+            </PageHeader>
 
             <Card v-if="services.length > 0" class="gap-0 overflow-hidden p-0 md:p-0">
                 <CardContent class="p-0">

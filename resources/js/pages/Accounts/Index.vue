@@ -5,6 +5,7 @@ import { trans } from 'laravel-vue-i18n';
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import RowActionsMenu from '@/components/RowActionsMenu.vue';
 import Sparkline from '@/components/Sparkline.vue';
 import { Button } from '@/components/ui/button';
@@ -89,11 +90,7 @@ function confirmDelete(): void {
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">{{ $t('accounts.title') }}</h1>
-                    <span class="text-sm text-muted-foreground">{{ $t('accounts.subtitle') }}</span>
-                </div>
+            <PageHeader :title="$t('accounts.title')" :subtitle="$t('accounts.subtitle')">
                 <Button
                     size="icon-lg"
                     class="rounded-full"
@@ -103,7 +100,7 @@ function confirmDelete(): void {
                 >
                     <PlusIcon />
                 </Button>
-            </div>
+            </PageHeader>
 
             <div v-if="accounts.length > 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Link

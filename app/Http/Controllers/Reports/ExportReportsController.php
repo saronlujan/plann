@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Support\Exports\PdfExport;
 use App\Support\Reports\ReportBuilder;
+use App\Support\Transactions\TransactionProjector;
 use Carbon\CarbonImmutable;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -37,7 +38,7 @@ class ExportReportsController extends Controller
         $transactions = Transaction::query()
             ->where('currency_id', $currency->id)
             ->where('effective_date', '<=', $to->endOfMonth()->toDateString())
-            ->with(['currency', 'account'])
+            ->with(TransactionProjector::RELATIONS)
             ->get();
 
         $period = sprintf('%s — %s', $from->isoFormat('MMM/YYYY'), $to->isoFormat('MMM/YYYY'));

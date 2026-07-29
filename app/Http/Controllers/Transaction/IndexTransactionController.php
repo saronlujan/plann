@@ -38,7 +38,7 @@ class IndexTransactionController extends Controller
         $periodEnd = $period->endOfMonth();
 
         $transactions = Transaction::query()
-            ->with(['currency', 'account', 'tags:id', 'lines'])
+            ->with(TransactionProjector::RELATIONS)
             ->where('effective_date', '<=', $periodEnd->toDateString())
             ->where(function (Builder $query) use ($periodStart): void {
                 $query->where('type', '!=', 'unique')

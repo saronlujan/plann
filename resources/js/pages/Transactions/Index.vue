@@ -6,6 +6,7 @@ import { trans } from 'laravel-vue-i18n';
 import { Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -211,14 +212,7 @@ function openDetails(entry: TransactionEntry): void {
     <DefaultLayout>
         <!-- pb-24 leaves room for the fixed summary bar. -->
         <main class="flex flex-col gap-5 p-3 pb-24 md:p-5 md:pb-24">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex flex-col">
-                    <h1 class="text-lg font-semibold md:text-xl">{{ $t('transactions.title') }}</h1>
-                    <span class="text-sm text-muted-foreground">
-                        {{ $t('transactions.subtitle') }}
-                    </span>
-                </div>
-
+            <PageHeader :title="$t('transactions.title')" :subtitle="$t('transactions.subtitle')">
                 <div ref="createMenuRef" class="relative">
                     <Button
                         class="shrink-0 rounded-full"
@@ -249,7 +243,7 @@ function openDetails(entry: TransactionEntry): void {
                         </button>
                     </div>
                 </div>
-            </div>
+            </PageHeader>
 
             <Card v-if="hasEntries" class="gap-0 overflow-hidden p-0 md:p-0">
                 <CardContent class="p-0">

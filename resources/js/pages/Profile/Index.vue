@@ -4,6 +4,7 @@ import { trans } from 'laravel-vue-i18n';
 import { Pencil } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -119,10 +120,7 @@ function submitPassword(): void {
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
-            <div class="flex flex-col">
-                <h1 class="text-lg font-semibold md:text-xl">{{ $t('profile.title') }}</h1>
-                <span class="text-sm text-muted-foreground">{{ $t('profile.subtitle') }}</span>
-            </div>
+            <PageHeader :title="$t('profile.title')" :subtitle="$t('profile.subtitle')" />
 
             <Card>
                 <div

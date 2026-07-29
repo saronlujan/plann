@@ -9,6 +9,7 @@ use App\Models\Currency;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Support\Reports\ReportBuilder;
+use App\Support\Transactions\TransactionProjector;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,7 +33,7 @@ class IndexReportsController extends Controller
         $transactions = Transaction::query()
             ->where('currency_id', $currency->id)
             ->where('effective_date', '<=', $to->endOfMonth()->toDateString())
-            ->with(['currency', 'account'])
+            ->with(TransactionProjector::RELATIONS)
             ->get();
 
         return Inertia::render('Reports/Index', [

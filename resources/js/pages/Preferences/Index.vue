@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { CheckIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, ref } from 'vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,8 +16,9 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { applyAppearance, paletteSwatch } from '@/composables/useAppearance';
 import type { ColorValue, ThemeValue } from '@/composables/useAppearance';
+import { useCustomColor } from '@/composables/useCustomColor';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
-import { DEFAULT_COLOR_HEX, isCustomColor } from '@/lib/labelColors';
+import { DEFAULT_COLOR_HEX } from '@/lib/labelColors';
 import { playSound } from '@/lib/sound';
 import type { SoundValue } from '@/lib/sound';
 import { update as updatePreferences } from '@/routes/preferences';
@@ -122,34 +124,20 @@ function selectColor(value: string): void {
     persist();
 }
 
-const isCustomAccent = computed(() => isCustomColor(color.value));
-
-/**
- * What the custom swatch shows and the native picker opens on. A palette accent
- * is still a starting point, so switching to custom does not jump to black.
- */
-const customHex = ref(isCustomAccent.value ? color.value : DEFAULT_COLOR_HEX);
-
-/** Free text while it is being typed: only a complete colour reaches the model. */
-const customDraft = ref(customHex.value);
-
-function commitCustomColor(value: string): void {
-    const candidate = value.startsWith('#') ? value : `#${value}`;
-
-    if (!isCustomColor(candidate)) {
-        return;
-    }
-
-    customHex.value = candidate.toLowerCase();
-    customDraft.value = customHex.value;
-    color.value = customHex.value as ColorValue;
-    persistWhenSettled();
-}
-
-/** Leaving a half-typed value behind would strand the field: put it back. */
-function restoreCustomDraft(): void {
-    customDraft.value = customHex.value;
-}
+const {
+    isCustom: isCustomAccent,
+    hex: customHex,
+    draft: customDraft,
+    apply: commitCustomColor,
+    onInput: onCustomHexInput,
+    onBlur: restoreCustomDraft,
+} = useCustomColor(
+    () => color.value,
+    (hex) => {
+        color.value = hex as ColorValue;
+        persistWhenSettled();
+    },
+);
 </script>
 
 <template>
@@ -157,12 +145,7 @@ function restoreCustomDraft(): void {
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
-            <div class="flex flex-col">
-                <h1 class="text-lg font-semibold md:text-xl">{{ $t('preferences.title') }}</h1>
-                <span class="text-sm text-muted-foreground">
-                    {{ $t('preferences.subtitle') }}
-                </span>
-            </div>
+            <PageHeader :title="$t('preferences.title')" :subtitle="$t('preferences.subtitle')" />
             <Card>
                 <div
                     class="grid grid-cols-12 gap-5 border-b border-zinc-100 pb-5 dark:border-zinc-800"
@@ -296,12 +279,7 @@ function restoreCustomDraft(): void {
                                 maxlength="7"
                                 :placeholder="DEFAULT_COLOR_HEX"
                                 :aria-label="$t('common.color.custom')"
-                                @update:model-value="
-                                    (value) => {
-                                        customDraft = String(value);
-                                        commitCustomColor(String(value));
-                                    }
-                                "
+                                @update:model-value="(value) => onCustomHexInput(String(value))"
                                 @blur="restoreCustomDraft"
                             />
                         </div>

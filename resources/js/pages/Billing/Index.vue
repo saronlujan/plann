@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { CheckIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
@@ -128,12 +129,7 @@ function subscribe(plan: Plan): void {
 
     <DefaultLayout>
         <main class="flex flex-col gap-5 p-3 md:p-5">
-            <div class="flex flex-col">
-                <h1 class="text-lg font-semibold md:text-xl">{{ $t('billing.title') }}</h1>
-                <span class="text-sm text-muted-foreground">
-                    {{ $t('billing.subtitle') }}
-                </span>
-            </div>
+            <PageHeader :title="$t('billing.title')" :subtitle="$t('billing.subtitle')" />
 
             <Card>
                 <CardContent class="flex-row flex-wrap items-center justify-between gap-3 p-5">

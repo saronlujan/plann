@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Transaction;
 use App\Support\Accounts\AccountStatement;
 use App\Support\Accounts\CreditCardInvoice;
+use App\Support\Transactions\TransactionProjector;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -21,7 +22,7 @@ class ShowAccountController extends Controller
     {
         $transactions = Transaction::query()
             ->where('account_id', $account->id)
-            ->with(['currency', 'account'])
+            ->with(TransactionProjector::RELATIONS)
             ->get();
 
         $categories = Category::query()->get()->keyBy('id');

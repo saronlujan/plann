@@ -3,11 +3,14 @@
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Currency;
+use App\Models\Service;
+use App\Models\Tag;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 use function Pest\Laravel\actingAs;
 
@@ -274,4 +277,30 @@ test('a workspace with no account has no report to download', function () {
     ]);
 
     actingAs($user)->get('/reports/export')->assertNotFound();
+});
+
+test('the report loads in a constant number of queries', function () {
+    [$user, $account, $currency] = reportsFixture('reports-n1@example.com');
+
+    $tag = Tag::create(['tenant_id' => $user->tenant_id, 'name' => 'fixo', 'color' => 'blue']);
+    $service = Service::create(['tenant_id' => $user->tenant_id, 'name' => 'Hospedagem', 'color' => 'blue']);
+
+    foreach (range(1, 12) as $day) {
+        $transaction = reportsEntry($account, $currency, 'expense', sprintf('2026-03-%02d', $day), 100.00);
+        $transaction->tags()->attach($tag->id);
+        $transaction->lines()->create([
+            'tenant_id' => $user->tenant_id,
+            'service_id' => $service->id,
+            'amount' => '100.00',
+        ]);
+    }
+
+    // The projector reads tags and lines off every transaction it expands; without
+    // eager loading that is two queries per row rather than two in total.
+    DB::enableQueryLog();
+    actingAs($user)->get('/reports?from=2026-03&to=2026-03')->assertSuccessful();
+    $queries = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($queries)->toBeLessThan(20);
 });

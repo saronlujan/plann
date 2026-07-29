@@ -38,7 +38,7 @@ class SendTestTransactionNotification extends Command
         $context->setTenantId($user->tenant_id);
 
         $today = CarbonImmutable::now()->startOfDay();
-        $transactions = Transaction::query()->with(['currency', 'account'])->get();
+        $transactions = Transaction::query()->with(TransactionProjector::RELATIONS)->get();
 
         $items = $this->itemsDueToday($projector, $transactions, $today);
 
