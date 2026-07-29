@@ -51,6 +51,9 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(base_path('routes/tags.php'));
 
             Route::middleware(['web', 'auth', 'verified', 'subscribed'])
+                ->group(base_path('routes/services.php'));
+
+            Route::middleware(['web', 'auth', 'verified', 'subscribed'])
                 ->group(base_path('routes/reports.php'));
 
             // Billing and preferences stay reachable even when the trial lapses,

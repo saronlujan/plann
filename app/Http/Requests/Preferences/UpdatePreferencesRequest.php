@@ -24,7 +24,7 @@ class UpdatePreferencesRequest extends FormRequest
         return [
             'locale' => ['sometimes', 'required', Rule::in(['pt', 'en', 'es'])],
             'theme' => ['sometimes', 'required', Rule::enum(UserTheme::class)],
-            'color' => ['sometimes', 'required', Rule::enum(UserColor::class)],
+            'color' => ['sometimes', ...UserColor::validationRules()],
             'sound_enabled' => ['sometimes', 'required', 'boolean'],
             'sound_theme' => ['sometimes', 'required', Rule::enum(SoundTheme::class)],
             'notifications_enabled' => ['sometimes', 'required', 'boolean'],
@@ -39,5 +39,18 @@ class UpdatePreferencesRequest extends FormRequest
                     ->where('tenant_id', $this->user()?->tenant_id),
             ],
         ];
+    }
+
+    /**
+     * A hand-picked accent is folded to lowercase, so the same colour is never
+     * stored two ways depending on how it was typed.
+     */
+    protected function prepareForValidation(): void
+    {
+        $color = $this->input('color');
+
+        if (is_string($color)) {
+            $this->merge(['color' => UserColor::normalize($color)]);
+        }
     }
 }

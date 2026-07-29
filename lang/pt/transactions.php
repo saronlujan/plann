@@ -113,6 +113,9 @@ return [
         'note' => 'Nota',
         'observations' => 'Observações e comentários',
         'category' => 'Categoria',
+        'contact' => 'Contato',
+        'services' => 'Serviços',
+        'extras' => 'Adicionar anexo ou notas',
         'tags' => 'Tags',
         'repeat_until' => 'Repetir até (opcional)',
         'repeat_until_short' => 'Repetir até',
@@ -138,6 +141,8 @@ return [
         'observations' => 'Detalhes que não cabem na descrição',
         'category' => 'Selecione a categoria',
         'no_categories' => 'Nenhuma categoria cadastrada',
+        'contact' => 'Selecione o contato',
+        'no_contacts' => 'Nenhum contato cadastrado',
         'tags' => 'Selecione tags',
         'no_tags' => 'Nenhuma tag cadastrada',
         'no_tags_found' => 'Nenhuma tag encontrada.',
@@ -148,5 +153,12 @@ return [
 
     'hints' => [
         'repeat_until' => 'Deixe em branco para uma recorrência sem fim.',
+    ],
+
+    'services' => [
+        'add' => 'Adicionar serviço',
+        'remove' => 'Remover serviço',
+        'unattributed' => 'Não atribuído',
+        'total_hint' => 'Somado a partir dos serviços.',
     ],
 ];

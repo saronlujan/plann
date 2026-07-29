@@ -30,12 +30,16 @@ import transactions from '@/routes/transactions';
 import type {
     AccountOption,
     CategoryOption,
+    ContactOption,
     CurrencyOption,
     Option,
+    ServiceLine,
+    ServiceOption,
     TagOption,
     TransactionEntry,
 } from '../types';
 import AttachmentField from './AttachmentField.vue';
+import ServiceLinesField from './ServiceLinesField.vue';
 import TagsSelect from './TagsSelect.vue';
 
 type TransactionFormData = {
@@ -43,10 +47,11 @@ type TransactionFormData = {
     type: string;
     description: string;
     note: string;
-    observations: string;
     currency_id: string;
     account_id: string;
     category_id: string;
+    contact_id: string;
+    services: ServiceLine[];
     tags: number[];
     destination_account_id: string;
     effective_date: string;
@@ -70,6 +75,8 @@ const props = withDefaults(
         scheduleTypeOptions: Option[];
         frequencyOptions: Option[];
         categoryOptions: CategoryOption[];
+        contactOptions: ContactOption[];
+        serviceOptions: ServiceOption[];
         tagOptions: TagOption[];
         entry?: TransactionEntry | null;
         initialMovementType?: string;
@@ -145,10 +152,11 @@ function buildInitialValues(): TransactionFormData {
             type: entry.schedule_type,
             description: entry.description,
             note: entry.note ?? '',
-            observations: entry.observations ?? '',
             currency_id: entry.currency_id.toString(),
             account_id: entry.account_id?.toString() ?? '',
             category_id: entry.category_id?.toString() ?? '',
+            contact_id: entry.contact_id?.toString() ?? '',
+            services: (entry.services ?? []).map((line) => ({ ...line })),
             tags: [...(entry.tag_ids ?? [])],
             destination_account_id: '',
             effective_date: entry.effective_date,
@@ -169,10 +177,11 @@ function buildInitialValues(): TransactionFormData {
         type: 'unique',
         description: '',
         note: '',
-        observations: '',
         currency_id: defaultCurrencyId.value,
         account_id: defaultAccountId.value,
         category_id: '',
+        contact_id: '',
+        services: [],
         tags: [],
         destination_account_id: '',
         effective_date: todayIsoDate(),
@@ -240,6 +249,32 @@ const categorySelectOptions = computed(() => {
     return list;
 });
 
+// The breakdown stays out of the way until the workspace registers a service, so
+// the ordinary entry — groceries, rent — is no heavier than it was.
+const servicesEnabled = computed(
+    () => props.serviceOptions.length > 0 && !isTransferMovement.value,
+);
+
+const hasServiceLines = computed(() => form.services.length > 0);
+
+const serviceLinesTotal = computed(() =>
+    form.services
+        .reduce((total, line) => total + (Number.parseFloat(line.amount) || 0), 0)
+        .toFixed(2),
+);
+
+// Once an entry is broken down it is worth the sum of its parts, so the total
+// stops being typed and starts being read. The server recomputes it regardless.
+watch(
+    [() => form.services, serviceLinesTotal],
+    () => {
+        if (hasServiceLines.value) {
+            form.amount = serviceLinesTotal.value;
+        }
+    },
+    { deep: true },
+);
+
 const accountLabel = computed(() =>
     isTransferMovement.value
         ? trans('transactions.fields.source_account')
@@ -272,10 +307,18 @@ function closeModal(): void {
 // PDFs, and the hint promises exactly that.
 const ATTACHMENT_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf';
 
-// The file input stays hidden until asked for: most entries have no receipt, and
-// an empty file field in every form is just noise. An entry that already has one
-// opens with it showing.
-const attachmentEnabled = ref(props.entry?.attachment != null);
+/**
+ * Whether an entry carries any of the optional trailing fields, which is what
+ * decides if the form opens with them showing.
+ */
+function hasExtras(entry: TransactionEntry | null): boolean {
+    return entry != null && (entry.attachment != null || (entry.note ?? '') !== '');
+}
+
+// The receipt and the note stay folded away until asked for: most entries have
+// neither, and empty fields at the foot of every form are just noise. An entry
+// that already carries one opens with them showing.
+const extrasEnabled = ref(hasExtras(props.entry));
 
 const storedAttachment = computed(() => props.entry?.attachment ?? null);
 
@@ -283,12 +326,17 @@ const storedAttachmentUrl = computed(() =>
     props.entry ? transactions.attachment(props.entry.transaction_id).url : '',
 );
 
-function toggleAttachment(enabled: boolean): void {
-    attachmentEnabled.value = enabled;
+function toggleExtras(enabled: boolean): void {
+    extrasEnabled.value = enabled;
 
-    if (!enabled) {
-        form.attachment = null;
+    if (enabled) {
+        return;
     }
+
+    // Folding them away means the entry has none: leaving values behind would
+    // save text nobody can see.
+    form.attachment = null;
+    form.note = '';
 }
 
 function submitTransaction(): void {
@@ -320,7 +368,7 @@ watch(
             return;
         }
 
-        attachmentEnabled.value = props.entry?.attachment != null;
+        extrasEnabled.value = hasExtras(props.entry);
         form.defaults(buildInitialValues());
         form.reset();
         form.clearErrors();
@@ -356,6 +404,11 @@ watch(
 
             return;
         }
+
+        // A transfer moves between the user's own accounts: nobody is on the
+        // other side of it, and nothing was sold.
+        form.contact_id = '';
+        form.services = [];
 
         const nextDestinationAccountId = destinationAccountOptions.value[0]?.id.toString() ?? '';
 
@@ -498,8 +551,13 @@ watch(
                             name="amount"
                             :symbol="selectedCurrency?.symbol"
                             :code="selectedCurrency?.code"
+                            :readonly="hasServiceLines"
+                            :class="hasServiceLines ? 'bg-muted' : undefined"
                             :placeholder="$t('transactions.placeholders.amount')"
                         />
+                        <p v-if="hasServiceLines" class="text-xs text-muted-foreground">
+                            {{ $t('transactions.services.total_hint') }}
+                        </p>
                         <FormError :message="form.errors.amount" />
                     </FormGroup>
 
@@ -698,12 +756,43 @@ watch(
                         <FormError :message="form.errors.destination_account_id" />
                     </FormGroup>
 
+                    <!--
+                        Paired across the two columns: when it happened and who it
+                        was with, then how it is filed and labelled.
+                    -->
                     <FormGroup>
                         <DatePicker
                             v-model="form.effective_date"
                             :label="$t('transactions.fields.effective_date')"
                         />
                         <FormError :message="form.errors.effective_date" />
+                    </FormGroup>
+
+                    <FormGroup v-if="!isTransferMovement">
+                        <FormLabel for="tx-contact">{{
+                            $t('transactions.fields.contact')
+                        }}</FormLabel>
+                        <Select v-model="form.contact_id" :disabled="contactOptions.length === 0">
+                            <SelectTrigger id="tx-contact">
+                                <SelectValue
+                                    :placeholder="
+                                        contactOptions.length === 0
+                                            ? $t('transactions.placeholders.no_contacts')
+                                            : $t('transactions.placeholders.contact')
+                                    "
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="contact in contactOptions"
+                                    :key="contact.id"
+                                    :value="contact.id.toString()"
+                                >
+                                    {{ contact.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormError :message="form.errors.contact_id" />
                     </FormGroup>
 
                     <!--
@@ -763,58 +852,70 @@ watch(
                         <FormError :message="form.errors.tags" />
                     </FormGroup>
 
-                    <FormGroup class="md:col-span-2">
-                        <div class="flex items-center gap-2.5">
-                            <Switch
-                                id="tx-attachment-toggle"
-                                size="sm"
-                                :model-value="attachmentEnabled"
-                                @update:model-value="toggleAttachment"
-                            />
-                            <FormLabel for="tx-attachment-toggle" class="cursor-pointer">
-                                {{ $t('transactions.fields.attachment') }}
-                            </FormLabel>
-                        </div>
-
-                        <AttachmentField
-                            v-if="attachmentEnabled"
-                            v-model="form.attachment"
-                            :stored-name="storedAttachment"
-                            :stored-url="storedAttachmentUrl"
-                            :accept="ATTACHMENT_ACCEPT"
+                    <!--
+                        Across the full width, and only once the workspace has
+                        registered a service: a line needs the room, and everyone
+                        who does not sell should not have to look at it.
+                    -->
+                    <FormGroup v-if="servicesEnabled" class="md:col-span-2">
+                        <FormLabel>{{ $t('transactions.fields.services') }}</FormLabel>
+                        <ServiceLinesField
+                            v-model="form.services"
+                            :service-options="serviceOptions"
+                            :currency-id="form.currency_id"
+                            :symbol="selectedCurrency?.symbol"
+                            :code="selectedCurrency?.code"
+                            :errors="form.errors"
                         />
-                        <FormError :message="form.errors.attachment" />
                     </FormGroup>
 
                     <!--
-                        Closing the form: a short label of the user's own, and the
-                        room the description does not have.
+                        Closing the form, behind one switch: the receipt, a short
+                        label of the user's own, and the room the description does
+                        not have. Rarely used, so rarely shown.
                     -->
                     <FormGroup class="md:col-span-2">
-                        <FormLabel for="tx-note">{{ $t('transactions.fields.note') }}</FormLabel>
-                        <Input
-                            id="tx-note"
-                            v-model="form.note"
-                            type="text"
-                            name="note"
-                            :placeholder="$t('transactions.placeholders.note')"
-                        />
-                        <FormError :message="form.errors.note" />
+                        <div class="flex items-center gap-2.5">
+                            <Switch
+                                id="tx-extras-toggle"
+                                size="sm"
+                                :model-value="extrasEnabled"
+                                @update:model-value="toggleExtras"
+                            />
+                            <FormLabel for="tx-extras-toggle" class="cursor-pointer">
+                                {{ $t('transactions.fields.extras') }}
+                            </FormLabel>
+                        </div>
                     </FormGroup>
 
-                    <FormGroup class="md:col-span-2">
-                        <FormLabel for="tx-observations">{{
-                            $t('transactions.fields.observations')
-                        }}</FormLabel>
-                        <Textarea
-                            id="tx-observations"
-                            v-model="form.observations"
-                            name="observations"
-                            rows="3"
-                            :placeholder="$t('transactions.placeholders.observations')"
-                        />
-                        <FormError :message="form.errors.observations" />
-                    </FormGroup>
+                    <template v-if="extrasEnabled">
+                        <FormGroup class="md:col-span-2">
+                            <!-- No `for`: the field owns a hidden input and renders
+                                 its own drop area, so there is nothing to point at. -->
+                            <FormLabel>{{ $t('transactions.fields.attachment') }}</FormLabel>
+                            <AttachmentField
+                                v-model="form.attachment"
+                                :stored-name="storedAttachment"
+                                :stored-url="storedAttachmentUrl"
+                                :accept="ATTACHMENT_ACCEPT"
+                            />
+                            <FormError :message="form.errors.attachment" />
+                        </FormGroup>
+
+                        <FormGroup class="md:col-span-2">
+                            <FormLabel for="tx-note">{{
+                                $t('transactions.fields.note')
+                            }}</FormLabel>
+                            <Textarea
+                                id="tx-note"
+                                v-model="form.note"
+                                name="note"
+                                rows="3"
+                                :placeholder="$t('transactions.placeholders.note')"
+                            />
+                            <FormError :message="form.errors.note" />
+                        </FormGroup>
+                    </template>
 
                     <!--
                         A recurring transaction runs open-endedly, so there is no end

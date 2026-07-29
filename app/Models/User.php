@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Actions\Auth\SendEmailVerificationPin;
-use App\Enums\UserColor;
 use App\Enums\UserTheme;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -27,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $phone
  * @property string $locale
  * @property UserTheme $theme
- * @property UserColor $color
+ * @property string $color A palette name, or a hand-picked `#rrggbb`.
  * @property bool $sound_enabled
  * @property string $sound_theme
  * @property bool $notifications_enabled
@@ -72,7 +71,6 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'email_verified_at' => 'datetime',
             'theme' => UserTheme::class,
-            'color' => UserColor::class,
             'sound_enabled' => 'boolean',
             'notifications_enabled' => 'boolean',
             'notify_days_before' => 'integer',

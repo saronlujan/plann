@@ -9,6 +9,7 @@ use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Support\Transactions\TransactionAttachments;
+use App\Support\Transactions\TransactionLines;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,10 @@ use Illuminate\Support\Str;
 
 class StoreTransactionController extends Controller
 {
-    public function __construct(private readonly TransactionAttachments $attachments) {}
+    public function __construct(
+        private readonly TransactionAttachments $attachments,
+        private readonly TransactionLines $lines,
+    ) {}
 
     public function __invoke(StoreTransactionRequest $request): RedirectResponse
     {
@@ -26,8 +30,13 @@ class StoreTransactionController extends Controller
             return $this->storeTransfer($validated, $request);
         }
 
-        $transaction = Transaction::query()->create($this->payload($validated, $request));
-        $transaction->tags()->sync($validated['tags'] ?? []);
+        $transaction = DB::transaction(function () use ($validated, $request): Transaction {
+            $transaction = Transaction::query()->create($this->payload($validated, $request));
+            $transaction->tags()->sync($validated['tags'] ?? []);
+            $this->lines->sync($transaction, $validated);
+
+            return $transaction;
+        });
 
         return to_route('transactions.index', [
             'period' => $transaction->effective_date->format('Y-m'),
@@ -44,6 +53,7 @@ class StoreTransactionController extends Controller
             'account_id' => $validated['account_id'] ?? null,
             'currency_id' => $validated['currency_id'],
             'category_id' => $validated['category_id'] ?? null,
+            'contact_id' => $validated['contact_id'] ?? null,
             'movement_type' => $validated['movement_type'],
             'type' => $validated['type'],
             'installment_frequency' => $validated['installment_frequency'] ?? null,
@@ -56,7 +66,7 @@ class StoreTransactionController extends Controller
             'effective_until' => $validated['effective_until'] ?? null,
             'adjustment_month' => $validated['adjustment_month'] ?? null,
             'paid_at' => ($validated['paid'] ?? false) ? $validated['effective_date'] : null,
-            'amount' => $validated['amount'],
+            'amount' => $this->lines->amountFor($validated),
             'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
             'description' => $validated['description'],
             'note' => $validated['note'] ?? null,

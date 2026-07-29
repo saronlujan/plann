@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\LabelColor;
 use App\Models\Concerns\BelongsToTenant;
 use App\Support\Tenancy\TenantContext;
 use Database\Factories\TagFactory;
@@ -15,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int $id
  * @property int $tenant_id
  * @property string $name
- * @property LabelColor $color
+ * @property string $color A palette name, or a hand-picked `#rrggbb`.
  */
 class Tag extends Model
 {
@@ -28,10 +27,6 @@ class Tag extends Model
         'tenant_id',
         'name',
         'color',
-    ];
-
-    protected $casts = [
-        'color' => LabelColor::class,
     ];
 
     /**

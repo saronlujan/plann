@@ -23,7 +23,7 @@ class IndexCategoriesController extends Controller
                     'id' => $category->id,
                     'name' => $category->name,
                     'type' => $category->type->value,
-                    'color' => $category->color->value,
+                    'color' => $category->color,
                 ])
                 ->all(),
             'categoryTypeOptions' => array_map(

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
 use App\Models\Transaction;
 use App\Support\Transactions\TransactionAttachments;
+use App\Support\Transactions\TransactionLines;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,10 @@ use Illuminate\Support\Str;
 
 class UpdateTransactionController extends Controller
 {
-    public function __construct(private readonly TransactionAttachments $attachments) {}
+    public function __construct(
+        private readonly TransactionAttachments $attachments,
+        private readonly TransactionLines $lines,
+    ) {}
 
     public function __invoke(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
     {
@@ -44,9 +48,12 @@ class UpdateTransactionController extends Controller
 
         $previousAttachment = $transaction->attachment;
 
-        $transaction->fill($this->payload($validated, $transaction, $attachmentFile));
-        $transaction->save();
-        $transaction->tags()->sync($validated['tags'] ?? []);
+        DB::transaction(function () use ($transaction, $validated, $attachmentFile): void {
+            $transaction->fill($this->payload($validated, $transaction, $attachmentFile));
+            $transaction->save();
+            $transaction->tags()->sync($validated['tags'] ?? []);
+            $this->lines->sync($transaction, $validated);
+        });
 
         $this->attachments->discardReplaced($newAttachment, $previousAttachment, $attachmentFile);
 
@@ -138,6 +145,7 @@ class UpdateTransactionController extends Controller
             'account_id' => $validated['account_id'] ?? null,
             'currency_id' => $validated['currency_id'],
             'category_id' => $validated['category_id'] ?? null,
+            'contact_id' => $validated['contact_id'] ?? null,
             'movement_type' => $validated['movement_type'],
             'type' => $scheduleType,
             'installment_frequency' => $validated['installment_frequency'] ?? null,
@@ -150,7 +158,7 @@ class UpdateTransactionController extends Controller
             'effective_until' => $validated['effective_until'] ?? null,
             'adjustment_month' => $validated['adjustment_month'] ?? null,
             'paid_at' => $this->paidAt($validated, $transaction),
-            'amount' => $validated['amount'],
+            'amount' => $this->lines->amountFor($validated),
             'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
             'description' => $validated['description'] ?? $transaction->description,
             'note' => $validated['note'] ?? $transaction->note,
@@ -176,6 +184,7 @@ class UpdateTransactionController extends Controller
                 'account_id' => $validated['account_id'] ?? $transaction->account_id,
                 'currency_id' => $validated['currency_id'],
                 'category_id' => $validated['category_id'] ?? $transaction->category_id,
+                'contact_id' => $validated['contact_id'] ?? $transaction->contact_id,
                 'movement_type' => $validated['movement_type'],
                 'type' => TransactionType::Recurring->value,
                 'installment_frequency' => null,
@@ -188,7 +197,7 @@ class UpdateTransactionController extends Controller
                 'effective_until' => null,
                 'adjustment_month' => $occurrenceDate->toDateString(),
                 'paid_at' => $this->paidAt($validated, $transaction),
-                'amount' => $validated['amount'],
+                'amount' => $this->lines->amountFor($validated),
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
                 'description' => $validated['description'] ?? $transaction->description,
                 'note' => $validated['note'] ?? $transaction->note,
@@ -196,6 +205,7 @@ class UpdateTransactionController extends Controller
             ]);
 
             $occurrence->tags()->sync($validated['tags'] ?? []);
+            $this->lines->sync($occurrence, $validated);
         });
 
         return to_route('transactions.index', [
@@ -226,6 +236,7 @@ class UpdateTransactionController extends Controller
                 'account_id' => $validated['account_id'] ?? $transaction->account_id,
                 'currency_id' => $validated['currency_id'],
                 'category_id' => $validated['category_id'] ?? $transaction->category_id,
+                'contact_id' => $validated['contact_id'] ?? $transaction->contact_id,
                 'movement_type' => $validated['movement_type'],
                 'type' => TransactionType::Recurring->value,
                 'installment_frequency' => null,
@@ -238,7 +249,7 @@ class UpdateTransactionController extends Controller
                 'effective_until' => null,
                 'adjustment_month' => null,
                 'paid_at' => $this->paidAt($validated, $transaction),
-                'amount' => $validated['amount'],
+                'amount' => $this->lines->amountFor($validated),
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
                 'description' => $validated['description'] ?? $transaction->description,
                 'note' => $validated['note'] ?? $transaction->note,
@@ -246,6 +257,7 @@ class UpdateTransactionController extends Controller
             ]);
 
             $following->tags()->sync($validated['tags'] ?? []);
+            $this->lines->sync($following, $validated);
 
             return $following;
         });

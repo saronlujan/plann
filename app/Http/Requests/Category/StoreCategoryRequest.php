@@ -23,8 +23,21 @@ class StoreCategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:60', $this->uniqueNameRule()],
             'type' => ['required', Rule::enum(CategoryType::class)],
-            'color' => ['required', Rule::enum(LabelColor::class)],
+            'color' => LabelColor::validationRules(),
         ];
+    }
+
+    /**
+     * A hand-picked colour is folded to lowercase, so the same colour is never
+     * stored two ways depending on how it was typed.
+     */
+    protected function prepareForValidation(): void
+    {
+        $color = $this->input('color');
+
+        if (is_string($color)) {
+            $this->merge(['color' => LabelColor::normalize($color)]);
+        }
     }
 
     protected function uniqueNameRule(): Unique

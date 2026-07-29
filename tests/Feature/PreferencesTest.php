@@ -75,7 +75,7 @@ test('users may update appearance and language preferences', function () {
 
     expect($user->locale)->toBe('es');
     expect($user->theme)->toBe(UserTheme::Dark);
-    expect($user->color)->toBe(UserColor::Blue);
+    expect($user->color)->toBe(UserColor::Blue->value);
 });
 
 test('users may toggle the paid sound preference', function () {
@@ -134,7 +134,7 @@ test('the header switcher may update only the locale', function () {
     expect($user->locale)->toBe('en');
     // Untouched preferences keep their defaults.
     expect($user->theme)->toBe(UserTheme::Light);
-    expect($user->color)->toBe(UserColor::Zinc);
+    expect($user->color)->toBe(UserColor::Zinc->value);
 });
 
 test('preferences update rejects an unsupported color', function () {
@@ -237,4 +237,28 @@ test('a currency with no account is not offered as a default', function () {
         ->assertInertia(fn ($page) => $page
             ->has('currencyOptions', 1)
             ->where('currencyOptions.0.value', (string) $brl->id));
+});
+
+test('the accent may be a colour of the user own choosing', function () {
+    $user = makePreferencesUser('accent-custom@example.com');
+
+    actingAs($user)
+        ->patch('/preferences', ['color' => '#6361F3'])
+        ->assertRedirect();
+
+    // Folded to lowercase, so the same accent is never stored two ways.
+    expect($user->fresh()?->color)->toBe('#6361f3');
+});
+
+test('an accent that is neither in the palette nor a hex is rejected', function () {
+    $user = makePreferencesUser('accent-invalid@example.com');
+
+    foreach (['rebeccapurple', '#63f', '#6361FG', 'blue; background: red'] as $color) {
+        actingAs($user)
+            ->patch('/preferences', ['color' => $color])
+            ->assertSessionHasErrors('color');
+    }
+
+    // Nothing got through: the accent is still the default.
+    expect($user->fresh()?->color)->toBe('zinc');
 });

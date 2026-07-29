@@ -16,9 +16,14 @@ return [
         'logout' => 'Desconectar',
     ],
 
+    'color' => [
+        'custom' => 'Personalizada',
+    ],
+
     'settings_menu' => [
         'contacts' => 'Contatos',
         'categories' => 'Categorias',
+        'services' => 'Serviços',
         'tags' => 'Tags',
         'accounts' => 'Contas',
     ],

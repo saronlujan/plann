@@ -47,8 +47,10 @@ import { formatCurrency, formatDate } from './format';
 import type {
     AccountOption,
     CategoryOption,
+    ContactOption,
     CurrencyOption,
     Option,
+    ServiceOption,
     TagOption,
     TransactionEntry,
     TransactionSummary,
@@ -62,6 +64,8 @@ const props = defineProps<{
     currencyOptions: CurrencyOption[];
     accountOptions: AccountOption[];
     categoryOptions: CategoryOption[];
+    contactOptions: ContactOption[];
+    serviceOptions: ServiceOption[];
     tagOptions: TagOption[];
     entries: TransactionEntry[];
     summaries: TransactionSummary[];
@@ -442,6 +446,8 @@ function openDetails(entry: TransactionEntry): void {
                 :schedule-type-options="scheduleTypeOptions"
                 :frequency-options="frequencyOptions"
                 :category-options="categoryOptions"
+                :contact-options="contactOptions"
+                :service-options="serviceOptions"
                 :tag-options="tagOptions"
             />
 

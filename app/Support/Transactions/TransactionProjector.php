@@ -7,6 +7,7 @@ use App\Enums\TransactionMovementType;
 use App\Enums\TransactionType;
 use App\Models\Currency;
 use App\Models\Transaction;
+use App\Models\TransactionLine;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -181,6 +182,8 @@ class TransactionProjector
                     'is_transfer' => (bool) $transaction->is_transfer,
                     'attachment' => $transaction->attachment,
                     'category_id' => $transaction->category_id,
+                    'contact_id' => $transaction->contact_id,
+                    'services' => $this->linesFor($transaction),
                     'tag_ids' => $transaction->tags->pluck('id')->all(),
                     'label' => sprintf('%s - parcela %d/%d', $transaction->description, $installmentNumber, $transaction->installments_total),
                     'currency_code' => $transaction->currency->code,
@@ -273,6 +276,8 @@ class TransactionProjector
             'is_transfer' => (bool) $transaction->is_transfer,
             'attachment' => $transaction->attachment,
             'category_id' => $transaction->category_id,
+            'contact_id' => $transaction->contact_id,
+            'services' => $this->linesFor($transaction),
             'tag_ids' => $transaction->tags->pluck('id')->all(),
             'currency_code' => $transaction->currency->code,
             'currency_symbol' => $transaction->currency->symbol,
@@ -295,6 +300,30 @@ class TransactionProjector
             'account_kind' => $transaction->account?->kind?->value,
             ...$overrides,
         ];
+    }
+
+    /**
+     * The breakdown, carried on every occurrence the transaction expands into.
+     *
+     * An occurrence is worth the transaction's amount — a monthly contract earns
+     * the same each month, and this app reads an instalment as the value of one
+     * payment — so its lines are worth the same each time too.
+     *
+     * It travels with the entry for two reasons: editing hands it straight back,
+     * including the lines whose service was retired, which would otherwise vanish
+     * and take their amount along; and the reports group on it.
+     *
+     * @return array<int, array{service_id: int|null, amount: string}>
+     */
+    private function linesFor(Transaction $transaction): array
+    {
+        return $transaction->lines
+            ->map(fn (TransactionLine $line): array => [
+                'service_id' => $line->service_id,
+                'amount' => $this->formatMoney($line->amount),
+            ])
+            ->values()
+            ->all();
     }
 
     private function clampDate(CarbonImmutable $date, CarbonImmutable $periodStart): string

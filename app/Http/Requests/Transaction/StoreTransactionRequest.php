@@ -31,9 +31,11 @@ class StoreTransactionRequest extends FormRequest
             // A transfer already says what it is — the list shows "origin → destination"
             // under it — so naming it is optional and defaults to "Transfer".
             'description' => [Rule::requiredIf(! $isTransfer), 'nullable', 'string', 'max:255'],
-            // Free-form and never required: a short label, and room for the
-            // context that does not belong in the description.
-            'note' => ['nullable', 'string', 'max:120'],
+            // Free-form and never required: the room the description does not
+            // have, for an order number, a contract, whatever else is worth
+            // keeping. The form no longer offers `observations`, but the rule
+            // stays so the entries that already carry one still validate.
+            'note' => ['nullable', 'string', 'max:2000'],
             'observations' => ['nullable', 'string', 'max:2000'],
             'currency_id' => ['required', 'integer', 'exists:currencies,id'],
             'account_id' => [
@@ -57,6 +59,25 @@ class StoreTransactionRequest extends FormRequest
                 'integer',
                 Rule::exists('categories', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
             ],
+            // Who the money came from or went to: the client on an income, the
+            // provider on an expense. A transfer moves between the user's own
+            // accounts, so there is nobody on the other side of it.
+            'contact_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+            ],
+            // What the entry was made of. The amount of the transaction is taken
+            // from these when they are present, so each line has to stand on its
+            // own as money. A line with no service is one left behind by a service
+            // that was retired: it keeps its amount so the total still adds up.
+            'services' => ['nullable', 'array', 'max:50'],
+            'services.*.service_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('services', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+            ],
+            'services.*.amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999999999.99'],
             'tags' => ['nullable', 'array'],
             'tags.*' => [
                 'integer',

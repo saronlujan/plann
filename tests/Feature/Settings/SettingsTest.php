@@ -60,7 +60,7 @@ test('users may create a category', function () {
 
     $category = Category::query()->where('name', 'Mercado')->where('type', 'expense')->first();
     expect($category)->not->toBeNull();
-    expect($category?->color->value)->toBe('green');
+    expect($category?->color)->toBe('green');
 });
 
 test('a category may be income', function () {
@@ -240,7 +240,7 @@ test('the palette offers both tiers and the enum agrees with the frontend', func
         ->post('/tags', ['name' => 'Escura', 'color' => 'blue_dark'])
         ->assertSessionHasNoErrors();
 
-    expect(Tag::query()->where('name', 'Escura')->value('color'))->toBe(LabelColor::BlueDark);
+    expect(Tag::query()->where('name', 'Escura')->value('color'))->toBe(LabelColor::BlueDark->value);
 });
 
 test('every colour carries a distinct hex', function () {
@@ -260,4 +260,26 @@ test('the palette runs the colour wheel with each hue beside its darker tier', f
 
     // Neutrals close the list rather than interrupting the spectrum.
     expect(array_slice($values, -2))->toBe(['stone', 'stone_dark']);
+});
+
+test('a category and a tag accept a colour picked by hand', function () {
+    $user = settingsUser('label-custom-color@example.com');
+
+    actingAs($user)
+        ->post('/categories', ['name' => 'Marca', 'type' => 'expense', 'color' => '#6361F3'])
+        ->assertSessionHasNoErrors();
+
+    actingAs($user)
+        ->post('/tags', ['name' => 'marca', 'color' => '#ABCDEF'])
+        ->assertSessionHasNoErrors();
+
+    expect(Category::query()->where('name', 'Marca')->value('color'))->toBe('#6361f3');
+    expect(Tag::query()->where('name', 'marca')->value('color'))->toBe('#abcdef');
+});
+
+test('the palette stays free of hand-picked colours', function () {
+    // options() feeds the swatch row; a custom colour has no name to show there.
+    $values = collect(LabelColor::options())->pluck('value');
+
+    expect($values->filter(fn (string $value): bool => str_starts_with($value, '#')))->toBeEmpty();
 });

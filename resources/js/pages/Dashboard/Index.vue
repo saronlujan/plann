@@ -10,6 +10,13 @@ import CurrencyPanel from './components/CurrencyPanel.vue';
 
 type SeriesPoint = { label: string; month: string; income: string; expense: string };
 type CategorySlice = { name: string; color: string; value: string };
+type ServiceTotal = {
+    name: string;
+    color: string;
+    income: string;
+    expense: string;
+    net: string;
+};
 type RecentItem = {
     id: string;
     description: string;
@@ -28,6 +35,7 @@ type CurrencyData = {
     monthlyNet: string;
     series: SeriesPoint[];
     expensesByCategory: CategorySlice[];
+    servicesByMonth: ServiceTotal[];
     recent: RecentItem[];
 };
 

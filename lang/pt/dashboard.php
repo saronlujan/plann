@@ -23,6 +23,9 @@ return [
     'total' => 'Total',
     'no_expenses' => 'Sem despesas neste mês.',
     'uncategorized' => 'Sem categoria',
+    'unattributed_service' => 'Não atribuído',
+    'services_by_month' => 'Serviços no mês',
+    'services_by_month_hint' => 'Recebido menos o custo lançado, por serviço.',
 
     'recent' => 'Transações recentes',
     'empty_recent' => 'Nenhuma transação neste mês.',

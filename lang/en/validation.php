@@ -179,6 +179,8 @@ return [
     |
     */
 
+    'label_color' => 'The color must come from the palette or be a hex value like #6361f3.',
+
     'custom' => [
         'destination_account_id' => [
             'different' => 'The destination account must be different from the source account.',

@@ -5,7 +5,13 @@
  * palette overrides the shadcn `--primary` / `--primary-foreground` tokens, which
  * every accent detail already consumes. "zinc" is the default: it clears the
  * overrides so the theme-aware values from resources/css/app.css apply.
+ *
+ * The accent is not limited to the palette — a plain `#rrggbb` is accepted too,
+ * and its foreground is computed rather than assumed, since a colour picked by
+ * hand can easily be too light to read white lettering on.
  */
+import { isCustomColor } from '@/lib/labelColors';
+
 export type ThemeValue = 'light' | 'dark';
 export type ColorValue =
     | 'blue'
@@ -34,11 +40,43 @@ const palette: Record<ColorValue, PaletteEntry | null> = {
     teal: { primary: 'oklch(0.60 0.13 190)', foreground: 'oklch(0.985 0 0)' },
 };
 
-export function paletteSwatch(color: ColorValue): string {
-    return palette[color]?.primary ?? 'oklch(0.205 0 0)';
+/**
+ * Relative luminance, per WCAG. Used to decide what can be read on top of an
+ * accent the user picked: unlike the palette, an arbitrary colour may well be
+ * light enough that white lettering disappears into it.
+ */
+function luminance(hex: string): number {
+    const channels = [1, 3, 5].map((offset) => {
+        const value = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
+
+        return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
 
-export function applyAppearance(theme: ThemeValue = 'light', color: ColorValue = 'zinc'): void {
+/** Whichever of white or near-black stands out more against the accent. */
+function readableForeground(hex: string): string {
+    const contrastWithWhite = 1.05 / (luminance(hex) + 0.05);
+    const contrastWithBlack = (luminance(hex) + 0.05) / 0.05;
+
+    return contrastWithWhite >= contrastWithBlack ? 'oklch(0.985 0 0)' : 'oklch(0.205 0 0)';
+}
+
+function customEntry(hex: string): PaletteEntry {
+    return { primary: hex.toLowerCase(), foreground: readableForeground(hex.toLowerCase()) };
+}
+
+/** The stored accent as the swatch the picker paints. */
+export function paletteSwatch(color: string): string {
+    if (isCustomColor(color)) {
+        return color.toLowerCase();
+    }
+
+    return palette[color as ColorValue]?.primary ?? 'oklch(0.205 0 0)';
+}
+
+export function applyAppearance(theme: ThemeValue = 'light', color: string = 'zinc'): void {
     if (typeof document === 'undefined') {
         return;
     }
@@ -47,7 +85,9 @@ export function applyAppearance(theme: ThemeValue = 'light', color: ColorValue =
 
     root.classList.toggle('dark', theme === 'dark');
 
-    const entry = palette[color] ?? null;
+    // "zinc" maps to null: it clears the overrides so the theme-aware defaults
+    // from resources/css/app.css take over again.
+    const entry = isCustomColor(color) ? customEntry(color) : (palette[color as ColorValue] ?? null);
 
     if (entry) {
         root.style.setProperty('--primary', entry.primary);

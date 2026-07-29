@@ -94,6 +94,23 @@ export const LABEL_COLORS: LabelColorOption[] = [
 
 const HEX_BY_VALUE = new Map(LABEL_COLORS.map((color) => [color.value, color.hex]));
 
+/** The neutral a colour falls back to when it names nothing recognisable. */
+export const DEFAULT_COLOR_HEX = '#71717a';
+
+const CUSTOM_PATTERN = /^#[0-9a-f]{6}$/i;
+
+/**
+ * A colour picked by hand rather than taken from the palette. Mirrors
+ * App\Enums\LabelColor::isCustom() — the leading hash is what tells them apart.
+ */
+export function isCustomColor(value: string | null | undefined): boolean {
+    return typeof value === 'string' && CUSTOM_PATTERN.test(value);
+}
+
 export function colorHex(value: string | null | undefined): string {
-    return HEX_BY_VALUE.get(value as LabelColorValue) ?? '#71717a';
+    if (isCustomColor(value)) {
+        return (value as string).toLowerCase();
+    }
+
+    return HEX_BY_VALUE.get(value as LabelColorValue) ?? DEFAULT_COLOR_HEX;
 }

@@ -8,7 +8,9 @@ use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\Contact;
 use App\Models\Currency;
+use App\Models\Service;
 use App\Models\Tag;
 use App\Models\Transaction;
 use App\Support\Transactions\TransactionProjector;
@@ -36,7 +38,7 @@ class IndexTransactionController extends Controller
         $periodEnd = $period->endOfMonth();
 
         $transactions = Transaction::query()
-            ->with(['currency', 'account', 'tags:id'])
+            ->with(['currency', 'account', 'tags:id', 'lines'])
             ->where('effective_date', '<=', $periodEnd->toDateString())
             ->where(function (Builder $query) use ($periodStart): void {
                 $query->where('type', '!=', 'unique')
@@ -99,7 +101,33 @@ class IndexTransactionController extends Controller
                     'id' => $category->id,
                     'name' => $category->name,
                     'type' => $category->type->value,
-                    'color' => $category->color->value,
+                    'color' => $category->color,
+                ])
+                ->values()
+                ->all(),
+            'contactOptions' => Contact::query()
+                ->where('tenant_id', $tenant->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'type'])
+                ->map(fn (Contact $contact): array => [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'type' => $contact->type->value,
+                ])
+                ->values()
+                ->all(),
+            // Empty until the workspace registers its first service, which is what
+            // keeps the breakdown out of the way of everyone who does not sell one.
+            'serviceOptions' => Service::query()
+                ->where('tenant_id', $tenant->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'default_price', 'currency_id', 'color'])
+                ->map(fn (Service $service): array => [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'default_price' => $service->default_price,
+                    'currency_id' => $service->currency_id,
+                    'color' => $service->color,
                 ])
                 ->values()
                 ->all(),
@@ -110,7 +138,7 @@ class IndexTransactionController extends Controller
                 ->map(fn (Tag $tag): array => [
                     'id' => $tag->id,
                     'name' => $tag->name,
-                    'color' => $tag->color->value,
+                    'color' => $tag->color,
                 ])
                 ->values()
                 ->all(),

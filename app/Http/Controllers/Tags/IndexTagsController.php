@@ -20,7 +20,7 @@ class IndexTagsController extends Controller
                 ->map(fn (Tag $tag): array => [
                     'id' => $tag->id,
                     'name' => $tag->name,
-                    'color' => $tag->color->value,
+                    'color' => $tag->color,
                 ])
                 ->all(),
             'colorOptions' => LabelColor::options(),

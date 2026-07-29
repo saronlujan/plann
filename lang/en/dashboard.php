@@ -23,6 +23,9 @@ return [
     'total' => 'Total',
     'no_expenses' => 'No expenses this month.',
     'uncategorized' => 'Uncategorized',
+    'unattributed_service' => 'Unattributed',
+    'services_by_month' => 'Services this month',
+    'services_by_month_hint' => 'Taken in, less the cost recorded against it, per service.',
 
     'recent' => 'Recent transactions',
     'empty_recent' => 'No transactions this month.',

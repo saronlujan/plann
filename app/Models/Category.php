@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\CategoryType;
-use App\Enums\LabelColor;
 use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $tenant_id
  * @property string $name
  * @property CategoryType $type
- * @property LabelColor $color
+ * @property string $color A palette name, or a hand-picked `#rrggbb`.
  */
 class Category extends Model
 {
@@ -34,7 +33,6 @@ class Category extends Model
 
     protected $casts = [
         'type' => CategoryType::class,
-        'color' => LabelColor::class,
     ];
 
     /**

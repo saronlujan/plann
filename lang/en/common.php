@@ -16,9 +16,14 @@ return [
         'logout' => 'Logout',
     ],
 
+    'color' => [
+        'custom' => 'Custom',
+    ],
+
     'settings_menu' => [
         'contacts' => 'Contacts',
         'categories' => 'Categories',
+        'services' => 'Services',
         'tags' => 'Tags',
         'accounts' => 'Accounts',
     ],

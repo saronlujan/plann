@@ -179,6 +179,8 @@ return [
     |
     */
 
+    'label_color' => 'El color debe ser de la paleta o un hexadecimal como #6361f3.',
+
     'custom' => [
         'destination_account_id' => [
             'different' => 'La cuenta de destino debe ser diferente de la cuenta de origen.',

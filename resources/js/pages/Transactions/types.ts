@@ -29,6 +29,31 @@ export type TagOption = {
     color: string;
 };
 
+export type ContactOption = {
+    id: number;
+    name: string;
+    type: string;
+};
+
+export type ServiceOption = {
+    id: number;
+    name: string;
+    /** Suggested when the service is appended; the line then holds its own value. */
+    default_price: string | null;
+    currency_id: number | null;
+    color: string;
+};
+
+/**
+ * One part of what a transaction was made of. A null service is a line whose
+ * service has been retired: it still carries money, so it is shown and sent back
+ * rather than dropped.
+ */
+export type ServiceLine = {
+    service_id: number | null;
+    amount: string;
+};
+
 export type CurrencySummary = {
     code: string;
     name: string;
@@ -61,6 +86,8 @@ export type TransactionEntry = {
     id: string;
     transaction_id: number;
     category_id: number | null;
+    contact_id: number | null;
+    services: ServiceLine[];
     tag_ids: number[];
     date: string;
     kind: 'unique' | 'base' | 'adjustment' | 'installment';

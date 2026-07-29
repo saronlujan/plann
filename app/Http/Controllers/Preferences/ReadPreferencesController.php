@@ -21,7 +21,7 @@ class ReadPreferencesController extends Controller
             'preferences' => [
                 'locale' => $user->locale ?? 'pt',
                 'theme' => $user?->theme->value ?? UserTheme::Light->value,
-                'color' => $user?->color->value ?? UserColor::Zinc->value,
+                'color' => $user->color ?? UserColor::Zinc->value,
                 'sound_enabled' => $user->sound_enabled ?? true,
                 'sound_theme' => $user->sound_theme ?? SoundTheme::Blip->value,
                 'notifications_enabled' => $user->notifications_enabled ?? false,

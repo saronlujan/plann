@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int|null $account_id
  * @property int $currency_id
  * @property int|null $category_id
+ * @property int|null $contact_id
  * @property TransactionMovementType|null $movement_type
  * @property bool $is_transfer
  * @property TransactionType $type
@@ -49,6 +51,7 @@ class Transaction extends Model
         'account_id',
         'currency_id',
         'category_id',
+        'contact_id',
         'movement_type',
         'is_transfer',
         'type',
@@ -115,6 +118,32 @@ class Transaction extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Who the money came from or went to: the client on an income, the provider
+     * on an expense.
+     *
+     * @return BelongsTo<Contact, $this>
+     */
+    public function contact(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * What this transaction was made of, and what each part was worth. The lines
+     * always add up to the amount; a transaction with no lines is simply one
+     * nobody broke down.
+     *
+     * Deliberately not a belongsToMany over `services`: that join drops the lines
+     * whose service has been retired, and those still carry real money.
+     *
+     * @return HasMany<TransactionLine, $this>
+     */
+    public function lines(): HasMany
+    {
+        return $this->hasMany(TransactionLine::class);
     }
 
     /**

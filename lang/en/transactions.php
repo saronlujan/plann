@@ -113,6 +113,9 @@ return [
         'note' => 'Note',
         'observations' => 'Observations and comments',
         'category' => 'Category',
+        'contact' => 'Contact',
+        'services' => 'Services',
+        'extras' => 'Add attachment or notes',
         'tags' => 'Tags',
         'repeat_until' => 'Repeat until (optional)',
         'repeat_until_short' => 'Repeat until',
@@ -138,6 +141,8 @@ return [
         'observations' => 'Details that do not fit in the description',
         'category' => 'Select the category',
         'no_categories' => 'No categories registered',
+        'contact' => 'Select the contact',
+        'no_contacts' => 'No contacts registered',
         'tags' => 'Select tags',
         'no_tags' => 'No tags registered',
         'no_tags_found' => 'No tags found.',
@@ -148,5 +153,12 @@ return [
 
     'hints' => [
         'repeat_until' => 'Leave blank for an endless recurrence.',
+    ],
+
+    'services' => [
+        'add' => 'Add service',
+        'remove' => 'Remove service',
+        'unattributed' => 'Unattributed',
+        'total_hint' => 'Added up from the services.',
     ],
 ];

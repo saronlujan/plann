@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Currency;
+use App\Models\Service;
 use App\Models\Transaction;
 use App\Support\Accounts\AccountStatement;
 use App\Support\Onboarding\OnboardingSteps;
@@ -44,6 +45,7 @@ class DashboardController extends Controller
         }
 
         $categories = Category::query()->get()->keyBy('id');
+        $services = Service::query()->get()->keyBy('id');
         $today = CarbonImmutable::now();
         $now = $today->startOfMonth();
 
@@ -60,6 +62,7 @@ class DashboardController extends Controller
                     $projector,
                     $statement,
                     $categories,
+                    $services,
                     $accountsByCurrency->get($currency->id, collect()),
                     $now,
                     $today,
@@ -70,6 +73,7 @@ class DashboardController extends Controller
 
     /**
      * @param  Collection<int, Category>  $categories
+     * @param  Collection<int, Service>  $services
      * @param  Collection<int, Account>  $accounts
      * @return array<string, mixed>
      */
@@ -78,13 +82,14 @@ class DashboardController extends Controller
         TransactionProjector $projector,
         AccountStatement $statement,
         Collection $categories,
+        Collection $services,
         Collection $accounts,
         CarbonImmutable $now,
         CarbonImmutable $today,
     ): array {
         $transactions = Transaction::query()
             ->where('currency_id', $currency->id)
-            ->with(['currency', 'account'])
+            ->with(['currency', 'account', 'lines'])
             ->get();
 
         $series = collect(range(5, 0))
@@ -115,8 +120,65 @@ class DashboardController extends Controller
             'monthlyNet' => $this->money((float) $monthlyIncome - (float) $monthlyExpenses),
             'series' => $series,
             'expensesByCategory' => $this->expensesByCategory($current, $categories),
+            'servicesByMonth' => $this->servicesByMonth($current, $services),
             'recent' => $this->recent($current),
         ];
+    }
+
+    /**
+     * What each service brought in and cost this month, best result first.
+     *
+     * Income and expense are kept apart rather than netted into one number: the
+     * same service sits on both sides — a client pays for hosting, a provider is
+     * paid for it — and a single total would hide which is which.
+     *
+     * Lines whose service has been retired are still money, so they are reported
+     * together under their own heading instead of being dropped. Without them the
+     * rows would not add up to the month the rest of the dashboard shows.
+     *
+     * @param  Collection<int, array<string, mixed>>  $entries
+     * @param  Collection<int, Service>  $services
+     * @return array<int, array{name: string, color: string, income: string, expense: string, net: string}>
+     */
+    private function servicesByMonth(Collection $entries, Collection $services): array
+    {
+        $totals = [];
+
+        foreach ($entries as $entry) {
+            if ($entry['is_transfer'] === true) {
+                continue;
+            }
+
+            $movement = $entry['movement_type'];
+
+            if (! in_array($movement, [TransactionMovementType::Income->value, TransactionMovementType::Expense->value], true)) {
+                continue;
+            }
+
+            foreach ($entry['services'] ?? [] as $line) {
+                $key = $line['service_id'] ?? 'none';
+                $totals[$key] ??= ['income' => 0.0, 'expense' => 0.0];
+                $totals[$key][$movement] += (float) $line['amount'];
+            }
+        }
+
+        $rows = [];
+
+        foreach ($totals as $key => $total) {
+            $service = $key === 'none' ? null : $services->get((int) $key);
+
+            $rows[] = [
+                'name' => $service->name ?? __('dashboard.unattributed_service'),
+                'color' => $service->color ?? LabelColor::default()->value,
+                'income' => $this->money($total['income']),
+                'expense' => $this->money($total['expense']),
+                'net' => $this->money($total['income'] - $total['expense']),
+            ];
+        }
+
+        usort($rows, fn (array $a, array $b): int => (float) $b['net'] <=> (float) $a['net']);
+
+        return $rows;
     }
 
     /**
@@ -176,7 +238,7 @@ class DashboardController extends Controller
 
                 return [
                     'name' => $category->name ?? __('dashboard.uncategorized'),
-                    'color' => ($category->color ?? LabelColor::Zinc)->value,
+                    'color' => $category->color ?? LabelColor::default()->value,
                     'value' => $this->money($group->reduce(fn (float $carry, array $entry): float => $carry + (float) $entry['amount'], 0.0)),
                 ];
             })

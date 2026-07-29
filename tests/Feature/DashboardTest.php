@@ -3,6 +3,7 @@
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Currency;
+use App\Models\Service;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\User;
@@ -232,4 +233,106 @@ test('the dashboard shows an empty state once an account exists but nothing move
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Dashboard/Index')
             ->where('ready', true));
+});
+
+test('the dashboard totals each service for the month', function () {
+    CarbonImmutable::setTestNow('2026-07-15');
+
+    $user = dashboardUser('dash-services@example.com');
+    $currency = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+
+    $account = Account::create([
+        'tenant_id' => $user->tenant_id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+    ]);
+
+    $hosting = Service::create(['tenant_id' => $user->tenant_id, 'name' => 'Hospedagem', 'color' => 'blue']);
+    $support = Service::create(['tenant_id' => $user->tenant_id, 'name' => 'Suporte', 'color' => 'green']);
+
+    // A R$300 contract broken into its two parts.
+    $contract = Transaction::create([
+        'tenant_id' => $user->tenant_id,
+        'account_id' => $account->id,
+        'currency_id' => $currency->id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-07-05',
+        'amount' => '300.00',
+        'description' => 'Contrato Apple Shop',
+    ]);
+
+    $contract->lines()->createMany([
+        ['tenant_id' => $user->tenant_id, 'service_id' => $hosting->id, 'amount' => '50.00'],
+        ['tenant_id' => $user->tenant_id, 'service_id' => $support->id, 'amount' => '250.00'],
+    ]);
+
+    // The server bill behind the hosting, which eats most of its margin.
+    $serverBill = Transaction::create([
+        'tenant_id' => $user->tenant_id,
+        'account_id' => $account->id,
+        'currency_id' => $currency->id,
+        'movement_type' => 'expense',
+        'type' => 'unique',
+        'effective_date' => '2026-07-10',
+        'amount' => '40.00',
+        'description' => 'Servidor',
+    ]);
+
+    $serverBill->lines()->create([
+        'tenant_id' => $user->tenant_id,
+        'service_id' => $hosting->id,
+        'amount' => '40.00',
+    ]);
+
+    actingAs($user)->get('/')->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('Dashboard/Index')
+            // Best result first: support earns 250 clean, hosting only 10.
+            ->where('currencies.0.servicesByMonth.0.name', 'Suporte')
+            ->where('currencies.0.servicesByMonth.0.net', '250.00')
+            ->where('currencies.0.servicesByMonth.1.name', 'Hospedagem')
+            ->where('currencies.0.servicesByMonth.1.income', '50.00')
+            ->where('currencies.0.servicesByMonth.1.expense', '40.00')
+            ->where('currencies.0.servicesByMonth.1.net', '10.00'));
+
+    CarbonImmutable::setTestNow();
+});
+
+test('a retired service leaves its total under an unattributed heading', function () {
+    CarbonImmutable::setTestNow('2026-07-15');
+
+    $user = dashboardUser('dash-orphan@example.com');
+    $currency = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+
+    $account = Account::create([
+        'tenant_id' => $user->tenant_id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+    ]);
+
+    $transaction = Transaction::create([
+        'tenant_id' => $user->tenant_id,
+        'account_id' => $account->id,
+        'currency_id' => $currency->id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-07-05',
+        'amount' => '80.00',
+        'description' => 'Serviço avulso',
+    ]);
+
+    $transaction->lines()->create([
+        'tenant_id' => $user->tenant_id,
+        'service_id' => null,
+        'amount' => '80.00',
+    ]);
+
+    actingAs($user)->get('/')->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('Dashboard/Index')
+            ->where('currencies.0.servicesByMonth.0.name', 'Não atribuído')
+            ->where('currencies.0.servicesByMonth.0.net', '80.00'));
+
+    CarbonImmutable::setTestNow();
 });

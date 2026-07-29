@@ -129,7 +129,7 @@ class ShowAccountController extends Controller
      */
     private function categoryColor(Collection $categories, ?int $categoryId): ?string
     {
-        return $categoryId === null ? null : $categories->get($categoryId)?->color->value;
+        return $categoryId === null ? null : $categories->get($categoryId)?->color;
     }
 
     private function resolvePeriod(string $period): CarbonImmutable

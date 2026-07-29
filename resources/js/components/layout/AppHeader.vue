@@ -16,6 +16,7 @@ import { index as categoriesIndex } from '@/routes/categories';
 import { expireTrial } from '@/routes/dev';
 import { edit as profile } from '@/routes/profile';
 import { index as reportsIndex } from '@/routes/reports';
+import { index as servicesIndex } from '@/routes/services';
 import { index as tagsIndex } from '@/routes/tags';
 import transactions from '@/routes/transactions';
 
@@ -124,6 +125,11 @@ const userInitials = computed(
                                 <DropdownMenuItem as-child>
                                     <Link :href="categoriesIndex().url" class="w-full">
                                         {{ $t('common.settings_menu.categories') }}
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem as-child>
+                                    <Link :href="servicesIndex().url" class="w-full">
+                                        {{ $t('common.settings_menu.services') }}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>

@@ -2,6 +2,7 @@
 
 namespace App\Support\Reports;
 
+use App\Enums\LabelColor;
 use App\Enums\TransactionMovementType;
 use App\Models\Category;
 use App\Models\Transaction;
@@ -118,7 +119,7 @@ class ReportBuilder
                 $rows[] = [
                     'type' => $movement->value,
                     'name' => $category->name ?? __('reports.uncategorized'),
-                    'color' => $category?->color->value ?? 'zinc',
+                    'color' => $category->color ?? LabelColor::default()->value,
                     'total' => $total,
                     'share' => $this->share($total, $movementTotal),
                 ];

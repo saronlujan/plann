@@ -2,12 +2,20 @@
 
 namespace App\Enums;
 
+use Closure;
+
 /**
- * Shared palette for categories and tags. The hex values are used both for the
- * swatches in the UI and to color the dashboard charts, so they must stay stable.
+ * Shared palette for categories, tags and services. The hex values are used both
+ * for the swatches in the UI and to color the dashboard charts, so they must stay
+ * stable.
  *
  * Ordered around the colour wheel with each hue beside its darker tier, so the
  * picker reads as a gradient rather than a scatter. Neutrals close the list.
+ *
+ * A label is not limited to the palette: the column holds either one of these
+ * names or a plain `#rrggbb`, and the leading hash is what tells them apart. One
+ * column rather than two, because a label has exactly one colour — a second
+ * column would need every read to decide which of the pair wins.
  */
 enum LabelColor: string
 {
@@ -150,6 +158,8 @@ enum LabelColor: string
     /**
      * Selectable options for the frontend: value, label and hex.
      *
+     * The palette only — a colour picked by hand has no name to offer.
+     *
      * @return array<int, array{value: string, label: string, hex: string}>
      */
     public static function options(): array
@@ -162,5 +172,65 @@ enum LabelColor: string
             ],
             self::cases(),
         );
+    }
+
+    /**
+     * A colour chosen by hand rather than taken from the palette.
+     */
+    public static function isCustom(string $color): bool
+    {
+        return preg_match('/^#[0-9a-f]{6}$/', mb_strtolower($color)) === 1;
+    }
+
+    /**
+     * A stored colour as the hex the UI paints with.
+     *
+     * Anything unrecognised falls back to the default rather than reaching a
+     * style attribute: a stray value would otherwise paint nothing at all.
+     */
+    public static function hexFor(?string $color): string
+    {
+        if ($color === null) {
+            return self::default()->hex();
+        }
+
+        if (self::isCustom($color)) {
+            return mb_strtolower($color);
+        }
+
+        return (self::tryFrom($color) ?? self::default())->hex();
+    }
+
+    /**
+     * What a colour field accepts: a name from the palette, or a plain `#rrggbb`.
+     *
+     * Kept beside the palette so the picker and the validation can never drift
+     * into disagreeing about what a colour is.
+     *
+     * @return array<int, mixed>
+     */
+    public static function validationRules(): array
+    {
+        return [
+            'required',
+            'string',
+            'max:20',
+            function (string $attribute, mixed $value, Closure $fail): void {
+                if (is_string($value) && (self::tryFrom($value) !== null || self::isCustom($value))) {
+                    return;
+                }
+
+                $fail(__('validation.label_color', ['attribute' => $attribute]));
+            },
+        ];
+    }
+
+    /**
+     * The form of a colour that gets stored: palette names as they are, hand-picked
+     * ones folded to lowercase so the same colour is never written two ways.
+     */
+    public static function normalize(string $color): string
+    {
+        return self::isCustom($color) ? mb_strtolower($color) : $color;
     }
 }

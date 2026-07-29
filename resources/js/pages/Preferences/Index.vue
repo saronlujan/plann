@@ -5,6 +5,7 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -16,6 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { applyAppearance, paletteSwatch } from '@/composables/useAppearance';
 import type { ColorValue, ThemeValue } from '@/composables/useAppearance';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import { DEFAULT_COLOR_HEX, isCustomColor } from '@/lib/labelColors';
 import { playSound } from '@/lib/sound';
 import type { SoundValue } from '@/lib/sound';
 import { update as updatePreferences } from '@/routes/preferences';
@@ -93,6 +95,34 @@ function selectTheme(value: string): void {
 function selectColor(value: string): void {
     color.value = value as ColorValue;
     persist();
+}
+
+const isCustomAccent = computed(() => isCustomColor(color.value));
+
+/**
+ * What the custom swatch shows and the native picker opens on. A palette accent
+ * is still a starting point, so switching to custom does not jump to black.
+ */
+const customHex = ref(isCustomAccent.value ? color.value : DEFAULT_COLOR_HEX);
+
+/** Free text while it is being typed: only a complete colour reaches the model. */
+const customDraft = ref(customHex.value);
+
+function commitCustomColor(value: string): void {
+    const candidate = value.startsWith('#') ? value : `#${value}`;
+
+    if (!isCustomColor(candidate)) {
+        return;
+    }
+
+    customHex.value = candidate.toLowerCase();
+    customDraft.value = customHex.value;
+    selectColor(customHex.value);
+}
+
+/** Leaving a half-typed value behind would strand the field: put it back. */
+function restoreCustomDraft(): void {
+    customDraft.value = customHex.value;
 }
 </script>
 
@@ -196,6 +226,56 @@ function selectColor(value: string): void {
                                     aria-hidden="true"
                                 />
                             </button>
+                        </div>
+
+                        <div class="mt-3 flex items-center gap-2">
+                            <span class="text-sm text-muted-foreground">
+                                {{ $t('common.color.custom') }}
+                            </span>
+
+                            <!--
+                                The native input is the colour wheel: it costs
+                                nothing, it is keyboard reachable and it is the
+                                picker the user already knows.
+                            -->
+                            <label
+                                class="relative flex size-9 cursor-pointer items-center justify-center rounded-full border transition"
+                                :class="isCustomAccent ? 'ring-2 ring-ring ring-offset-2' : 'border-border'"
+                                :style="{ backgroundColor: customHex }"
+                                :title="$t('common.color.custom')"
+                            >
+                                <input
+                                    type="color"
+                                    class="absolute inset-0 size-full cursor-pointer opacity-0"
+                                    :value="customHex"
+                                    :aria-label="$t('common.color.custom')"
+                                    @input="
+                                        commitCustomColor(($event.target as HTMLInputElement).value)
+                                    "
+                                />
+                                <CheckIcon
+                                    v-if="isCustomAccent"
+                                    class="pointer-events-none size-4 text-white"
+                                    aria-hidden="true"
+                                />
+                            </label>
+
+                            <Input
+                                :model-value="customDraft"
+                                class="h-9 w-28 font-mono text-sm"
+                                spellcheck="false"
+                                autocomplete="off"
+                                maxlength="7"
+                                :placeholder="DEFAULT_COLOR_HEX"
+                                :aria-label="$t('common.color.custom')"
+                                @update:model-value="
+                                    (value) => {
+                                        customDraft = String(value);
+                                        commitCustomColor(String(value));
+                                    }
+                                "
+                                @blur="restoreCustomDraft"
+                            />
                         </div>
                     </div>
                 </div>

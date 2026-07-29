@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Tag;
 
 use App\Enums\LabelColor;
-use Illuminate\Validation\Rule;
 
 class UpdateTagRequest extends StoreTagRequest
 {
@@ -14,7 +13,7 @@ class UpdateTagRequest extends StoreTagRequest
     {
         return [
             'name' => ['required', 'string', 'max:40', $this->uniqueNameRule()->ignore($this->route('tag'))],
-            'color' => ['required', Rule::enum(LabelColor::class)],
+            'color' => LabelColor::validationRules(),
         ];
     }
 }
