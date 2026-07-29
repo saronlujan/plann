@@ -45,6 +45,11 @@ return [
         'expected_income' => 'Expected income',
         'expected_expense' => 'Expected expense',
         'expected_total' => 'Expected total',
+        'realized_group' => 'Settled',
+        'expected_group' => 'Projected',
+        'see_details' => 'See details',
+        'drawer_title' => 'Selected Period',
+        'drawer_hint' => 'The settled balance is what has already been paid. The projected balance is what is expected by the end of the period.',
     ],
 
     'actions' => [
@@ -54,11 +59,18 @@ return [
         'mark_paid' => 'Mark as paid',
         'mark_unpaid' => 'Mark as unpaid',
         'remove_tag' => 'Remove :name',
+        'open_attachment' => 'Open attachment',
     ],
 
     'delete' => [
         'title' => 'Delete Transaction',
         'description' => 'Delete “:label”? This action cannot be undone.',
+        'scope' => [
+            'title' => 'This is a recurring entry.',
+            'one' => 'Remove only this entry',
+            'forward' => 'Remove this and the following entries',
+            'all' => 'Remove every entry',
+        ],
     ],
 
     'modal' => [
@@ -82,6 +94,12 @@ return [
         'subtitle' => 'Enter the number of installments and the billing period.',
     ],
 
+    'attachment' => [
+        'choose' => 'Choose a file or drop it here',
+        'replace' => 'Replace file',
+        'formats' => 'Image (JPG, PNG, WEBP) or PDF, up to 10 MB',
+    ],
+
     'fields' => [
         'type' => 'Type',
         'currency' => 'Currency',
@@ -92,7 +110,8 @@ return [
         'amount' => 'Amount',
         'interest' => 'Account interest',
         'description' => 'Description',
-        'description_optional' => 'Description (optional)',
+        'note' => 'Note',
+        'observations' => 'Observations and comments',
         'category' => 'Category',
         'tags' => 'Tags',
         'repeat_until' => 'Repeat until (optional)',
@@ -104,6 +123,8 @@ return [
         'installment' => 'Installment',
         'adjustment' => 'Adjustment',
         'attachment' => 'Attach a file to this transaction',
+        'attachment_label' => 'Attachment',
+        'paid' => 'Paid',
     ],
 
     'placeholders' => [
@@ -113,6 +134,8 @@ return [
         'destination_account' => 'Select the destination account',
         'amount' => '0.00',
         'description' => 'Describe the transaction',
+        'note' => 'E.g. order number, contract',
+        'observations' => 'Details that do not fit in the description',
         'category' => 'Select the category',
         'no_categories' => 'No categories registered',
         'tags' => 'Select tags',
@@ -125,6 +148,5 @@ return [
 
     'hints' => [
         'repeat_until' => 'Leave blank for an endless recurrence.',
-        'attachment' => 'Image (JPG, PNG, WEBP) or PDF, up to 10 MB.',
     ],
 ];

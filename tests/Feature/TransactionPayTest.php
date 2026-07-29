@@ -33,7 +33,6 @@ it('marks a transaction as paid', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     $transaction = Transaction::query()->create([

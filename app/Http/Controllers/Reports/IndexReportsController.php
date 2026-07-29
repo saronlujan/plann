@@ -22,8 +22,7 @@ class IndexReportsController extends Controller
 
         abort_unless($tenant instanceof Tenant, 403);
 
-        // A currency with no account has nothing to report on.
-        $currencies = $tenant->activeCurrencies()->usable()->orderBy('code')->get();
+        $currencies = $tenant->activeCurrencies()->orderBy('code')->get();
 
         if ($currencies->isEmpty()) {
             return Inertia::render('Reports/Index', ['ready' => false]);

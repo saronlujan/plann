@@ -26,9 +26,7 @@ class IndexTransactionController extends Controller
         $tenant = $request->user()?->tenant()->with('activeCurrencies')->first();
         abort_if($tenant === null, 403);
 
-        // Only currencies with an account: the rest cannot hold a transaction.
         $activeCurrencies = $tenant->activeCurrencies()
-            ->usable()
             ->orderBy('code')
             ->get(['currencies.id', 'currencies.code', 'currencies.name', 'currencies.symbol']);
         $activeCurrencyIds = $activeCurrencies->pluck('id')->all();
@@ -58,6 +56,8 @@ class IndexTransactionController extends Controller
         $summaries = $projector->summaries($activeCurrencies, $entries);
 
         return Inertia::render('Transactions/Index', [
+            // The month on screen, so the summary drawer can name what it totals.
+            'period' => $period->format('Y-m'),
             'movementTypeOptions' => array_map(
                 fn (TransactionMovementType $type): array => ['value' => $type->value, 'label' => $type->label()],
                 TransactionMovementType::cases(),

@@ -42,7 +42,6 @@ it('stores a transaction from the insertion modal', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     actingAs($user)
@@ -72,11 +71,16 @@ it('stores a transaction from the insertion modal', function () {
     expect($transaction?->movement_type)->toBe(TransactionMovementType::Expense);
     expect($transaction?->installment_frequency)->toBe(TransactionInstallmentFrequency::Bimonthly);
     expect($transaction?->interest_amount)->toBe('12.50');
-    expect($transaction?->attachment_path)->not->toBeNull();
+    expect($transaction?->attachment)->not->toBeNull();
+    // Only the file name is persisted; the folder is rebuilt from the tenant.
+    expect($transaction?->attachment)->not->toContain('/');
+
+    $path = app(TransactionAttachments::class)->path((string) $transaction?->attachment);
+
     // Receipts live on the private disk, namespaced per tenant.
-    expect(Storage::disk(TransactionAttachments::DISK)->exists($transaction?->attachment_path ?? ''))->toBeTrue();
-    expect(Storage::disk('public')->exists($transaction?->attachment_path ?? ''))->toBeFalse();
-    expect($transaction?->attachment_path)->toStartWith('transactions/attachments/'.$tenant->id.'/');
+    expect(Storage::disk(TransactionAttachments::DISK)->exists($path))->toBeTrue();
+    expect(Storage::disk('public')->exists($path))->toBeFalse();
+    expect($path)->toStartWith('transactions/attachments/'.$tenant->id.'/');
 });
 
 it('stores a transfer as paired transactions', function () {
@@ -103,14 +107,12 @@ it('stores a transfer as paired transactions', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Origem',
-        'balance' => 0,
     ]);
 
     $destinationAccount = Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Destino',
-        'balance' => 0,
     ]);
 
     actingAs($user)
@@ -154,7 +156,6 @@ it('stores a transaction with a category and tags', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
     $category = Category::create([
         'tenant_id' => $tenant->id,
@@ -201,7 +202,6 @@ it('rejects a category or tag from another tenant', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     $otherTenant = Tenant::create(['name' => 'Tenant B']);
@@ -229,54 +229,6 @@ it('rejects a category or tag from another tenant', function () {
         ->assertSessionHasErrors('category_id');
 });
 
-it('accepts a dual-use (both) category on income and expense', function () {
-    $tenant = Tenant::create(['name' => 'Tenant Both']);
-    $user = User::factory()->create([
-        'tenant_id' => $tenant->id,
-        'name' => 'Pessoa',
-        'email' => 'tx-both@example.com',
-        'password' => 'password',
-    ]);
-    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
-    app(TenantContext::class)->setTenantId($tenant->id);
-    $account = Account::create([
-        'tenant_id' => $tenant->id,
-        'currency_id' => $currency->id,
-        'name' => 'Conta',
-        'balance' => 0,
-    ]);
-    $both = Category::create([
-        'tenant_id' => $tenant->id,
-        'name' => 'Hospedagem',
-        'type' => 'both',
-        'color' => 'blue',
-    ]);
-
-    actingAs($user)->post('/transactions', [
-        'movement_type' => 'income',
-        'type' => 'unique',
-        'description' => 'Recebido hospedagem',
-        'currency_id' => $currency->id,
-        'account_id' => $account->id,
-        'category_id' => $both->id,
-        'effective_date' => '2026-12-10',
-        'amount' => 200,
-    ])->assertRedirect();
-
-    actingAs($user)->post('/transactions', [
-        'movement_type' => 'expense',
-        'type' => 'unique',
-        'description' => 'Pago servidor',
-        'currency_id' => $currency->id,
-        'account_id' => $account->id,
-        'category_id' => $both->id,
-        'effective_date' => '2026-12-11',
-        'amount' => 80,
-    ])->assertRedirect();
-
-    expect(Transaction::query()->where('category_id', $both->id)->count())->toBe(2);
-});
-
 it('keeps existing transactions when a category type changes', function () {
     $tenant = Tenant::create(['name' => 'Tenant Change']);
     $user = User::factory()->create([
@@ -291,7 +243,6 @@ it('keeps existing transactions when a category type changes', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta',
-        'balance' => 0,
     ]);
     $category = Category::create([
         'tenant_id' => $tenant->id,
@@ -343,14 +294,12 @@ it('names a transfer automatically when no description is given', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Origem',
-        'balance' => 0,
     ]);
 
     $destinationAccount = Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Destino',
-        'balance' => 0,
     ]);
 
     // The list already shows "origin → destination" underneath, so naming the
@@ -393,14 +342,12 @@ it('keeps the description when a transfer is named', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Origem',
-        'balance' => 0,
     ]);
 
     $destinationAccount = Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Destino',
-        'balance' => 0,
     ]);
 
     actingAs($user)
@@ -437,7 +384,6 @@ it('still requires a description outside transfers', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta',
-        'balance' => 0,
     ]);
 
     actingAs($user)
@@ -453,4 +399,160 @@ it('still requires a description outside transfers', function () {
         ->assertSessionHasErrors('description');
 
     expect(Transaction::query()->count())->toBe(0);
+});
+
+it('books a transaction as settled when the form says paid', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Pago']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'paid-yes@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+    ]);
+
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => 'Mercado',
+            'currency_id' => $currency->id,
+            'account_id' => $account->id,
+            'effective_date' => '2026-12-15',
+            'amount' => 100,
+            'paid' => true,
+        ])
+        ->assertSessionHasNoErrors();
+
+    // Settled on its own date, not on today's: the entry belongs to the month
+    // the user chose.
+    expect(Transaction::query()->value('paid_at')?->toDateString())->toBe('2026-12-15');
+});
+
+it('leaves a transaction open when the form says not paid', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Aberto']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'paid-no@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+    ]);
+
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => 'Boleto',
+            'currency_id' => $currency->id,
+            'account_id' => $account->id,
+            'effective_date' => '2026-12-15',
+            'amount' => 100,
+            'paid' => false,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Transaction::query()->value('paid_at'))->toBeNull();
+    // An open entry counts as expected, never as realised.
+    expect(Transaction::query()->count())->toBe(1);
+});
+
+it('keeps the note and the observations it was given', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Notas']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'store-notes@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta BRL',
+    ]);
+
+    // Both are free-form and neither is required, so the only thing to prove is
+    // that they survive the round trip.
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => 'Notebook',
+            'note' => 'Pedido 4821',
+            'observations' => 'Garantia de 12 meses, retirar nota com o fornecedor.',
+            'currency_id' => $currency->id,
+            'account_id' => $account->id,
+            'effective_date' => '2026-12-15',
+            'amount' => 3600,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $transaction = Transaction::query()->firstOrFail();
+
+    expect($transaction->note)->toBe('Pedido 4821');
+    expect($transaction->observations)->toBe('Garantia de 12 meses, retirar nota com o fornecedor.');
+});
+
+it('leaves the note and the observations empty when they are not filled in', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Sem Notas']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'store-no-notes@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta BRL',
+    ]);
+
+    actingAs($user)
+        ->post('/transactions', [
+            'movement_type' => 'expense',
+            'type' => 'unique',
+            'description' => 'Notebook',
+            'currency_id' => $currency->id,
+            'account_id' => $account->id,
+            'effective_date' => '2026-12-15',
+            'amount' => 3600,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $transaction = Transaction::query()->firstOrFail();
+
+    expect($transaction->note)->toBeNull();
+    expect($transaction->observations)->toBeNull();
 });

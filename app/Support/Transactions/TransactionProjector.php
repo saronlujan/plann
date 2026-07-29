@@ -63,7 +63,11 @@ class TransactionProjector
             }
 
             if ($transaction->type === TransactionType::Recurring && $transaction->adjustment_month->isSameMonth($period)) {
-                $entries->push($this->mapAdjustmentEntry($transaction, $period));
+                // A removed occurrence is still stored, because its absence is
+                // what keeps the master from expanding into that month again.
+                if (! $transaction->is_skipped) {
+                    $entries->push($this->mapAdjustmentEntry($transaction, $period));
+                }
 
                 continue;
             }
@@ -175,6 +179,7 @@ class TransactionProjector
                     'schedule_type' => 'installment',
                     'movement_type' => $transaction->movement_type->value ?? TransactionMovementType::Expense->value,
                     'is_transfer' => (bool) $transaction->is_transfer,
+                    'attachment' => $transaction->attachment,
                     'category_id' => $transaction->category_id,
                     'tag_ids' => $transaction->tags->pluck('id')->all(),
                     'label' => sprintf('%s - parcela %d/%d', $transaction->description, $installmentNumber, $transaction->installments_total),
@@ -188,6 +193,8 @@ class TransactionProjector
                     'amount' => $this->formatMoney($transaction->amount),
                     'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
                     'description' => $transaction->description,
+                    'note' => $transaction->note,
+                    'observations' => $transaction->observations,
                     'installment_frequency' => $transaction->installment_frequency->value,
                     'installments_total' => $transaction->installments_total,
                     'installment_number' => $installmentNumber,
@@ -264,6 +271,7 @@ class TransactionProjector
             'type' => $overrides['schedule_type'],
             'movement_type' => $transaction->movement_type->value ?? TransactionMovementType::Expense->value,
             'is_transfer' => (bool) $transaction->is_transfer,
+            'attachment' => $transaction->attachment,
             'category_id' => $transaction->category_id,
             'tag_ids' => $transaction->tags->pluck('id')->all(),
             'currency_code' => $transaction->currency->code,
@@ -277,6 +285,8 @@ class TransactionProjector
             'amount' => $this->formatMoney($transaction->amount),
             'adjustment_amount' => $this->formatMoney($transaction->adjustment_amount),
             'description' => $transaction->description,
+            'note' => $transaction->note,
+            'observations' => $transaction->observations,
             // Shared by every entry kind: only installments carry a frequency.
             'installment_frequency' => $transaction->installment_frequency?->value,
             'installments_total' => $transaction->installments_total,

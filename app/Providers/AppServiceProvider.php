@@ -5,15 +5,15 @@ namespace App\Providers;
 use App\Listeners\SyncTenantPlanFromStripe;
 use App\Models\Tenant;
 use App\Support\Tenancy\TenantContext;
-use Intervention\Image\Drivers\Gd\Driver;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Interfaces\ImageManagerInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageManagerInterface;
 use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Events\WebhookReceived;
 
@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
 
         // GD ships with every PHP build this app targets; Imagick would need a
         // per-host extension for no gain on plain receipt photos.
-        $this->app->singleton(ImageManagerInterface::class, fn (): ImageManager => new ImageManager(new Driver()));
+        $this->app->singleton(ImageManagerInterface::class, fn (): ImageManager => new ImageManager(new Driver));
     }
 
     /**

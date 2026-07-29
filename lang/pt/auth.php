@@ -4,8 +4,8 @@ return [
     'ui' => [
         'login' => [
             'title' => 'Entrar',
+            'subtitle' => 'Entre para continuar de onde você parou.',
             'email_label' => 'E-mail:',
-            'email_placeholder' => 'joao@email.com',
             'password_label' => 'Senha',
             'forgot_password' => 'Esqueceu a senha?',
             'remember' => 'Manter conectado',
@@ -17,23 +17,25 @@ return [
 
         'register' => [
             'title' => 'Cadastro',
+            'subtitle' => 'Crie sua conta em menos de um minuto.',
             'name_label' => 'Nome',
             'name_placeholder' => 'João Silva',
-            'email_label' => 'Endereço de e-mail',
-            'email_placeholder' => 'ola@exemplo.com',
+            'email_label' => 'E-mail',
             'country_label' => 'País',
             'country_placeholder' => 'Selecione seu país',
             'currency_label' => 'Moeda',
             'currency_placeholder' => 'Selecione a moeda',
             'phone_label' => 'Telefone',
             'password_label' => 'Senha',
-            'password_confirmation_label' => 'Confirmar senha',
+            'password_confirmation_label' => 'Confirmar Senha',
             'terms_prefix' => 'Ao continuar, você concorda com nossos',
             'terms_link' => 'termos de serviço',
             'submit' => 'Cadastrar',
             'or_divider' => 'ou cadastrar-se com',
             'have_account' => 'Já tem uma conta?',
             'sign_in' => 'Entrar aqui',
+            'plan_trial_headline' => '14 dias grátis, sem cartão.',
+            'plan_annual_notice' => 'O valor da assinatura é cobrado anualmente, total :value por ano.',
         ],
 
         'social' => [

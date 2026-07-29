@@ -32,7 +32,19 @@ function statementFixture(string $email): array
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Corrente',
-        'balance' => 100,
+    ]);
+
+    // Accounts start empty: the money already there is an ordinary entry.
+    Transaction::query()->create([
+        'tenant_id' => $account->tenant_id,
+        'account_id' => $account->id,
+        'currency_id' => $account->currency_id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-01-01',
+        'paid_at' => '2026-01-01',
+        'amount' => 100,
+        'description' => 'Saldo inicial',
     ]);
 
     return [$user, $account, $currency];
@@ -80,6 +92,8 @@ test('the statement shows opening, closing and a running balance', function () {
     statementMovement($account, $currency, 'income', '2026-08-05', 200);
     statementMovement($account, $currency, 'expense', '2026-08-10', 50);
 
+    // The starting money is dated before this month, so it is carried in as the
+    // opening figure rather than listed as an entry.
     actingAs($user)->get('/accounts/'.$account->id.'?period=2026-08')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Accounts/Show')
@@ -98,6 +112,8 @@ test('the opening balance carries prior months forward', function () {
     [$user, $account, $currency] = statementFixture('acc-opening@example.com');
     statementMovement($account, $currency, 'income', '2026-07-20', 300); // previous month
 
+    // Both the starting money and July's movement land before August, so they
+    // arrive together as the opening figure.
     actingAs($user)->get('/accounts/'.$account->id.'?period=2026-08')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Accounts/Show')
@@ -116,7 +132,6 @@ test('a tenant cannot view another tenant account statement', function () {
 
 test('the accounts page ships the currency symbol for the money fields', function () {
     [$user, , $currency] = statementFixture('acc-symbol@example.com');
-    $user->tenant()->firstOrFail()->syncCurrencyActivations([$currency->id]);
 
     // The modal prefixes balance and credit limit with the symbol, and picks the
     // decimal places off the code (guaraní and peso take none).

@@ -22,13 +22,11 @@ function reportsFixture(string $email): array
     $user = User::factory()->create(['tenant_id' => $tenant->id, 'email' => $email, 'locale' => 'pt']);
 
     $currency = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
-    $tenant->syncCurrencyActivations([$currency->id]);
 
     $account = Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta',
-        'balance' => 0,
     ]);
 
     return [$user, $account, $currency];
@@ -195,7 +193,6 @@ test('the report only counts the selected currency', function () {
         'tenant_id' => $account->tenant_id,
         'currency_id' => $usd->id,
         'name' => 'Conta USD',
-        'balance' => 0,
     ]);
 
     reportsEntry($account, $brl, 'expense', '2026-08-05', 100);

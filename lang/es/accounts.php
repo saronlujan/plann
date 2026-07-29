@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'errors' => [
+        'currency_locked' => 'Esta cuenta ya tiene movimientos. Resuelve los movimientos antes de cambiar la moneda.',
+        'plan_limit' => 'Tu plan permite solo una moneda. Suscríbete a Pro para usar más.',
+    ],
+
     'title' => 'Cuentas',
     'subtitle' => 'Saldos y extracto de tus cuentas.',
     'empty' => 'Aún no tienes cuentas. Crea la primera con el botón de arriba.',
@@ -21,9 +26,8 @@ return [
         'name_placeholder' => 'Ej.: Cuenta Corriente',
         'kind_label' => 'Tipo',
         'currency_label' => 'Moneda',
+        'currency_locked' => 'La moneda no se puede cambiar: la cuenta ya tiene movimientos.',
         'currency_placeholder' => 'Selecciona la moneda',
-        'balance_label' => 'Saldo inicial',
-        'balance_placeholder' => '0,00',
         'credit_limit_label' => 'Límite de crédito',
         'credit_limit_placeholder' => '0,00',
         'closing_day_label' => 'Día de cierre',

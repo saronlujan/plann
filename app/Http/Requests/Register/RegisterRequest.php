@@ -31,6 +31,12 @@ class RegisterRequest extends FormRequest
                 'max:4',
                 Rule::exists('currencies', 'code')->whereNull('tenant_id'),
             ],
+            // The plan picked at signup: it decides what the 14-day trial shows.
+            'plan_slug' => [
+                'required',
+                'string',
+                Rule::exists('plans', 'slug')->where('is_active', true),
+            ],
             'password' => ['required', 'string', 'confirmed', Password::min(8)],
         ];
     }

@@ -44,11 +44,33 @@ class HandleInertiaRequests extends Middleware
             'locale' => $locale,
             'translations' => $this->translations($locale),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $this->authUser($request),
             ],
             // TEMPORARY: exposes dev-only UI (force trial expiry) in local only.
             'dev' => app()->environment('local'),
         ];
+    }
+
+    /**
+     * The signed-in user, with the picture resolved to something the browser can
+     * load: an uploaded avatar is served by a route, an OAuth one is already a
+     * URL. The version parameter busts the cache when the file changes.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function authUser(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        return array_merge($user->toArray(), [
+            'avatar_url' => $user->avatar !== null
+                ? route('profile.avatar', ['v' => $user->updated_at?->timestamp])
+                : $user->avatar_url,
+        ]);
     }
 
     /**

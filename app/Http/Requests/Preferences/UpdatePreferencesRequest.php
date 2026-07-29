@@ -29,15 +29,14 @@ class UpdatePreferencesRequest extends FormRequest
             'sound_theme' => ['sometimes', 'required', Rule::enum(SoundTheme::class)],
             'notifications_enabled' => ['sometimes', 'required', 'boolean'],
             'notify_days_before' => ['sometimes', 'required', 'integer', 'min:0', 'max:30'],
-            // Only a currency the workspace has actually activated may be chosen;
-            // null means "no preference" and falls back to the first active one.
+            // Only a currency the workspace holds an account in; null means "no
+            // preference" and falls back to the first one in use.
             'default_currency_id' => [
                 'sometimes',
                 'nullable',
                 'integer',
-                Rule::exists('currency_tenant', 'currency_id')
-                    ->where('tenant_id', $this->user()?->tenant_id)
-                    ->where('is_active', true),
+                Rule::exists('accounts', 'currency_id')
+                    ->where('tenant_id', $this->user()?->tenant_id),
             ],
         ];
     }

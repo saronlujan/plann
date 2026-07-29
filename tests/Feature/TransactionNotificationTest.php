@@ -35,7 +35,6 @@ function notifyFixture(bool $enabled = true, array $overrides = []): array
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta',
-        'balance' => 0,
     ]);
 
     return [$tenant, $user, $currency, $account];

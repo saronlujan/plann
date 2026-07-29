@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { Info } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -24,7 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Textarea } from '@/components/ui/textarea';
 import { colorHex } from '@/lib/labelColors';
 import { cn } from '@/lib/utils';
 import transactions from '@/routes/transactions';
@@ -36,12 +35,15 @@ import type {
     TagOption,
     TransactionEntry,
 } from '../types';
+import AttachmentField from './AttachmentField.vue';
 import TagsSelect from './TagsSelect.vue';
 
 type TransactionFormData = {
     movement_type: string;
     type: string;
     description: string;
+    note: string;
+    observations: string;
     currency_id: string;
     account_id: string;
     category_id: string;
@@ -49,6 +51,7 @@ type TransactionFormData = {
     destination_account_id: string;
     effective_date: string;
     effective_until: string;
+    paid: boolean;
     amount: string;
     interest_amount: string;
     installment_frequency: string;
@@ -93,6 +96,11 @@ const isEdit = computed(() => props.entry != null);
 // Narrowest scope first: the wider the reach, the further down the list.
 // Computed, not a plain array: setup runs before the locale messages land, so
 // eager labels freeze as their own translation keys.
+const paidOptions = computed(() => [
+    { value: true, label: trans('common.state.yes') },
+    { value: false, label: trans('common.state.no') },
+]);
+
 const recurrenceScopeOptions = computed<Option[]>(() => [
     { value: 'one', label: trans('transactions.recurrence_scope.one') },
     { value: 'forward', label: trans('transactions.recurrence_scope.forward') },
@@ -136,6 +144,8 @@ function buildInitialValues(): TransactionFormData {
             movement_type: entry.movement_type,
             type: entry.schedule_type,
             description: entry.description,
+            note: entry.note ?? '',
+            observations: entry.observations ?? '',
             currency_id: entry.currency_id.toString(),
             account_id: entry.account_id?.toString() ?? '',
             category_id: entry.category_id?.toString() ?? '',
@@ -143,6 +153,7 @@ function buildInitialValues(): TransactionFormData {
             destination_account_id: '',
             effective_date: entry.effective_date,
             effective_until: entry.effective_until ?? '',
+            paid: entry.paid_at !== null,
             amount: entry.amount,
             interest_amount: '',
             installment_frequency: entry.installment_frequency ?? 'monthly',
@@ -157,6 +168,8 @@ function buildInitialValues(): TransactionFormData {
         movement_type: props.initialMovementType,
         type: 'unique',
         description: '',
+        note: '',
+        observations: '',
         currency_id: defaultCurrencyId.value,
         account_id: defaultAccountId.value,
         category_id: '',
@@ -164,6 +177,8 @@ function buildInitialValues(): TransactionFormData {
         destination_account_id: '',
         effective_date: todayIsoDate(),
         effective_until: '',
+        // Most entries are booked as they happen, so "yes" is the common case.
+        paid: true,
         amount: '',
         interest_amount: '',
         installment_frequency: 'monthly',
@@ -201,22 +216,12 @@ const selectedCurrency = computed(() =>
     props.currencyOptions.find((currency) => currency.id.toString() === form.currency_id),
 );
 
-// A transfer names itself, so the field is optional there and the label says so.
-const descriptionLabel = computed(() =>
-    trans(
-        isTransferMovement.value
-            ? 'transactions.fields.description_optional'
-            : 'transactions.fields.description',
-    ),
-);
 const showInstallmentFields = computed(() => isInstallmentType.value && !isTransferMovement.value);
 
-// Categories carry a type (income / expense / both). Show the ones matching the
-// current movement plus dual-use ("both") categories. Transfers have no category.
+// Categories are either income or expense; show the ones matching the current
+// movement. Transfers have no category.
 const filteredCategoryOptions = computed(() =>
-    props.categoryOptions.filter(
-        (category) => category.type === form.movement_type || category.type === 'both',
-    ),
+    props.categoryOptions.filter((category) => category.type === form.movement_type),
 );
 
 // Keep the already-selected category visible even if its type no longer matches
@@ -268,8 +273,15 @@ function closeModal(): void {
 const ATTACHMENT_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf';
 
 // The file input stays hidden until asked for: most entries have no receipt, and
-// an empty file field in every form is just noise.
-const attachmentEnabled = ref(false);
+// an empty file field in every form is just noise. An entry that already has one
+// opens with it showing.
+const attachmentEnabled = ref(props.entry?.attachment != null);
+
+const storedAttachment = computed(() => props.entry?.attachment ?? null);
+
+const storedAttachmentUrl = computed(() =>
+    props.entry ? transactions.attachment(props.entry.transaction_id).url : '',
+);
 
 function toggleAttachment(enabled: boolean): void {
     attachmentEnabled.value = enabled;
@@ -308,7 +320,7 @@ watch(
             return;
         }
 
-        attachmentEnabled.value = false;
+        attachmentEnabled.value = props.entry?.attachment != null;
         form.defaults(buildInitialValues());
         form.reset();
         form.clearErrors();
@@ -397,7 +409,7 @@ watch(
             laptop once the installment or recurrence fields open up.
         -->
         <DialogScrollContent
-            class="gap-4 overflow-hidden border-none p-0 **:data-[slot=dialog-close]:text-white **:data-[slot=dialog-close]:hover:bg-white/20 sm:max-w-2xl"
+            class="gap-4 overflow-hidden border-none p-0 **:data-[slot=dialog-close]:text-white **:data-[slot=dialog-close]:ring-offset-transparent **:data-[slot=dialog-close]:hover:bg-white/20 **:data-[slot=dialog-close]:focus:ring-white/70 sm:max-w-2xl"
         >
             <div :class="cn('px-6 pt-6 pb-4', movementHeaderClass)">
                 <DialogHeader>
@@ -435,7 +447,9 @@ watch(
             <Form class="space-y-5 px-6 pb-6" @submit.prevent="submitTransaction">
                 <div class="grid gap-4 md:grid-cols-2">
                     <FormGroup class="md:col-span-2">
-                        <FormLabel for="tx-description">{{ descriptionLabel }}</FormLabel>
+                        <FormLabel for="tx-description">{{
+                            $t('transactions.fields.description')
+                        }}</FormLabel>
                         <Input
                             id="tx-description"
                             v-model="form.description"
@@ -444,6 +458,34 @@ watch(
                             :placeholder="$t('transactions.placeholders.description')"
                         />
                         <FormError :message="form.errors.description" />
+                    </FormGroup>
+
+                    <!--
+                        With a single active currency there is nothing to choose: the
+                        form already defaults to it, so the field would only be a
+                        read-only echo taking up a slot.
+                    -->
+                    <FormGroup v-if="currencyOptions.length > 1" class="md:col-span-1">
+                        <FormLabel for="tx-currency">{{
+                            $t('transactions.fields.currency')
+                        }}</FormLabel>
+                        <Select v-model="form.currency_id">
+                            <SelectTrigger id="tx-currency">
+                                <SelectValue
+                                    :placeholder="$t('transactions.placeholders.currency')"
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="currency in currencyOptions"
+                                    :key="currency.id"
+                                    :value="currency.id.toString()"
+                                >
+                                    {{ currency.code }} - {{ currency.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormError :message="form.errors.currency_id" />
                     </FormGroup>
 
                     <FormGroup class="md:col-span-1">
@@ -483,6 +525,41 @@ watch(
                             </SelectContent>
                         </Select>
                         <FormError :message="form.errors.type" />
+                    </FormGroup>
+
+                    <!--
+                        A transfer settles the moment it happens, so the choice is
+                        hidden there rather than shown with one usable answer.
+                    -->
+                    <FormGroup v-if="!isTransferMovement" class="md:col-span-1">
+                        <FormLabel id="tx-paid-label">{{
+                            $t('transactions.fields.paid')
+                        }}</FormLabel>
+                        <div
+                            role="radiogroup"
+                            aria-labelledby="tx-paid-label"
+                            class="inline-flex h-9 w-full items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground"
+                        >
+                            <button
+                                v-for="option in paidOptions"
+                                :key="option.label"
+                                type="button"
+                                role="radio"
+                                :aria-checked="form.paid === option.value"
+                                :class="
+                                    cn(
+                                        'inline-flex h-full flex-1 items-center justify-center rounded-md border border-transparent px-2 py-1 text-sm font-medium transition-[color,box-shadow]',
+                                        form.paid === option.value
+                                            ? 'bg-background text-foreground shadow-sm dark:border-input dark:bg-input/30'
+                                            : 'hover:text-foreground',
+                                    )
+                                "
+                                @click="form.paid = option.value"
+                            >
+                                {{ option.label }}
+                            </button>
+                        </div>
+                        <FormError :message="form.errors.paid" />
                     </FormGroup>
 
                     <!--
@@ -569,34 +646,6 @@ watch(
                             </label>
                         </RadioGroup>
                         <FormError :message="form.errors.recurrence_scope" />
-                    </FormGroup>
-
-                    <!--
-                        With a single active currency there is nothing to choose: the
-                        form already defaults to it, so the field would only be a
-                        read-only echo taking up a slot.
-                    -->
-                    <FormGroup v-if="currencyOptions.length > 1">
-                        <FormLabel for="tx-currency">{{
-                            $t('transactions.fields.currency')
-                        }}</FormLabel>
-                        <Select v-model="form.currency_id">
-                            <SelectTrigger id="tx-currency">
-                                <SelectValue
-                                    :placeholder="$t('transactions.placeholders.currency')"
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="currency in currencyOptions"
-                                    :key="currency.id"
-                                    :value="currency.id.toString()"
-                                >
-                                    {{ currency.code }} - {{ currency.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormError :message="form.errors.currency_id" />
                     </FormGroup>
 
                     <!--
@@ -725,36 +774,46 @@ watch(
                             <FormLabel for="tx-attachment-toggle" class="cursor-pointer">
                                 {{ $t('transactions.fields.attachment') }}
                             </FormLabel>
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger as-child>
-                                        <button
-                                            type="button"
-                                            class="text-muted-foreground transition-colors hover:text-foreground"
-                                            :aria-label="$t('transactions.hints.attachment')"
-                                        >
-                                            <Info class="size-4" />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {{ $t('transactions.hints.attachment') }}
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
                         </div>
 
-                        <Input
+                        <AttachmentField
                             v-if="attachmentEnabled"
-                            id="tx-attachment"
-                            type="file"
-                            name="attachment"
+                            v-model="form.attachment"
+                            :stored-name="storedAttachment"
+                            :stored-url="storedAttachmentUrl"
                             :accept="ATTACHMENT_ACCEPT"
-                            class="cursor-pointer file:mr-3 file:cursor-pointer file:text-sm file:text-muted-foreground"
-                            @update:model-value="
-                                (value) => (form.attachment = value as File | null)
-                            "
                         />
                         <FormError :message="form.errors.attachment" />
+                    </FormGroup>
+
+                    <!--
+                        Closing the form: a short label of the user's own, and the
+                        room the description does not have.
+                    -->
+                    <FormGroup class="md:col-span-2">
+                        <FormLabel for="tx-note">{{ $t('transactions.fields.note') }}</FormLabel>
+                        <Input
+                            id="tx-note"
+                            v-model="form.note"
+                            type="text"
+                            name="note"
+                            :placeholder="$t('transactions.placeholders.note')"
+                        />
+                        <FormError :message="form.errors.note" />
+                    </FormGroup>
+
+                    <FormGroup class="md:col-span-2">
+                        <FormLabel for="tx-observations">{{
+                            $t('transactions.fields.observations')
+                        }}</FormLabel>
+                        <Textarea
+                            id="tx-observations"
+                            v-model="form.observations"
+                            name="observations"
+                            rows="3"
+                            :placeholder="$t('transactions.placeholders.observations')"
+                        />
+                        <FormError :message="form.errors.observations" />
                     </FormGroup>
 
                     <!--

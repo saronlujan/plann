@@ -27,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int|null $installments_total
  * @property int|null $installment_number
  * @property string|null $interest_amount
- * @property string|null $attachment_path
+ * @property string|null $attachment
  * @property string|null $series_uuid
  * @property CarbonImmutable $effective_date
  * @property CarbonImmutable|null $paid_at
@@ -56,8 +56,9 @@ class Transaction extends Model
         'installments_total',
         'installment_number',
         'interest_amount',
-        'attachment_path',
+        'attachment',
         'series_uuid',
+        'is_skipped',
         'effective_date',
         'paid_at',
         'effective_until',
@@ -65,11 +66,14 @@ class Transaction extends Model
         'amount',
         'adjustment_amount',
         'description',
+        'note',
+        'observations',
     ];
 
     protected $casts = [
         'movement_type' => TransactionMovementType::class,
         'is_transfer' => 'boolean',
+        'is_skipped' => 'boolean',
         'type' => TransactionType::class,
         'installment_frequency' => TransactionInstallmentFrequency::class,
         'effective_date' => 'date',

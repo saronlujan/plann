@@ -23,15 +23,18 @@ class ShowTransactionAttachmentController extends Controller
     {
         $this->authorize('view', $transaction);
 
-        abort_if($transaction->attachment_path === null, 404);
+        abort_if($transaction->attachment === null, 404);
 
+        // Built from the row's own tenant, not the request's: the folder can only
+        // ever be the one that owns the file.
+        $path = $this->attachments->path($transaction->attachment, $transaction->tenant_id);
         $disk = $this->attachments->disk();
 
-        abort_unless($disk->exists($transaction->attachment_path), 404);
+        abort_unless($disk->exists($path), 404);
 
         return $disk->download(
-            $transaction->attachment_path,
-            basename($transaction->attachment_path),
+            $path,
+            $transaction->attachment,
             ['X-Content-Type-Options' => 'nosniff'],
         );
     }

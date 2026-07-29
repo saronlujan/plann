@@ -23,10 +23,10 @@ type Account = {
     kind: string;
     currency_id: number;
     currency_code: string;
-    balance: string;
     credit_limit: string | null;
     closing_day: number | null;
     due_day: number | null;
+    has_transactions: boolean;
     current_balance?: string;
     monthly_income?: string;
     monthly_expense?: string;
@@ -38,6 +38,7 @@ type Account = {
 defineProps<{
     accounts: Account[];
     currencyOptions: CurrencyOption[];
+    defaultCurrencyId: string;
     kindOptions: Option[];
 }>();
 
@@ -216,6 +217,7 @@ function confirmDelete(): void {
                 v-model:open="modalOpen"
                 :entry="editing"
                 :currency-options="currencyOptions"
+                :default-currency-id="defaultCurrencyId"
                 :kind-options="kindOptions"
             />
             <ConfirmDialog

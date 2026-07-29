@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Register;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\Currency;
+use App\Models\Plan;
 use App\Support\Registration\ResolveDefaultCountry;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,23 @@ class RegisterController extends Controller
 
         return Inertia::render('Register/Register', [
             'googleOAuthEnabled' => $this->isGoogleOAuthEnabled(),
+            // Name and description come from the enum, not the plans table: the
+            // seeded copies are frozen in whatever locale seeded them, and this
+            // page follows the visitor's language.
+            'planOptions' => Plan::query()
+                ->active()
+                ->orderBy('sort_order')
+                ->get(['slug', 'monthly_price_cents'])
+                ->map(fn (Plan $plan): array => [
+                    'value' => $plan->slug->value,
+                    'label' => $plan->slug->label(),
+                    'description' => $plan->slug->description(),
+                    'monthly_price_cents' => $plan->monthly_price_cents,
+                    // The headline figure is per month, but the charge is yearly —
+                    // the card has to show both or the price reads as misleading.
+                    'annual_price_cents' => $plan->annualPriceCents(),
+                ])
+                ->all(),
             // Alphabetical order would greet every Brazilian with Argentina.
             'defaultCountry' => $defaultCountry->handle($request, $countries),
             'countryOptions' => $countries

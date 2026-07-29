@@ -50,14 +50,17 @@ class StoreTransactionController extends Controller
             'installments_total' => $validated['installments_total'] ?? null,
             'installment_number' => $validated['installment_number'] ?? null,
             'interest_amount' => $validated['interest_amount'] ?? null,
-            'attachment_path' => $this->attachments->store($request->file('attachment')),
+            'attachment' => $this->attachments->store($request->file('attachment')),
             'series_uuid' => in_array($validated['type'], [TransactionType::Recurring->value, TransactionType::Installment->value], true) ? (string) Str::uuid() : null,
             'effective_date' => $validated['effective_date'],
             'effective_until' => $validated['effective_until'] ?? null,
             'adjustment_month' => $validated['adjustment_month'] ?? null,
+            'paid_at' => ($validated['paid'] ?? false) ? $validated['effective_date'] : null,
             'amount' => $validated['amount'],
             'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
             'description' => $validated['description'],
+            'note' => $validated['note'] ?? null,
+            'observations' => $validated['observations'] ?? null,
         ];
     }
 
@@ -69,13 +72,13 @@ class StoreTransactionController extends Controller
         $sourceAccount = Account::query()->findOrFail((int) $validated['account_id']);
         $destinationAccount = Account::query()->findOrFail((int) $validated['destination_account_id']);
         $seriesUuid = (string) Str::uuid();
-        $attachmentPath = $this->attachments->store($request->file('attachment'));
+        $attachmentFile = $this->attachments->store($request->file('attachment'));
 
         // Naming a transfer is optional: both legs still need a description, and
         // the list already shows which accounts are involved underneath it.
         $description = trim((string) ($validated['description'] ?? '')) ?: __('transactions.defaults.transfer_description');
 
-        DB::transaction(function () use ($validated, $description, $sourceAccount, $destinationAccount, $seriesUuid, $attachmentPath): void {
+        DB::transaction(function () use ($validated, $description, $sourceAccount, $destinationAccount, $seriesUuid, $attachmentFile): void {
             Transaction::query()->create([
                 'tenant_id' => $sourceAccount->tenant_id,
                 'account_id' => $sourceAccount->id,
@@ -84,7 +87,7 @@ class StoreTransactionController extends Controller
                 'is_transfer' => true,
                 'type' => TransactionType::Unique->value,
                 'interest_amount' => $validated['interest_amount'] ?? null,
-                'attachment_path' => $attachmentPath,
+                'attachment' => $attachmentFile,
                 'series_uuid' => $seriesUuid,
                 'effective_date' => $validated['effective_date'],
                 'effective_until' => null,
@@ -93,6 +96,8 @@ class StoreTransactionController extends Controller
                 'amount' => $validated['amount'],
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
                 'description' => $description,
+                'note' => $validated['note'] ?? null,
+                'observations' => $validated['observations'] ?? null,
             ]);
 
             Transaction::query()->create([
@@ -103,7 +108,7 @@ class StoreTransactionController extends Controller
                 'is_transfer' => true,
                 'type' => TransactionType::Unique->value,
                 'interest_amount' => null,
-                'attachment_path' => null,
+                'attachment' => null,
                 'series_uuid' => $seriesUuid,
                 'effective_date' => $validated['effective_date'],
                 'effective_until' => null,
@@ -112,6 +117,8 @@ class StoreTransactionController extends Controller
                 'amount' => $validated['amount'],
                 'adjustment_amount' => 0,
                 'description' => $description,
+                'note' => $validated['note'] ?? null,
+                'observations' => $validated['observations'] ?? null,
             ]);
         });
 

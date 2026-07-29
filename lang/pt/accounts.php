@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'errors' => [
+        'currency_locked' => 'Esta conta já tem lançamentos. Resolva os lançamentos antes de trocar a moeda.',
+        'plan_limit' => 'Seu plano permite apenas uma moeda. Assine o Pro para usar mais.',
+    ],
+
     'title' => 'Contas',
     'subtitle' => 'Saldos e extrato das suas contas.',
     'empty' => 'Você ainda não tem contas. Crie a primeira no botão acima.',
@@ -21,9 +26,8 @@ return [
         'name_placeholder' => 'Ex.: Conta Corrente',
         'kind_label' => 'Tipo',
         'currency_label' => 'Moeda',
+        'currency_locked' => 'A moeda não pode ser alterada: a conta já tem lançamentos.',
         'currency_placeholder' => 'Selecione a moeda',
-        'balance_label' => 'Saldo inicial',
-        'balance_placeholder' => '0,00',
         'credit_limit_label' => 'Limite de crédito',
         'credit_limit_placeholder' => '0,00',
         'closing_day_label' => 'Dia de fechamento',

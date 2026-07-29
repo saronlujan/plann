@@ -36,6 +36,11 @@ const model = computed({
                     {{ description ?? $t('common.confirm.description') }}
                 </AlertDialogDescription>
             </AlertDialogHeader>
+
+            <!-- Room for a choice the confirmation depends on, like which part
+                 of a series to remove. -->
+            <slot />
+
             <AlertDialogFooter>
                 <AlertDialogCancel>{{
                     cancelLabel ?? $t('common.confirm.cancel')

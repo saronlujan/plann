@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreignId('currency_id')->constrained()->restrictOnDelete();
             $table->string('name');
             $table->string('kind')->default('account');
-            $table->decimal('balance', 18, 2)->default(0);
             $table->decimal('credit_limit', 18, 2)->nullable();
             $table->unsignedTinyInteger('closing_day')->nullable();
             $table->unsignedTinyInteger('due_day')->nullable();

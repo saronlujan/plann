@@ -3,66 +3,76 @@
 namespace Database\Seeders;
 
 use App\Enums\PlanSlug;
+use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Two workspaces, one per plan, so both tiers can be opened side by side.
+     *
+     * Nothing but the login: no account, no category, no entry. A seeded
+     * workspace that already had them would never reach the guided setup, which
+     * is exactly what this is here to exercise.
+     *
+     * Same country and currency on purpose: the difference under test is the
+     * plan, and a second currency would only show up on one of them.
+     */
     public function run(): void
     {
-        $currencies = Currency::query()->get()->keyBy('code');
-
-        $tenant = Tenant::query()->firstOrCreate(
-            ['name' => 'Test Tenant'],
+        $workspaces = [
             [
-                'plan_slug' => PlanSlug::Basic->value,
+                'email' => 'saronlujan@gmail.com',
+                'name' => 'Saron Lujan',
+                'tenant' => 'Workspace Pro',
+                'plan' => PlanSlug::Pro,
+            ],
+            [
+                'email' => 'saronlujan@hotmail.com',
+                'name' => 'Saron Lujan',
+                'tenant' => 'Workspace Basic',
+                'plan' => PlanSlug::Basic,
+            ],
+        ];
+
+        $currency = Currency::query()->where('code', 'BRL')->firstOrFail();
+        $country = Country::query()->where('code', 'BR')->first();
+
+        foreach ($workspaces as $workspace) {
+            $this->seedWorkspace($workspace, $currency, $country);
+        }
+    }
+
+    /**
+     * @param  array{email: string, name: string, tenant: string, plan: PlanSlug}  $workspace
+     */
+    private function seedWorkspace(array $workspace, Currency $currency, ?Country $country): void
+    {
+        $tenant = Tenant::query()->firstOrCreate(
+            ['name' => $workspace['tenant']],
+            [
+                'plan_slug' => $workspace['plan']->value,
+                'country_id' => $country?->id,
+                'currency_id' => $currency->id,
                 'trial_ends_at' => now()->addDays(14),
             ],
         );
 
-        app(TenantContext::class)->setTenantId($tenant->id);
-
-        // Activate every available currency for the test workspace.
-        $tenant->syncCurrencyActivations($currencies->pluck('id')->all());
-
-        // One account per currency, plus a second BRL account to exercise transfers.
-        $accounts = [
-            ['name' => 'Conta Corrente', 'code' => 'BRL', 'balance' => 5000],
-            ['name' => 'Conta Poupança', 'code' => 'BRL', 'balance' => 12000],
-            ['name' => 'Conta Dólar', 'code' => 'USD', 'balance' => 800],
-            ['name' => 'Conta Peso', 'code' => 'ARS', 'balance' => 150000],
-            ['name' => 'Conta Guarani', 'code' => 'PYG', 'balance' => 2500000],
-            ['name' => 'Carteira Tether', 'code' => 'USDT', 'balance' => 300],
-        ];
-
-        foreach ($accounts as $account) {
-            $tenant->accounts()->updateOrCreate(
-                ['name' => $account['name']],
-                [
-                    'currency_id' => $currencies[$account['code']]->id,
-                    'balance' => $account['balance'],
-                ],
-            );
-        }
-
         $user = User::query()->updateOrCreate(
-            [
-                'email' => 'saronlujan@gmail.com',
-            ],
+            ['email' => $workspace['email']],
             [
                 'tenant_id' => $tenant->id,
-                'name' => 'Saron Lujan',
+                'name' => $workspace['name'],
                 'password' => '12345678',
-                'avatar_url' => 'https://avatars.githubusercontent.com/u/7363056?v=4',
                 'locale' => 'pt',
             ],
         );
 
-        // The seeded account skips the verification step so `migrate:fresh --seed`
-        // lands straight on a usable app.
+        // Verification is skipped so `migrate:fresh --seed` lands straight on the
+        // guided setup instead of the confirmation screen.
         $user->markEmailAsVerified();
     }
 }

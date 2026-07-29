@@ -61,6 +61,16 @@ test('the offline page renders without inertia', function () {
     expect($body)->toContain('Sem conexão');
 });
 
+test('every document offers the mark in a light and a dark variant', function (string $url) {
+    // A single-tone mark disappears against a tab bar of the same tone, so both
+    // the SPA shell and the offline fallback must ship the pair.
+    $body = (string) get($url)->assertSuccessful()->getContent();
+
+    expect($body)->toContain('/favicon.ico');
+    expect($body)->toContain('/favicon-white.ico');
+    expect($body)->toContain('(prefers-color-scheme: dark)');
+})->with(['/login', '/offline']);
+
 test('the offline page follows the authenticated user locale', function () {
     $tenant = Tenant::create(['name' => 'Tenant PWA']);
     app(TenantContext::class)->setTenantId($tenant->id);

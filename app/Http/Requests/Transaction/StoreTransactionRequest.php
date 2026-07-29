@@ -31,6 +31,10 @@ class StoreTransactionRequest extends FormRequest
             // A transfer already says what it is — the list shows "origin → destination"
             // under it — so naming it is optional and defaults to "Transfer".
             'description' => [Rule::requiredIf(! $isTransfer), 'nullable', 'string', 'max:255'],
+            // Free-form and never required: a short label, and room for the
+            // context that does not belong in the description.
+            'note' => ['nullable', 'string', 'max:120'],
+            'observations' => ['nullable', 'string', 'max:2000'],
             'currency_id' => ['required', 'integer', 'exists:currencies,id'],
             'account_id' => [
                 'integer',
@@ -59,6 +63,9 @@ class StoreTransactionRequest extends FormRequest
                 Rule::exists('tags', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
             ],
             'effective_date' => ['required', 'date_format:Y-m-d'],
+            // Settled on the spot or still to come. A transfer is always settled,
+            // so the form hides the choice there.
+            'paid' => ['nullable', 'boolean'],
             'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999999999.99'],
             'adjustment_amount' => ['nullable', 'numeric', 'decimal:0,2', 'gte:0'],
             'adjustment_month' => ['nullable', 'date_format:Y-m-d'],

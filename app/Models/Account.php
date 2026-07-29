@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $currency_id
  * @property string $name
  * @property AccountKind $kind
- * @property string $balance
  * @property string|null $credit_limit
  * @property int|null $closing_day
  * @property int|null $due_day
@@ -32,7 +31,6 @@ class Account extends Model
         'currency_id',
         'name',
         'kind',
-        'balance',
         'credit_limit',
         'closing_day',
         'due_day',
@@ -40,7 +38,6 @@ class Account extends Model
 
     protected $casts = [
         'kind' => AccountKind::class,
-        'balance' => 'decimal:2',
         'credit_limit' => 'decimal:2',
         'closing_day' => 'integer',
         'due_day' => 'integer',

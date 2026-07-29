@@ -29,10 +29,10 @@ type Account = {
     name: string;
     kind: string;
     currency_id: number;
-    balance: string;
     credit_limit: string | null;
     closing_day: number | null;
     due_day: number | null;
+    has_transactions: boolean;
 };
 
 const props = withDefaults(
@@ -40,9 +40,11 @@ const props = withDefaults(
         open: boolean;
         currencyOptions: CurrencyOption[];
         kindOptions: Option[];
+        /** The workspace's signup currency: a better fallback than "first". */
+        defaultCurrencyId?: string;
         entry?: Account | null;
     }>(),
-    { entry: null },
+    { defaultCurrencyId: '', entry: null },
 );
 
 const page = usePage<{ auth?: { user?: { default_currency_id?: number | null } | null } }>();
@@ -56,6 +58,10 @@ const dialogOpen = computed({
 
 const isEdit = computed(() => props.entry != null);
 
+// Every entry stores the currency it was recorded in, so an account that has
+// moved money can no longer change it — the server refuses too.
+const currencyLocked = computed(() => props.entry?.has_transactions === true);
+
 // The user's preferred currency wins; fall back to the first active one when no
 // preference is set or the preferred currency is no longer active.
 function defaultCurrencyValue(): string | undefined {
@@ -65,7 +71,15 @@ function defaultCurrencyValue(): string | undefined {
             ? undefined
             : props.currencyOptions.find((option) => option.value === preferred.toString());
 
-    return (match ?? props.currencyOptions[0])?.value;
+    if (match) {
+        return match.value;
+    }
+
+    // The currency the workspace signed up with beats whichever sorts first —
+    // on Pro the list is the whole catalogue and starts at ARS.
+    const signup = props.currencyOptions.find((option) => option.value === props.defaultCurrencyId);
+
+    return (signup ?? props.currencyOptions[0])?.value;
 }
 
 function buildValues() {
@@ -73,7 +87,6 @@ function buildValues() {
         name: props.entry?.name ?? '',
         kind: props.entry?.kind ?? props.kindOptions[0]?.value ?? 'account',
         currency_id: props.entry?.currency_id.toString() ?? defaultCurrencyValue() ?? '',
-        balance: props.entry?.balance ?? '',
         credit_limit: props.entry?.credit_limit ?? '',
         closing_day: props.entry?.closing_day?.toString() ?? '',
         due_day: props.entry?.due_day?.toString() ?? '',
@@ -171,7 +184,7 @@ function submit(): void {
                     <FormLabel for="acc-currency">{{
                         $t('accounts.modal.currency_label')
                     }}</FormLabel>
-                    <Select v-model="form.currency_id">
+                    <Select v-model="form.currency_id" :disabled="currencyLocked">
                         <SelectTrigger id="acc-currency">
                             <SelectValue :placeholder="$t('accounts.modal.currency_placeholder')" />
                         </SelectTrigger>
@@ -185,22 +198,10 @@ function submit(): void {
                             </SelectItem>
                         </SelectContent>
                     </Select>
+                    <span v-if="currencyLocked" class="text-xs text-muted-foreground">
+                        {{ $t('accounts.modal.currency_locked') }}
+                    </span>
                     <FormError :message="form.errors.currency_id" />
-                </FormGroup>
-
-                <FormGroup v-if="!isCard">
-                    <FormLabel for="acc-balance">{{
-                        $t('accounts.modal.balance_label')
-                    }}</FormLabel>
-                    <CurrencyInput
-                        id="acc-balance"
-                        v-model="form.balance"
-                        allow-negative
-                        :symbol="selectedCurrency?.symbol"
-                        :code="selectedCurrency?.code"
-                        :placeholder="$t('accounts.modal.balance_placeholder')"
-                    />
-                    <FormError :message="form.errors.balance" />
                 </FormGroup>
 
                 <template v-if="isCard">

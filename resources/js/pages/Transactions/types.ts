@@ -68,6 +68,8 @@ export type TransactionEntry = {
     schedule_type: string;
     movement_type: 'income' | 'expense' | 'transfer';
     is_transfer: boolean;
+    /** Stored file name, or null. The URL comes from the download route. */
+    attachment: string | null;
     label: string;
     currency_code: string;
     currency_symbol: string;
@@ -80,6 +82,8 @@ export type TransactionEntry = {
     amount: string;
     adjustment_amount: string;
     description: string;
+    note: string | null;
+    observations: string | null;
     installment_frequency: string | null;
     installments_total: number | null;
     installment_number: number | null;

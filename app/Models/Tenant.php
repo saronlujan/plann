@@ -23,6 +23,7 @@ class Tenant extends Model
         'name',
         'plan_slug',
         'country_id',
+        'currency_id',
     ];
 
     /**
@@ -76,43 +77,25 @@ class Tenant extends Model
     }
 
     /**
-     * @return BelongsToMany<Currency, $this>
-     */
-    public function currencies(): BelongsToMany
-    {
-        return $this->belongsToMany(Currency::class)
-            ->withPivot('is_active')
-            ->withTimestamps();
-    }
-
-    /**
+     * The currencies this workspace uses: the ones it holds an account in.
+     *
+     * Derived rather than stored. A separate "activated" flag said the same thing
+     * as "has an account in it" — every picker already hid currencies without
+     * one — and two records of one fact drift.
+     *
      * @return BelongsToMany<Currency, $this>
      */
     public function activeCurrencies(): BelongsToMany
     {
-        return $this->currencies()->wherePivot('is_active', true);
-    }
-
-    /**
-     * @param  array<int, int|string>  $currencyIds
-     */
-    public function syncCurrencyActivations(array $currencyIds): void
-    {
-        $activeCurrencyIds = collect($currencyIds)
-            ->map(fn (int|string $currencyId): int => (int) $currencyId)
-            ->unique()
-            ->values()
-            ->all();
-
-        $syncData = Currency::query()
-            ->orderBy('code')
-            ->pluck('id')
-            ->mapWithKeys(fn (int $currencyId): array => [
-                $currencyId => ['is_active' => in_array($currencyId, $activeCurrencyIds, true)],
-            ])
-            ->all();
-
-        $this->currencies()->sync($syncData);
+        // A plain distinct, not distinct('currencies.id'): Postgres turns the
+        // named form into DISTINCT ON, which demands the ORDER BY start with the
+        // same expression — and every caller orders by code. Distinct over the
+        // whole row is enough here, since the pivot columns repeat per currency.
+        //
+        // The trade-off is count(): it aggregates over `*`, where the flag does
+        // not apply, so count the collection instead of the query.
+        return $this->belongsToMany(Currency::class, 'accounts', 'tenant_id', 'currency_id')
+            ->distinct();
     }
 
     /**

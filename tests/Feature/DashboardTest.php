@@ -28,6 +28,14 @@ function dashboardUser(string $email): User
 
 test('authenticated users may view the dashboard', function () {
     $user = dashboardUser('dashboard@example.com');
+    $currency = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+
+    // A workspace without an account is taken to the guided setup instead.
+    Account::create([
+        'tenant_id' => $user->tenant_id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+    ]);
 
     actingAs($user)
         ->get('/')
@@ -43,13 +51,24 @@ test('the dashboard renders an overview for the primary currency', function () {
 
     $user = dashboardUser('dash@example.com');
     $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
-    $user->tenant()->first()->syncCurrencyActivations([$currency->id]);
 
     $account = Account::create([
         'tenant_id' => $user->tenant_id,
         'currency_id' => $currency->id,
         'name' => 'Conta',
-        'balance' => 500,
+    ]);
+
+    // Accounts start empty: the money already there is an ordinary entry.
+    Transaction::query()->create([
+        'tenant_id' => $account->tenant_id,
+        'account_id' => $account->id,
+        'currency_id' => $account->currency_id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-01-01',
+        'paid_at' => '2026-01-01',
+        'amount' => 500,
+        'description' => 'Saldo inicial',
     ]);
     $category = Category::create([
         'tenant_id' => $user->tenant_id,
@@ -94,20 +113,43 @@ test('the dashboard balance matches the balance shown on the accounts page', fun
 
     $user = dashboardUser('dash-balance@example.com');
     $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
-    $user->tenant()->first()->syncCurrencyActivations([$currency->id]);
 
     $checking = Account::create([
         'tenant_id' => $user->tenant_id,
         'currency_id' => $currency->id,
         'name' => 'Conta Corrente',
-        'balance' => 1000,
+    ]);
+
+    // Accounts start empty: the money already there is an ordinary entry.
+    Transaction::query()->create([
+        'tenant_id' => $checking->tenant_id,
+        'account_id' => $checking->id,
+        'currency_id' => $checking->currency_id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-01-01',
+        'paid_at' => '2026-01-01',
+        'amount' => 1000,
+        'description' => 'Saldo inicial',
     ]);
 
     $savings = Account::create([
         'tenant_id' => $user->tenant_id,
         'currency_id' => $currency->id,
         'name' => 'Poupanca',
-        'balance' => 250,
+    ]);
+
+    // Accounts start empty: the money already there is an ordinary entry.
+    Transaction::query()->create([
+        'tenant_id' => $savings->tenant_id,
+        'account_id' => $savings->id,
+        'currency_id' => $savings->currency_id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-01-01',
+        'paid_at' => '2026-01-01',
+        'amount' => 250,
+        'description' => 'Saldo inicial',
     ]);
 
     // A credit card is a liability: its spending must not reduce cash on hand.
@@ -116,10 +158,22 @@ test('the dashboard balance matches the balance shown on the accounts page', fun
         'currency_id' => $currency->id,
         'name' => 'Cartao',
         'kind' => 'credit_card',
-        'balance' => 0,
         'credit_limit' => 5000,
         'closing_day' => 20,
         'due_day' => 28,
+    ]);
+
+    // Accounts start empty: the money already there is an ordinary entry.
+    Transaction::query()->create([
+        'tenant_id' => $card->tenant_id,
+        'account_id' => $card->id,
+        'currency_id' => $card->currency_id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-01-01',
+        'paid_at' => '2026-01-01',
+        'amount' => 0,
+        'description' => 'Saldo inicial',
     ]);
 
     foreach ([[$checking, 'expense', 300.0], [$checking, 'income', 80.0], [$savings, 'expense', 50.0], [$card, 'expense', 900.0]] as [$account, $movement, $amount]) {
@@ -157,11 +211,25 @@ test('the dashboard balance matches the balance shown on the accounts page', fun
     CarbonImmutable::setTestNow();
 });
 
-test('the dashboard shows an empty state without an active currency', function () {
+test('the dashboard sends a workspace with no account to the guided setup', function () {
     $user = dashboardUser('dash-empty@example.com');
+
+    // There is nothing to show and nothing the user could do from here.
+    actingAs($user)->get('/')->assertRedirect(route('onboarding'));
+});
+
+test('the dashboard shows an empty state once an account exists but nothing moved', function () {
+    $user = dashboardUser('dash-no-entries@example.com');
+    $currency = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
+
+    Account::create([
+        'tenant_id' => $user->tenant_id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+    ]);
 
     actingAs($user)->get('/')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Dashboard/Index')
-            ->where('ready', false));
+            ->where('ready', true));
 });

@@ -28,7 +28,6 @@ function cardFixture(string $email): array
     ]);
 
     $currency = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
-    $tenant->currencies()->syncWithoutDetaching([$currency->id => ['is_active' => true]]);
 
     return [$user, $currency, $tenant];
 }
@@ -40,7 +39,6 @@ function creditCard(Tenant $tenant, Currency $currency): Account
         'currency_id' => $currency->id,
         'name' => 'Cartão Nubank',
         'kind' => 'credit_card',
-        'balance' => 0,
         'credit_limit' => 1000,
         'closing_day' => 20,
         'due_day' => 28,
@@ -147,7 +145,19 @@ test('paying the invoice reduces the outstanding balance via a transfer', functi
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta',
-        'balance' => 1000,
+    ]);
+
+    // Accounts start empty: the money already there is an ordinary entry.
+    Transaction::query()->create([
+        'tenant_id' => $bank->tenant_id,
+        'account_id' => $bank->id,
+        'currency_id' => $bank->currency_id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-01-01',
+        'paid_at' => '2026-01-01',
+        'amount' => 1000,
+        'description' => 'Saldo inicial',
     ]);
     cardPurchase($card, $currency, '2026-08-05', 300);
 
@@ -179,7 +189,19 @@ test('invoice payment is excluded from the paying account income/expense totals'
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta',
-        'balance' => 1000,
+    ]);
+
+    // Accounts start empty: the money already there is an ordinary entry.
+    Transaction::query()->create([
+        'tenant_id' => $bank->tenant_id,
+        'account_id' => $bank->id,
+        'currency_id' => $bank->currency_id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-01-01',
+        'paid_at' => '2026-01-01',
+        'amount' => 1000,
+        'description' => 'Saldo inicial',
     ]);
     cardPurchase($card, $currency, '2026-08-05', 300);
 
@@ -208,7 +230,19 @@ test('a bank account in a different currency cannot pay the card invoice', funct
         'tenant_id' => $tenant->id,
         'currency_id' => $usd->id,
         'name' => 'Conta USD',
-        'balance' => 1000,
+    ]);
+
+    // Accounts start empty: the money already there is an ordinary entry.
+    Transaction::query()->create([
+        'tenant_id' => $bank->tenant_id,
+        'account_id' => $bank->id,
+        'currency_id' => $bank->currency_id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-01-01',
+        'paid_at' => '2026-01-01',
+        'amount' => 1000,
+        'description' => 'Saldo inicial',
     ]);
 
     actingAs($user)->post('/accounts/'.$card->id.'/pay-invoice', [

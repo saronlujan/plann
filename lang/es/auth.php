@@ -4,8 +4,8 @@ return [
     'ui' => [
         'login' => [
             'title' => 'Iniciar Sesión',
+            'subtitle' => 'Entra para continuar donde lo dejaste.',
             'email_label' => 'Correo electrónico:',
-            'email_placeholder' => 'juan@email.com',
             'password_label' => 'Contraseña',
             'forgot_password' => '¿Olvidaste tu contraseña?',
             'remember' => 'Mantener sesión iniciada',
@@ -17,23 +17,25 @@ return [
 
         'register' => [
             'title' => 'Registro',
+            'subtitle' => 'Crea tu cuenta en menos de un minuto.',
             'name_label' => 'Nombre',
             'name_placeholder' => 'Juan Pérez',
-            'email_label' => 'Correo electrónico',
-            'email_placeholder' => 'hola@ejemplo.com',
+            'email_label' => 'Correo',
             'country_label' => 'País',
             'country_placeholder' => 'Selecciona tu país',
             'currency_label' => 'Moneda',
             'currency_placeholder' => 'Selecciona la moneda',
             'phone_label' => 'Teléfono',
             'password_label' => 'Contraseña',
-            'password_confirmation_label' => 'Confirmar contraseña',
+            'password_confirmation_label' => 'Confirmar Contraseña',
             'terms_prefix' => 'Al continuar, aceptas nuestros',
             'terms_link' => 'términos de servicio',
             'submit' => 'Registrarse',
             'or_divider' => 'o regístrate con',
             'have_account' => '¿Ya tienes una cuenta?',
             'sign_in' => 'Inicia sesión aquí',
+            'plan_trial_headline' => '14 días gratis, sin tarjeta.',
+            'plan_annual_notice' => 'El valor de la suscripción se cobra anualmente, total :value por año.',
         ],
 
         'social' => [

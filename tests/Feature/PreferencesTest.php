@@ -149,12 +149,13 @@ test('preferences update rejects an unsupported color', function () {
         ->assertSessionHasErrors('color');
 });
 
-test('a user may set a default currency from the active ones', function () {
+test('a user may set a default currency from the ones in use', function () {
     [$user, $tenant] = preferencesFixture('default-currency@example.com');
 
-    $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
     $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
-    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $usd->id, 'name' => 'Conta USD']);
 
     actingAs($user)
         ->patch(route('preferences.update'), ['default_currency_id' => $usd->id])
@@ -164,13 +165,11 @@ test('a user may set a default currency from the active ones', function () {
     expect($user->refresh()->default_currency_id)->toBe($usd->id);
 });
 
-test('a currency the workspace has not activated is rejected', function () {
+test('a currency the workspace holds no account in is rejected', function () {
     [$user, $tenant] = preferencesFixture('inactive-currency@example.com');
 
     $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
     $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
-    // Only BRL is active for this workspace.
-    $tenant->syncCurrencyActivations([$brl->id]);
 
     actingAs($user)
         ->patch(route('preferences.update'), ['default_currency_id' => $usd->id])
@@ -186,7 +185,6 @@ test('another tenant currency activation does not authorize the choice', functio
 
     // A *different* workspace activates USD; this user still may not pick it.
     [, $otherTenant] = preferencesFixture('other-workspace@example.com');
-    $otherTenant->syncCurrencyActivations([$usd->id]);
 
     actingAs($user)
         ->patch(route('preferences.update'), ['default_currency_id' => $usd->id])
@@ -199,7 +197,6 @@ test('the default currency may be cleared back to no preference', function () {
     [$user, $tenant] = preferencesFixture('clear-currency@example.com');
 
     $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
-    $tenant->syncCurrencyActivations([$brl->id]);
     $user->update(['default_currency_id' => $brl->id]);
 
     actingAs($user)
@@ -214,12 +211,11 @@ test('the preferences page exposes the active currencies and the current choice'
 
     $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
     $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
-    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
     $user->update(['default_currency_id' => $usd->id]);
 
     app(TenantContext::class)->setTenantId($tenant->id);
-    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $brl->id, 'name' => 'Conta BRL', 'balance' => 0]);
-    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $usd->id, 'name' => 'Conta USD', 'balance' => 0]);
+    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $brl->id, 'name' => 'Conta BRL']);
+    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $usd->id, 'name' => 'Conta USD']);
 
     actingAs($user)->get(route('preferences'))->assertSuccessful()
         ->assertInertia(fn ($page) => $page
@@ -232,10 +228,9 @@ test('a currency with no account is not offered as a default', function () {
 
     $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
     $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
-    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
 
     app(TenantContext::class)->setTenantId($tenant->id);
-    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $brl->id, 'name' => 'Conta BRL', 'balance' => 0]);
+    Account::create(['tenant_id' => $tenant->id, 'currency_id' => $brl->id, 'name' => 'Conta BRL']);
 
     // USD is activated but has nowhere to hold money, so it is not a real choice.
     actingAs($user)->get(route('preferences'))->assertSuccessful()

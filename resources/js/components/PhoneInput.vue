@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ChevronDownIcon } from '@lucide/vue';
 import { onClickOutside } from '@vueuse/core';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +12,11 @@ type Country = {
     dialCode: string;
     flag: string;
     placeholder: string;
-    maxLength: number;
+    /**
+     * Digit slots as '#', shortest form first. Brazil keeps two: landlines have
+     * eight digits after the area code, mobiles nine.
+     */
+    masks: string[];
 };
 
 const countries: Country[] = [
@@ -21,7 +26,7 @@ const countries: Country[] = [
         dialCode: '+55',
         flag: '🇧🇷',
         placeholder: '(11) 99999-9999',
-        maxLength: 16,
+        masks: ['(##) ####-####', '(##) #####-####'],
     },
     {
         code: 'AR',
@@ -29,7 +34,7 @@ const countries: Country[] = [
         dialCode: '+54',
         flag: '🇦🇷',
         placeholder: '11 2345-6789',
-        maxLength: 15,
+        masks: ['## ####-####'],
     },
     {
         code: 'PY',
@@ -37,7 +42,7 @@ const countries: Country[] = [
         dialCode: '+595',
         flag: '🇵🇾',
         placeholder: '0981 123456',
-        maxLength: 15,
+        masks: ['#### ######'],
     },
     {
         code: 'UY',
@@ -45,7 +50,7 @@ const countries: Country[] = [
         dialCode: '+598',
         flag: '🇺🇾',
         placeholder: '099 123 456',
-        maxLength: 15,
+        masks: ['### ### ###'],
     },
     {
         code: 'CL',
@@ -53,7 +58,7 @@ const countries: Country[] = [
         dialCode: '+56',
         flag: '🇨🇱',
         placeholder: '9 1234 5678',
-        maxLength: 15,
+        masks: ['# #### ####'],
     },
     {
         code: 'US',
@@ -61,7 +66,7 @@ const countries: Country[] = [
         dialCode: '+1',
         flag: '🇺🇸',
         placeholder: '(201) 555-0123',
-        maxLength: 16,
+        masks: ['(###) ###-####'],
     },
     {
         code: 'PT',
@@ -69,7 +74,7 @@ const countries: Country[] = [
         dialCode: '+351',
         flag: '🇵🇹',
         placeholder: '912 345 678',
-        maxLength: 15,
+        masks: ['### ### ###'],
     },
     {
         code: 'ES',
@@ -77,7 +82,7 @@ const countries: Country[] = [
         dialCode: '+34',
         flag: '🇪🇸',
         placeholder: '612 34 56 78',
-        maxLength: 15,
+        masks: ['### ## ## ##'],
     },
 ];
 
@@ -95,7 +100,61 @@ const dropdownRef = ref<HTMLElement | null>(null);
 onClickOutside(dropdownRef, () => (open.value = false));
 
 const selected = ref<Country>(countries[0]);
+
+// Digits only: the mask is presentation, so the value never carries formatting
+// the server would have to strip.
 const national = ref('');
+
+const inputRef = ref<ComponentPublicInstance | null>(null);
+
+function digitsOf(value: string): string {
+    return value.replace(/\D/g, '');
+}
+
+function slotsIn(mask: string): number {
+    return mask.split('#').length - 1;
+}
+
+/** The shortest mask that still holds every digit typed so far. */
+function maskFor(country: Country, digitCount: number): string {
+    return (
+        country.masks.find((mask) => slotsIn(mask) >= digitCount) ??
+        country.masks[country.masks.length - 1]
+    );
+}
+
+const maxDigits = computed(() => Math.max(...selected.value.masks.map((mask) => slotsIn(mask))));
+
+const maxLength = computed(() => Math.max(...selected.value.masks.map((mask) => mask.length)));
+
+/**
+ * Lay the digits into the mask, stopping as soon as they run out — a trailing
+ * separator would sit there looking like a typo until the next keystroke.
+ */
+const display = computed(() => {
+    const digits = national.value;
+    const mask = maskFor(selected.value, digits.length);
+
+    let result = '';
+    let index = 0;
+
+    for (const character of mask) {
+        if (index >= digits.length) {
+            break;
+        }
+
+        if (character === '#') {
+            result += digits[index];
+            index += 1;
+
+            continue;
+        }
+
+        result += character;
+    }
+
+    return result;
+});
 
 /**
  * Split an incoming value like "+55 11999999999" into a country + national part.
@@ -109,14 +168,14 @@ function parseModel(value: string): void {
 
     if (match) {
         selected.value = match;
-        national.value = trimmed.slice(match.dialCode.length).trim();
+        national.value = digitsOf(trimmed.slice(match.dialCode.length));
     } else {
-        national.value = trimmed;
+        national.value = digitsOf(trimmed);
     }
 }
 
 function compose(): string {
-    const digits = national.value.trim();
+    const digits = national.value;
 
     return digits === '' ? '' : `${selected.value.dialCode} ${digits}`;
 }
@@ -139,11 +198,24 @@ watch(
 function selectCountry(country: Country): void {
     selected.value = country;
     open.value = false;
+    // The new country may hold fewer digits than the old one.
+    national.value = national.value.slice(0, maxDigits.value);
     update();
 }
 
 function onNational(value: string | number | File | null): void {
-    national.value = typeof value === 'string' ? value : String(value ?? '');
+    const typed = typeof value === 'string' ? value : String(value ?? '');
+
+    national.value = digitsOf(typed).slice(0, maxDigits.value);
+
+    // A rejected character leaves the DOM out of step with `display`, and Vue
+    // skips the patch when the masked result did not change — write it back.
+    const element = inputRef.value?.$el as HTMLInputElement | undefined;
+
+    if (element && element.value !== display.value) {
+        element.value = display.value;
+    }
+
     update();
 }
 </script>
@@ -200,9 +272,10 @@ function onNational(value: string | number | File | null): void {
             inputmode="numeric"
             autocomplete="tel"
             class="flex-1"
-            :model-value="national"
+            ref="inputRef"
+            :model-value="display"
             :placeholder="placeholder ?? selected.placeholder"
-            :maxlength="selected.maxLength"
+            :maxlength="maxLength"
             :disabled="disabled"
             @update:model-value="onNational"
         />

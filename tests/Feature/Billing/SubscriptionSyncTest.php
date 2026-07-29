@@ -62,7 +62,9 @@ test('mirroring a paid subscription unlocks the app', function () {
 
     expect($tenant->fresh()->subscribed())->toBeTrue();
 
-    actingAs($user)->get('/')->assertSuccessful();
+    // Any page behind the paywall proves it opened; the dashboard would send a
+    // brand-new workspace to the guided setup.
+    actingAs($user)->get(route('accounts'))->assertSuccessful();
 });
 
 test('mirroring is idempotent', function () {
@@ -138,7 +140,9 @@ test('a subscription set to cancel keeps access until the period ends', function
     expect($subscription->onGracePeriod())->toBeTrue();
 
     // Already paid for: the app stays open until the period actually ends.
-    actingAs($user)->get('/')->assertSuccessful();
+    // Any page behind the paywall proves it opened; the dashboard would send a
+    // brand-new workspace to the guided setup.
+    actingAs($user)->get(route('accounts'))->assertSuccessful();
 });
 
 test('a cancelled subscription no longer unlocks the app', function () {

@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
@@ -32,13 +33,13 @@ test('users may review virtual transactions by month with simple calculations', 
 
     app(TenantContext::class)->setTenantId($tenant->id);
 
-    $tenant->syncCurrencyActivations($currencies->pluck('id')->all());
+    // A real uuid: the column is typed, and Postgres enforces it.
+    $rentSeries = (string) Str::uuid();
 
     Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $currencies['BRL']->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     Transaction::query()->create([
@@ -47,7 +48,7 @@ test('users may review virtual transactions by month with simple calculations', 
         'account_id' => Account::query()->where('tenant_id', $tenant->id)->where('currency_id', $currencies['BRL']->id)->value('id'),
         'movement_type' => 'expense',
         'type' => 'recurring',
-        'series_uuid' => 'rent-series',
+        'series_uuid' => $rentSeries,
         'effective_date' => '2026-07-01',
         'amount' => 1500,
         'description' => 'Aluguel',
@@ -59,7 +60,7 @@ test('users may review virtual transactions by month with simple calculations', 
         'account_id' => Account::query()->where('tenant_id', $tenant->id)->where('currency_id', $currencies['BRL']->id)->value('id'),
         'movement_type' => 'expense',
         'type' => 'recurring',
-        'series_uuid' => 'rent-series',
+        'series_uuid' => $rentSeries,
         'effective_date' => '2026-12-01',
         'adjustment_month' => '2026-12-01',
         'amount' => 1700,
@@ -143,7 +144,6 @@ test('period navigation keeps recurring transactions visible in the target month
             'tenant_id' => $tenant->id,
             'currency_id' => $currency->id,
             'name' => 'Conta BRL',
-            'balance' => 0,
         ])->id,
         'movement_type' => 'expense',
         'type' => 'recurring',
@@ -176,13 +176,10 @@ test('the currency picker only lists currencies that have an account', function 
 
     app(TenantContext::class)->setTenantId($tenant->id);
 
-    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
-
     Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $brl->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     // USD is activated but has no account, so picking it would leave the account
@@ -193,4 +190,85 @@ test('the currency picker only lists currencies that have an account', function 
         ->assertInertia(fn (Assert $page): Assert => $page
             ->has('currencyOptions', 1)
             ->where('currencyOptions.0.code', 'BRL'));
+});
+
+test('the page ships the month it is showing so the summary drawer can name it', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Periodo']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'summary-period@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta BRL',
+    ]);
+
+    actingAs($user)
+        ->get('/transactions?period=2026-07')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page->where('period', '2026-07'));
+});
+
+test('settled totals count only paid entries while projected count them all', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Totais']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'summary-totals@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta BRL',
+    ]);
+
+    Transaction::query()->create([
+        'tenant_id' => $tenant->id,
+        'account_id' => $account->id,
+        'currency_id' => $currency->id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-07-05',
+        'paid_at' => '2026-07-05',
+        'amount' => 300,
+        'description' => 'Recebido',
+    ]);
+
+    Transaction::query()->create([
+        'tenant_id' => $tenant->id,
+        'account_id' => $account->id,
+        'currency_id' => $currency->id,
+        'movement_type' => 'income',
+        'type' => 'unique',
+        'effective_date' => '2026-07-20',
+        'amount' => 200,
+        'description' => 'A receber',
+    ]);
+
+    // The drawer explains the split to the user, so the split has to hold.
+    actingAs($user)
+        ->get('/transactions?period=2026-07')
+        ->assertSuccessful()
+        ->assertInertia(function (Assert $page): void {
+            $summary = $page->toArray()['props']['summaries'][0];
+
+            expect($summary['income'])->toBe('300.00');
+            expect($summary['expected_income'])->toBe('500.00');
+        });
 });

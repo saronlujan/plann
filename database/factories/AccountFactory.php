@@ -23,7 +23,6 @@ class AccountFactory extends Factory
             'tenant_id' => Tenant::factory(),
             'currency_id' => Currency::factory(),
             'name' => fake()->words(2, true),
-            'balance' => fake()->randomFloat(2, 0, 10000),
         ];
     }
 }

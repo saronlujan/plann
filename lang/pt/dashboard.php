@@ -27,8 +27,8 @@ return [
     'recent' => 'Transações recentes',
     'empty_recent' => 'Nenhuma transação neste mês.',
 
-    'no_currency' => [
-        'title' => 'Ative uma moeda para começar',
-        'description' => 'Habilite uma moeda e crie contas para ver o seu painel.',
+    'no_entries' => [
+        'title' => 'Registre seu primeiro lançamento',
+        'description' => 'Assim que houver movimento, seu resumo aparece aqui.',
     ],
 ];

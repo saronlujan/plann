@@ -10,8 +10,10 @@ use App\Models\Category;
 use App\Models\Currency;
 use App\Models\Transaction;
 use App\Support\Accounts\AccountStatement;
+use App\Support\Onboarding\OnboardingSteps;
 use App\Support\Transactions\TransactionProjector;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -19,8 +21,19 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, TransactionProjector $projector, AccountStatement $statement): Response
-    {
+    public function __invoke(
+        Request $request,
+        TransactionProjector $projector,
+        AccountStatement $statement,
+        OnboardingSteps $steps,
+    ): Response|RedirectResponse {
+        // Nothing works without an account, so a brand-new workspace is taken
+        // through the guided setup rather than shown an empty dashboard it has no
+        // way to fill from here.
+        if ($steps->isPending()) {
+            return redirect()->route('onboarding');
+        }
+
         $tenant = $request->user()?->tenant()->with('activeCurrencies')->first();
         abort_if($tenant === null, 403);
 

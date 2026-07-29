@@ -32,10 +32,14 @@ return new class extends Migration
         // the WHERE clause, silently turning this into a plain unique on code.
         DB::statement('create unique index currencies_global_code_unique on currencies (code) where tenant_id is null');
 
-        // users.default_currency_id is declared with the users table (which is
-        // created first); the constraint can only be added now.
+        // users.default_currency_id and tenants.currency_id are declared with
+        // their own tables (created first); the constraints can only be added now.
         Schema::table('users', function (Blueprint $table): void {
             $table->foreign('default_currency_id')->references('id')->on('currencies')->nullOnDelete();
+        });
+
+        Schema::table('tenants', function (Blueprint $table): void {
+            $table->foreign('currency_id')->references('id')->on('currencies')->nullOnDelete();
         });
     }
 
@@ -44,6 +48,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('tenants', function (Blueprint $table): void {
+            $table->dropForeign(['currency_id']);
+        });
+
         Schema::table('users', function (Blueprint $table): void {
             $table->dropForeign(['default_currency_id']);
         });

@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Support\Str;
 
 use function Pest\Laravel\actingAs;
 
@@ -35,7 +36,6 @@ it('updates a transaction from the edit modal', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     $transaction = Transaction::query()->create([
@@ -98,7 +98,6 @@ it('updates only one recurring occurrence when requested', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     $transaction = Transaction::query()->create([
@@ -165,7 +164,6 @@ it('splits a recurring series from the selected month forward', function () {
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     $transaction = Transaction::query()->create([
@@ -232,14 +230,12 @@ function transferFixture(string $email): array
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Origem',
-        'balance' => 0,
     ]);
 
     $destination = Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta Destino',
-        'balance' => 0,
     ]);
 
     actingAs($user)->post('/transactions', [
@@ -351,7 +347,6 @@ it('converts a recurring series into a one-off without leaving an override', fun
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     $transaction = Transaction::query()->create([
@@ -360,7 +355,7 @@ it('converts a recurring series into a one-off without leaving an override', fun
         'currency_id' => $currency->id,
         'movement_type' => 'expense',
         'type' => TransactionType::Recurring->value,
-        'series_uuid' => 'series-to-convert',
+        'series_uuid' => (string) Str::uuid(),
         'effective_date' => '2026-07-01',
         'amount' => 100,
         'description' => 'Assinatura',
@@ -385,4 +380,51 @@ it('converts a recurring series into a one-off without leaving an override', fun
     expect($transaction->series_uuid)->toBeNull();
     // An override would have added a second row instead of converting this one.
     expect(Transaction::query()->count())->toBe(1);
+});
+
+it('does not undo a payment made from the list when an edit omits the field', function () {
+    $tenant = Tenant::create(['name' => 'Tenant Pago Edit']);
+
+    $user = User::factory()->create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Pessoa Teste',
+        'email' => 'paid-preserved@example.com',
+        'password' => 'password',
+    ]);
+
+    $currency = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
+
+    app(TenantContext::class)->setTenantId($tenant->id);
+
+    $account = Account::create([
+        'tenant_id' => $tenant->id,
+        'currency_id' => $currency->id,
+        'name' => 'Conta',
+    ]);
+
+    $transaction = Transaction::query()->create([
+        'tenant_id' => $tenant->id,
+        'account_id' => $account->id,
+        'currency_id' => $currency->id,
+        'movement_type' => 'expense',
+        'type' => 'unique',
+        'effective_date' => '2026-12-15',
+        'paid_at' => '2026-12-15',
+        'amount' => 100,
+        'description' => 'Mercado',
+    ]);
+
+    // A payload without the field means "leave it as it is" — otherwise fixing a
+    // typo would silently mark a settled entry as open again.
+    actingAs($user)->patch('/transactions/'.$transaction->id, [
+        'movement_type' => 'expense',
+        'type' => 'unique',
+        'description' => 'Mercado do mês',
+        'currency_id' => $currency->id,
+        'account_id' => $account->id,
+        'effective_date' => '2026-12-15',
+        'amount' => 100,
+    ])->assertSessionHasNoErrors();
+
+    expect($transaction->refresh()->paid_at?->toDateString())->toBe('2026-12-15');
 });

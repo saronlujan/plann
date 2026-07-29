@@ -15,31 +15,27 @@ class RegisterUser
      * Provision a new tenant workspace and its first user, starting a 14-day
      * card-free trial on the Basic plan.
      *
-     * @param  array{name: string, email: string, password: string, country_code?: string|null, currency_code?: string|null, locale?: string|null, google_id?: string|null, avatar_url?: string|null, phone?: string|null}  $data
+     * @param  array{name: string, email: string, password: string, plan_slug?: string|null, country_code?: string|null, currency_code?: string|null, locale?: string|null, google_id?: string|null, avatar_url?: string|null, phone?: string|null}  $data
      */
     public function handle(array $data): User
     {
         return DB::transaction(function () use ($data): User {
             $country = $this->resolveCountry($data['country_code'] ?? null);
-
-            // The 14-day trial is started automatically by Tenant::booted().
-            $tenant = Tenant::query()->create([
-                'name' => $data['name'],
-                'plan_slug' => PlanSlug::Basic->value,
-                'country_id' => $country?->id,
-            ]);
-
-            // The signup form asks for a currency; the country's own is the fallback
-            // for flows that do not (the Google callback).
-            //
-            // No account is created here on purpose: a workspace that opens with an
-            // account nobody asked for — named after a currency code — reads as a
-            // bug. The accounts page guides the first one instead.
             $currencyId = $this->resolveCurrencyId($data['currency_code'] ?? null, $country);
 
-            if ($currencyId !== null) {
-                $tenant->syncCurrencyActivations([$currencyId]);
-            }
+            // The 14-day trial is started automatically by Tenant::booted(), and
+            // runs on the plan chosen at signup — so somebody who picked Pro tries
+            // Pro, instead of trialling a tier they did not want.
+            $tenant = Tenant::query()->create([
+                'name' => $data['name'],
+                'plan_slug' => $this->resolvePlan($data['plan_slug'] ?? null)->value,
+                'country_id' => $country?->id,
+                'currency_id' => $currencyId,
+            ]);
+
+            // No account is created here on purpose: a workspace that opens with
+            // an account nobody asked for reads as a bug. The accounts page guides
+            // the first one, and the currency above is what it will be opened in.
 
             return User::query()->create([
                 'tenant_id' => $tenant->id,
@@ -55,8 +51,11 @@ class RegisterUser
     }
 
     /**
-     * Only the shared catalogue is offered at signup: the workspace does not exist
-     * yet, so it cannot have currencies of its own.
+     * The currency the workspace is opened with.
+     *
+     * The signup form asks for it; the country's own is the fallback for flows
+     * that do not (the Google callback). Only the shared catalogue is offered:
+     * the workspace does not exist yet, so it cannot have currencies of its own.
      */
     private function resolveCurrencyId(?string $code, ?Country $country): ?int
     {
@@ -69,6 +68,17 @@ class RegisterUser
         }
 
         return $country?->currency_id;
+    }
+
+    /**
+     * The plan chosen at signup, falling back to Basic.
+     *
+     * The fallback covers flows that never show the picker (the Google callback)
+     * and keeps an unknown slug from provisioning a tier nobody paid for.
+     */
+    private function resolvePlan(?string $slug): PlanSlug
+    {
+        return PlanSlug::tryFrom((string) $slug) ?? PlanSlug::Basic;
     }
 
     /**

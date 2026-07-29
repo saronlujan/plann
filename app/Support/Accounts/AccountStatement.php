@@ -19,7 +19,10 @@ class AccountStatement
     public function __construct(private TransactionProjector $projector) {}
 
     /**
-     * Balance = initial balance + net of every entry dated on/before $date.
+     * Balance = net of every entry dated on/before $date.
+     *
+     * The opening balance is one of those entries now, so adding the account
+     * column on top would count the same money twice.
      *
      * @param  Collection<int, Transaction>  $transactions
      */
@@ -34,7 +37,7 @@ class AccountStatement
                 ->reduce(fn (float $carry, array $entry): float => $carry + $this->signed($entry), 0.0);
         }
 
-        return $this->money((float) $account->balance + $net);
+        return $this->money($net);
     }
 
     /**
@@ -57,7 +60,7 @@ class AccountStatement
                 ->reduce(fn (float $carry, array $entry): float => $carry + $this->signed($entry), 0.0);
         }
 
-        $opening = (float) $account->balance + $netBefore;
+        $opening = $netBefore;
         $running = $opening;
         $income = 0.0;
         $expense = 0.0;

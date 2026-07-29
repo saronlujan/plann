@@ -29,13 +29,11 @@ function makeTenantWithTransaction(string $email): array
     );
 
     app(TenantContext::class)->setTenantId($tenant->id);
-    $tenant->syncCurrencyActivations([$currency->id]);
 
     $account = Account::create([
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta BRL',
-        'balance' => 0,
     ]);
 
     $transaction = Transaction::query()->create([
@@ -195,17 +193,17 @@ it('rejects installment counts above the allowed maximum', function () {
 it('serves a transaction attachment to its owner', function () {
     $data = makeTenantWithTransaction('attachment-owner@example.com');
 
-    $path = app(TransactionAttachments::class)->store(
+    $fileName = app(TransactionAttachments::class)->store(
         UploadedFile::fake()->create('recibo.pdf', 10, 'application/pdf'),
     );
 
-    $data['transaction']->update(['attachment_path' => $path]);
+    $data['transaction']->update(['attachment' => $fileName]);
 
     actingAs($data['user'])
         ->get(route('transactions.attachment', $data['transaction']))
         ->assertOk()
         // Never rendered inline on our own origin.
-        ->assertHeader('content-disposition', 'attachment; filename='.basename((string) $path))
+        ->assertHeader('content-disposition', 'attachment; filename='.$fileName)
         ->assertHeader('x-content-type-options', 'nosniff');
 });
 
@@ -213,10 +211,10 @@ it('does not let a tenant download another tenant transaction attachment', funct
     $victim = makeTenantWithTransaction('attachment-victim@example.com');
 
     app(TenantContext::class)->setTenantId($victim['tenant']->id);
-    $path = app(TransactionAttachments::class)->store(
+    $fileName = app(TransactionAttachments::class)->store(
         UploadedFile::fake()->create('recibo.pdf', 10, 'application/pdf'),
     );
-    $victim['transaction']->update(['attachment_path' => $path]);
+    $victim['transaction']->update(['attachment' => $fileName]);
 
     $attacker = makeTenantWithTransaction('attachment-attacker@example.com');
 

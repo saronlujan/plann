@@ -26,8 +26,12 @@ return new class extends Migration
             $table->unsignedSmallInteger('installments_total')->nullable();
             $table->unsignedSmallInteger('installment_number')->nullable();
             $table->decimal('interest_amount', 10, 2)->nullable();
-            $table->string('attachment_path')->nullable();
+            $table->string('attachment')->nullable();
             $table->uuid('series_uuid')->nullable()->index();
+            // An adjustment row that stands for "this occurrence was removed":
+            // the projector expands a series from its master, so the only way to
+            // take one month out is to record that it is gone.
+            $table->boolean('is_skipped')->default(false);
             $table->date('effective_date')->index();
             $table->date('paid_at')->nullable()->index();
             $table->date('effective_until')->nullable()->index();
@@ -35,6 +39,9 @@ return new class extends Migration
             $table->decimal('amount', 18, 2);
             $table->decimal('adjustment_amount', 18, 2)->default(0);
             $table->string('description');
+            // A short label of the user's own, and the long-form version of it.
+            $table->string('note')->nullable();
+            $table->text('observations')->nullable();
             $table->timestamps();
 
             // Target of tag_transaction's composite foreign key.

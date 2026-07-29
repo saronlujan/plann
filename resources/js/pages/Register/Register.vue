@@ -4,6 +4,7 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import PhoneInput from '@/components/PhoneInput.vue';
 import { Button } from '@/components/ui/button';
+import { FormError } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -13,13 +14,23 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AuthLayout from '@/layouts/AuthLayout.vue';
+import { formatMoney } from '@/lib/money';
+import { cn } from '@/lib/utils';
 import { login } from '../../routes';
 import { store as registerStore } from '../../routes/register';
 
 type CountryOption = { value: string; label: string; currency: string };
+type PlanOption = {
+    value: string;
+    label: string;
+    description: string;
+    monthly_price_cents: number;
+    annual_price_cents: number;
+};
 
 const props = defineProps<{
     googleOAuthEnabled: boolean;
+    planOptions: PlanOption[];
     defaultCountry: string | null;
     countryOptions: CountryOption[];
     currencyOptions: { value: string; label: string }[];
@@ -46,6 +57,23 @@ watch(country, (code) => {
     }
 });
 
+// Basic first, as the plans arrive sorted: the cheaper tier is the safe default
+// for someone who has not read the difference yet.
+const plan = ref(props.planOptions[0]?.value ?? '');
+
+// Plans are billed in BRL regardless of the workspace's own currency.
+function planPrice(cents: number): string {
+    return formatMoney(cents / 100, 'BRL');
+}
+
+// The yearly total of whatever is selected: the cards advertise a monthly
+// figure, and that is not the number that gets charged.
+const selectedAnnualPrice = computed(() => {
+    const option = props.planOptions.find((candidate) => candidate.value === plan.value);
+
+    return planPrice(option?.annual_price_cents ?? 0);
+});
+
 const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
 </script>
 
@@ -54,13 +82,18 @@ const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
 
     <AuthLayout>
         <section class="w-full space-y-8 text-center">
+            <div class="space-y-1 text-left">
+                <h1 class="text-xl font-semibold">{{ $t('auth.ui.register.title') }}</h1>
+                <p class="text-sm text-zinc-500">{{ $t('auth.ui.register.subtitle') }}</p>
+            </div>
+
             <Form
                 :action="registerStore.form().action"
                 method="post"
                 class="space-y-4 text-left"
                 #default="{ errors, processing }"
             >
-                <label class="block space-y-2">
+                <label class="flex flex-col gap-2">
                     <span class="text-sm font-medium text-zinc-700">{{
                         $t('auth.ui.register.name_label')
                     }}</span>
@@ -70,24 +103,19 @@ const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
                         autocomplete="name"
                         :placeholder="$t('auth.ui.register.name_placeholder')"
                     />
-                    <span v-if="errors.name" class="text-sm text-red-600">{{ errors.name }}</span>
+                    <FormError :message="errors.name" />
                 </label>
 
-                <label class="block space-y-2">
+                <label class="flex flex-col gap-2">
                     <span class="text-sm font-medium text-zinc-700">{{
                         $t('auth.ui.register.email_label')
                     }}</span>
-                    <Input
-                        type="email"
-                        name="email"
-                        autocomplete="email"
-                        :placeholder="$t('auth.ui.register.email_placeholder')"
-                    />
-                    <span v-if="errors.email" class="text-sm text-red-600">{{ errors.email }}</span>
+                    <Input type="email" name="email" autocomplete="email" />
+                    <FormError :message="errors.email" />
                 </label>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="block space-y-2">
+                    <div class="flex flex-col gap-2">
                         <span class="text-sm font-medium text-zinc-700">{{
                             $t('auth.ui.register.country_label')
                         }}</span>
@@ -108,12 +136,10 @@ const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
                             </SelectContent>
                         </Select>
                         <input type="hidden" name="country_code" :value="country" />
-                        <span v-if="errors.country_code" class="text-sm text-red-600">{{
-                            errors.country_code
-                        }}</span>
+                        <FormError :message="errors.country_code" />
                     </div>
 
-                    <div class="block space-y-2">
+                    <div class="flex flex-col gap-2">
                         <span class="text-sm font-medium text-zinc-700">{{
                             $t('auth.ui.register.currency_label')
                         }}</span>
@@ -134,40 +160,89 @@ const canUseGoogleLogin = computed(() => props.googleOAuthEnabled);
                             </SelectContent>
                         </Select>
                         <input type="hidden" name="currency_code" :value="currency" />
-                        <span v-if="errors.currency_code" class="text-sm text-red-600">{{
-                            errors.currency_code
-                        }}</span>
+                        <FormError :message="errors.currency_code" />
                     </div>
                 </div>
 
-                <div class="block space-y-2">
+                <div class="flex flex-col gap-2">
                     <span class="text-sm font-medium text-zinc-700">{{
                         $t('auth.ui.register.phone_label')
                     }}</span>
                     <PhoneInput name="phone" />
-                    <span v-if="errors.phone" class="text-sm text-red-600">{{ errors.phone }}</span>
+                    <FormError :message="errors.phone" />
                 </div>
 
-                <label class="block space-y-2">
-                    <span class="text-sm font-medium text-zinc-700">{{
-                        $t('auth.ui.register.password_label')
-                    }}</span>
-                    <Input type="password" name="password" autocomplete="new-password" />
-                    <span v-if="errors.password" class="text-sm text-red-600">{{
-                        errors.password
-                    }}</span>
-                </label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex flex-col gap-2">
+                        <span class="text-sm font-medium text-zinc-700">{{
+                            $t('auth.ui.register.password_label')
+                        }}</span>
+                        <Input type="password" name="password" autocomplete="new-password" />
+                    </label>
 
-                <label class="block space-y-2">
-                    <span class="text-sm font-medium text-zinc-700">{{
-                        $t('auth.ui.register.password_confirmation_label')
-                    }}</span>
-                    <Input
-                        type="password"
-                        name="password_confirmation"
-                        autocomplete="new-password"
-                    />
-                </label>
+                    <label class="flex flex-col gap-2">
+                        <span class="text-sm font-medium text-zinc-700">{{
+                            $t('auth.ui.register.password_confirmation_label')
+                        }}</span>
+                        <Input
+                            type="password"
+                            name="password_confirmation"
+                            autocomplete="new-password"
+                        />
+                    </label>
+
+                    <!--
+                        Spans both columns: the rule that fails is usually about the
+                        pair (too short, not matching), not about one of the boxes.
+                    -->
+                    <FormError class="col-span-2" :message="errors.password" />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <p class="mb-2 text-center text-sm font-bold text-zinc-950">
+                        {{ $t('auth.ui.register.plan_trial_headline') }}
+                    </p>
+
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <button
+                            v-for="option in planOptions"
+                            :key="option.value"
+                            type="button"
+                            :aria-pressed="plan === option.value"
+                            :class="
+                                cn(
+                                    'flex h-full flex-col gap-1 rounded-lg border p-3 text-left transition',
+                                    plan === option.value
+                                        ? 'border-zinc-950 bg-zinc-50 ring-1 ring-zinc-950'
+                                        : 'border-zinc-200 hover:border-zinc-400',
+                                )
+                            "
+                            @click="plan = option.value"
+                        >
+                            <span class="flex items-baseline justify-between gap-2">
+                                <span class="font-medium text-zinc-950">{{ option.label }}</span>
+                                <span class="text-sm font-semibold whitespace-nowrap text-zinc-950">
+                                    {{ planPrice(option.monthly_price_cents)
+                                    }}<span class="font-normal text-zinc-500">{{
+                                        $t('billing.plan.per_month')
+                                    }}</span>
+                                </span>
+                            </span>
+                            <span class="text-xs leading-5 text-zinc-500">
+                                {{ option.description }}
+                            </span>
+                        </button>
+                    </div>
+                    <input type="hidden" name="plan_slug" :value="plan" />
+                    <p class="text-center text-xs leading-relaxed font-medium text-zinc-950">
+                        {{
+                            $t('auth.ui.register.plan_annual_notice', {
+                                value: selectedAnnualPrice,
+                            })
+                        }}
+                    </p>
+                    <FormError :message="errors.plan_slug" />
+                </div>
 
                 <p class="text-sm leading-6 text-zinc-500">
                     {{ $t('auth.ui.register.terms_prefix') }}

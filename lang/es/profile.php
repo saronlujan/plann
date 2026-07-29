@@ -4,6 +4,14 @@ return [
     'title' => 'Mis Datos',
     'subtitle' => 'Gestiona los datos de tu cuenta y tu contraseña.',
 
+    'avatar' => [
+        'title' => 'Imagen',
+        'description' => 'Selecciona tu imagen de perfil.',
+        'zoom' => 'Acercar',
+        'saved' => 'Foto actualizada.',
+        'change' => 'Cambiar foto',
+    ],
+
     'account' => [
         'title' => 'Cuenta',
         'description' => 'Actualiza tu nombre, correo y teléfono.',

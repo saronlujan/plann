@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
+import { Pencil } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Form, FormError, FormGroup, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { password as passwordRoute, update as updateProfile } from '@/routes/profile';
+import { update as updateAvatar } from '@/routes/profile/avatar';
+import AvatarCropper from './components/AvatarCropper.vue';
 
 const props = defineProps<{
     profile: { name: string; email: string; phone: string | null };
@@ -19,6 +24,71 @@ const accountForm = useForm({
     name: props.profile.name,
     phone: props.profile.phone ?? '',
 });
+
+const page = usePage<{ auth: { user: { name: string; avatar_url: string | null } | null } }>();
+
+const currentAvatarUrl = computed(() => page.props.auth.user?.avatar_url ?? undefined);
+
+const initials = computed(() =>
+    (page.props.auth.user?.name ?? '?')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join(''),
+);
+
+// The crop travels as plain numbers; the server does the cutting.
+const avatarForm = useForm<{
+    avatar: File | null;
+    crop_x: number;
+    crop_y: number;
+    crop_size: number;
+}>({
+    avatar: null,
+    crop_x: 0,
+    crop_y: 0,
+    crop_size: 0,
+});
+
+const avatarInputRef = ref<HTMLInputElement | null>(null);
+
+function openFilePicker(): void {
+    avatarInputRef.value?.click();
+}
+
+function onAvatarPicked(event: Event): void {
+    avatarForm.clearErrors();
+    avatarForm.avatar = (event.target as HTMLInputElement).files?.[0] ?? null;
+}
+
+function onCropChange(crop: { x: number; y: number; size: number }): void {
+    avatarForm.crop_x = crop.x;
+    avatarForm.crop_y = crop.y;
+    avatarForm.crop_size = crop.size;
+}
+
+function cancelAvatar(): void {
+    avatarForm.reset();
+    avatarForm.clearErrors();
+
+    // Cleared by hand: picking the same file twice fires no change event
+    // otherwise, so the picker would look dead.
+    if (avatarInputRef.value) {
+        avatarInputRef.value.value = '';
+    }
+}
+
+function submitAvatar(): void {
+    avatarForm.post(updateAvatar().url, {
+        preserveScroll: true,
+        forceFormData: true,
+        onSuccess: () => {
+            cancelAvatar();
+            toast.success(trans('profile.avatar.saved'));
+        },
+    });
+}
 
 const passwordForm = useForm({
     current_password: '',
@@ -55,6 +125,83 @@ function submitPassword(): void {
             </div>
 
             <Card>
+                <div
+                    class="grid grid-cols-12 gap-5 border-b border-zinc-100 pb-6 dark:border-zinc-800"
+                >
+                    <div class="col-span-12 flex flex-col lg:col-span-4">
+                        <h2 class="font-medium">{{ $t('profile.avatar.title') }}</h2>
+                        <span class="text-xs font-medium text-zinc-400 dark:text-zinc-500">
+                            {{ $t('profile.avatar.description') }}
+                        </span>
+                    </div>
+                    <div class="col-span-12 lg:col-span-8">
+                        <div class="flex max-w-md flex-col gap-3">
+                            <!--
+                                The circle is the control: clicking it opens the
+                                picker, so the file input has no reason to be on
+                                screen at all.
+                            -->
+                            <button
+                                v-if="!avatarForm.avatar"
+                                type="button"
+                                class="group relative size-20 shrink-0 rounded-full"
+                                :aria-label="$t('profile.avatar.change')"
+                                @click="openFilePicker"
+                            >
+                                <!-- Same zinc as the card dividers, a step thicker
+                                     so the circle reads as a control. -->
+                                <Avatar
+                                    class="size-20 border-4 border-zinc-200 dark:border-zinc-700"
+                                >
+                                    <AvatarImage
+                                        v-if="currentAvatarUrl"
+                                        :src="currentAvatarUrl"
+                                        alt=""
+                                    />
+                                    <AvatarFallback class="text-lg">{{ initials }}</AvatarFallback>
+                                </Avatar>
+
+                                <span
+                                    class="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                                >
+                                    <Pencil class="size-5" />
+                                </span>
+                            </button>
+
+                            <input
+                                ref="avatarInputRef"
+                                type="file"
+                                class="hidden"
+                                accept="image/jpeg,image/png,image/webp"
+                                @change="onAvatarPicked"
+                            />
+
+                            <FormError :message="avatarForm.errors.avatar" />
+
+                            <template v-if="avatarForm.avatar">
+                                <AvatarCropper
+                                    :file="avatarForm.avatar"
+                                    :size="200"
+                                    @change="onCropChange"
+                                />
+
+                                <div class="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        :disabled="avatarForm.processing"
+                                        @click="submitAvatar"
+                                    >
+                                        {{ $t('common.actions.save') }}
+                                    </Button>
+                                    <Button type="button" variant="outline" @click="cancelAvatar">
+                                        {{ $t('common.actions.cancel') }}
+                                    </Button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
                 <div
                     class="grid grid-cols-12 gap-5 border-b border-zinc-100 pb-6 dark:border-zinc-800"
                 >

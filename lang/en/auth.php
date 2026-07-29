@@ -4,8 +4,8 @@ return [
     'ui' => [
         'login' => [
             'title' => 'Login',
+            'subtitle' => 'Sign in to pick up where you left off.',
             'email_label' => 'Email:',
-            'email_placeholder' => 'johndoe@email.com',
             'password_label' => 'Password',
             'forgot_password' => 'Forgot Password?',
             'remember' => 'Keep me signed in',
@@ -17,10 +17,10 @@ return [
 
         'register' => [
             'title' => 'Sign up',
+            'subtitle' => 'Create your account in under a minute.',
             'name_label' => 'Name',
             'name_placeholder' => 'Tanzir Rahman',
-            'email_label' => 'Email Address',
-            'email_placeholder' => 'hello@example.com',
+            'email_label' => 'Email',
             'country_label' => 'Country',
             'country_placeholder' => 'Select your country',
             'currency_label' => 'Currency',
@@ -34,6 +34,8 @@ return [
             'or_divider' => 'or sign up with',
             'have_account' => 'Already have an account?',
             'sign_in' => 'Sign in here',
+            'plan_trial_headline' => '14 days free, no card.',
+            'plan_annual_notice' => 'The subscription is charged annually, :value per year in total.',
         ],
 
         'social' => [

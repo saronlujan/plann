@@ -22,7 +22,7 @@ function submit(): void {
 
     <AuthLayout>
         <section class="w-full space-y-6">
-            <div class="space-y-1 text-center">
+            <div class="space-y-1 text-left">
                 <h1 class="text-xl font-semibold">{{ $t('auth.ui.forgot.title') }}</h1>
                 <p class="text-sm text-zinc-500">{{ $t('auth.ui.forgot.subtitle') }}</p>
             </div>

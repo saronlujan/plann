@@ -13,7 +13,6 @@ import { clearServiceWorkerCaches } from '@/lib/pwa';
 import { accounts as accountsIndex, contacts, dashboard, logout, preferences } from '@/routes';
 import { index as billing } from '@/routes/billing';
 import { index as categoriesIndex } from '@/routes/categories';
-import { index as currenciesIndex } from '@/routes/currencies';
 import { expireTrial } from '@/routes/dev';
 import { edit as profile } from '@/routes/profile';
 import { index as reportsIndex } from '@/routes/reports';
@@ -130,11 +129,6 @@ const userInitials = computed(
                                 <DropdownMenuItem as-child>
                                     <Link :href="tagsIndex().url" class="w-full">
                                         {{ $t('common.settings_menu.tags') }}
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem as-child>
-                                    <Link :href="currenciesIndex().url" class="w-full">
-                                        {{ $t('common.settings_menu.currencies') }}
                                     </Link>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

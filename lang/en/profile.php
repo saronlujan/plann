@@ -4,6 +4,14 @@ return [
     'title' => 'My Details',
     'subtitle' => 'Manage your account details and password.',
 
+    'avatar' => [
+        'title' => 'Image',
+        'description' => 'Choose your profile picture.',
+        'zoom' => 'Zoom',
+        'saved' => 'Photo updated.',
+        'change' => 'Change photo',
+    ],
+
     'account' => [
         'title' => 'Account',
         'description' => 'Update your name, email and phone.',

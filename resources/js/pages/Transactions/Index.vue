@@ -15,6 +15,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Table,
     TableBody,
@@ -23,7 +24,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import { accountKindIcon } from '@/lib/accountKind';
@@ -32,6 +32,8 @@ import type { SoundValue } from '@/lib/sound';
 import transactions from '@/routes/transactions';
 import TransactionDetailsDrawer from './components/TransactionDetailsDrawer.vue';
 import TransactionModal from './components/TransactionModal.vue';
+import TransactionSummaryBar from './components/TransactionSummaryBar.vue';
+import TransactionSummaryDrawer from './components/TransactionSummaryDrawer.vue';
 import {
     amountClass,
     dueStatus,
@@ -53,6 +55,7 @@ import type {
 } from './types';
 
 const props = defineProps<{
+    period: string;
     movementTypeOptions: Option[];
     scheduleTypeOptions: Option[];
     frequencyOptions: Option[];
@@ -68,33 +71,12 @@ const page = usePage<{
     auth: { user: { sound_enabled: boolean; sound_theme: SoundValue } | null };
 }>();
 
-function summaryRows(summary: TransactionSummary): { label: string; value: string }[] {
-    return [
-        {
-            label: trans('transactions.summary.income'),
-            value: formatCurrency(summary.income, summary.symbol, { code: summary.code }),
-        },
-        {
-            label: trans('transactions.summary.expenses'),
-            value: formatCurrency(summary.expenses, summary.symbol, { code: summary.code }),
-        },
-        {
-            label: trans('transactions.summary.total'),
-            value: formatCurrency(summary.total, summary.symbol, { code: summary.code }),
-        },
-        {
-            label: trans('transactions.summary.expected_income'),
-            value: formatCurrency(summary.expected_income, summary.symbol, { code: summary.code }),
-        },
-        {
-            label: trans('transactions.summary.expected_expense'),
-            value: formatCurrency(summary.expected_expense, summary.symbol, { code: summary.code }),
-        },
-        {
-            label: trans('transactions.summary.expected_total'),
-            value: formatCurrency(summary.expected_total, summary.symbol, { code: summary.code }),
-        },
-    ];
+const summaryDrawerOpen = ref(false);
+const summaryDrawerEntry = ref<TransactionSummary | null>(null);
+
+function openSummaryDetails(summary: TransactionSummary): void {
+    summaryDrawerEntry.value = summary;
+    summaryDrawerOpen.value = true;
 }
 
 const modalOpen = ref(false);
@@ -148,8 +130,21 @@ function togglePaid(entry: TransactionEntry): void {
 const deleteTarget = ref<TransactionEntry | null>(null);
 const confirmOpen = ref(false);
 
+// Removing part of a series is the same three-way choice as editing one, so the
+// confirmation asks it the same way — and defaults to the narrowest answer.
+const deleteScope = ref('one');
+
+const isRecurringTarget = computed(() => deleteTarget.value?.schedule_type === 'recurring');
+
+const deleteScopeOptions = computed(() => [
+    { value: 'one', label: trans('transactions.delete.scope.one') },
+    { value: 'forward', label: trans('transactions.delete.scope.forward') },
+    { value: 'all', label: trans('transactions.delete.scope.all') },
+]);
+
 function deleteEntry(entry: TransactionEntry): void {
     deleteTarget.value = entry;
+    deleteScope.value = 'one';
     confirmOpen.value = true;
 }
 
@@ -163,6 +158,9 @@ function confirmDelete(): void {
     confirmOpen.value = false;
     router.delete(transactions.destroy(target.transaction_id).url, {
         preserveScroll: true,
+        data: isRecurringTarget.value
+            ? { recurrence_scope: deleteScope.value, occurrence_date: target.date }
+            : {},
         onFinish: () => (deleteTarget.value = null),
     });
 }
@@ -207,7 +205,8 @@ function openDetails(entry: TransactionEntry): void {
     <Head :title="$t('transactions.title')" />
 
     <DefaultLayout>
-        <main class="flex flex-col gap-5 p-3 md:p-5">
+        <!-- pb-24 leaves room for the fixed summary bar. -->
+        <main class="flex flex-col gap-5 p-3 pb-24 md:p-5 md:pb-24">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-col">
                     <h1 class="text-lg font-semibold md:text-xl">{{ $t('transactions.title') }}</h1>
@@ -425,41 +424,13 @@ function openDetails(entry: TransactionEntry): void {
                 {{ $t('common.state.empty') }}
             </div>
 
-            <Card v-if="summaries.length">
-                <CardContent>
-                    <Tabs :default-value="summaries[0].code">
-                        <TabsList v-if="summaries.length > 1">
-                            <TabsTrigger
-                                v-for="summary in summaries"
-                                :key="summary.code"
-                                :value="summary.code"
-                            >
-                                {{ summary.code }}
-                            </TabsTrigger>
-                        </TabsList>
+            <TransactionSummaryBar :summaries="summaries" @details="openSummaryDetails" />
 
-                        <TabsContent
-                            v-for="summary in summaries"
-                            :key="summary.code"
-                            :value="summary.code"
-                            class="mt-2"
-                        >
-                            <div class="divide-y">
-                                <div
-                                    v-for="row in summaryRows(summary)"
-                                    :key="row.label"
-                                    class="flex items-center justify-between py-2 text-sm"
-                                >
-                                    <span class="text-muted-foreground">{{ row.label }}</span>
-                                    <span class="font-medium whitespace-nowrap">{{
-                                        row.value
-                                    }}</span>
-                                </div>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                </CardContent>
-            </Card>
+            <TransactionSummaryDrawer
+                v-model:open="summaryDrawerOpen"
+                :summary="summaryDrawerEntry"
+                :period="period"
+            />
 
             <TransactionModal
                 v-model:open="modalOpen"
@@ -489,7 +460,33 @@ function openDetails(entry: TransactionEntry): void {
                 "
                 @update:open="(value) => (confirmOpen = value)"
                 @confirm="confirmDelete"
-            />
+            >
+                <div
+                    v-if="isRecurringTarget"
+                    class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950"
+                >
+                    <span
+                        id="delete-scope-label"
+                        class="text-sm font-medium text-amber-700 dark:text-amber-400"
+                    >
+                        {{ $t('transactions.delete.scope.title') }}
+                    </span>
+                    <RadioGroup
+                        v-model="deleteScope"
+                        aria-labelledby="delete-scope-label"
+                        class="mt-2 gap-2"
+                    >
+                        <label
+                            v-for="option in deleteScopeOptions"
+                            :key="option.value"
+                            class="flex cursor-pointer items-center gap-2.5 text-sm"
+                        >
+                            <RadioGroupItem :value="option.value" :aria-label="option.label" />
+                            {{ option.label }}
+                        </label>
+                    </RadioGroup>
+                </div>
+            </ConfirmDialog>
         </main>
     </DefaultLayout>
 </template>

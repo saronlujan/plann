@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Accounts;
 
 use App\Enums\AccountKind;
+use App\Enums\PlanFeature;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Currency;
+use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Support\Accounts\AccountStatement;
 use App\Support\Accounts\CreditCardInvoice;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -17,8 +20,11 @@ use Inertia\Response;
 
 class ReadAccountsController extends Controller
 {
-    public function __invoke(Request $request, AccountStatement $statement, CreditCardInvoice $invoice): Response
-    {
+    public function __invoke(
+        Request $request,
+        AccountStatement $statement,
+        CreditCardInvoice $invoice,
+    ): Response {
         $tenant = $request->user()?->tenant()->firstOrFail();
 
         $now = CarbonImmutable::now();
@@ -44,10 +50,12 @@ class ReadAccountsController extends Controller
                     'kind' => $account->kind->value,
                     'currency_id' => $account->currency_id,
                     'currency_code' => $account->currency->code,
-                    'balance' => (string) $account->balance,
                     'credit_limit' => $account->credit_limit === null ? null : (string) $account->credit_limit,
                     'closing_day' => $account->closing_day,
                     'due_day' => $account->due_day,
+                    // Once money has moved through it the currency is settled:
+                    // every entry stores the currency it was recorded in.
+                    'has_transactions' => $transactions->isNotEmpty(),
                 ];
 
                 $spark = $this->spark($statement, $account, $transactions, $now);
@@ -75,12 +83,13 @@ class ReadAccountsController extends Controller
                 ];
             });
 
-        $activeCurrencyIds = $tenant->activeCurrencies()->pluck('currencies.id')->all();
-
         return Inertia::render('Accounts/Index', [
             'accounts' => $accounts->values()->all(),
-            'currencyOptions' => Currency::query()
-                ->whereIn('id', $activeCurrencyIds)
+            // On a single-currency plan the list is the one currency the
+            // workspace may hold, so the form hides the field entirely. Pro gets
+            // the catalogue: opening an account is how a new currency starts
+            // being used.
+            'currencyOptions' => $this->currencyOptionsQuery($tenant)
                 ->orderBy('code')
                 ->get(['id', 'code', 'name', 'symbol'])
                 ->map(fn (Currency $currency): array => [
@@ -91,8 +100,35 @@ class ReadAccountsController extends Controller
                     'symbol' => $currency->symbol,
                 ])
                 ->all(),
+            // The currency chosen at signup, not whichever sorts first: on Pro the
+            // list is the whole catalogue and starts at ARS.
+            'defaultCurrencyId' => (string) ($tenant->currency_id ?? ''),
             'kindOptions' => AccountKind::options(),
         ]);
+    }
+
+    /**
+     * Which currencies an account may be opened in.
+     *
+     * Before the first account there is nothing in use, so the currency declared
+     * at signup stands in — otherwise a Basic workspace would be offered the whole
+     * catalogue and could lock itself into a currency it never chose.
+     *
+     * @return Builder<Currency>
+     */
+    private function currencyOptionsQuery(Tenant $tenant): Builder
+    {
+        if ($tenant->hasFeature(PlanFeature::MultiCurrency)) {
+            return Currency::query();
+        }
+
+        $inUse = $tenant->activeCurrencies()->pluck('currencies.id')->all();
+
+        if ($inUse === []) {
+            $inUse = array_filter([$tenant->currency_id]);
+        }
+
+        return Currency::query()->whereIn('id', $inUse);
     }
 
     /**

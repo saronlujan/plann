@@ -5,6 +5,7 @@ import { reactiveOmit } from '@vueuse/core';
 import { useForwardPropsEmits } from 'reka-ui';
 import { DrawerContent, DrawerPortal } from 'vaul-vue';
 import { cn } from '@/lib/utils';
+import DrawerHandle from './DrawerHandle.vue';
 import DrawerOverlay from './DrawerOverlay.vue';
 
 defineOptions({
@@ -33,7 +34,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
                 props.class,
             )"
         >
-            <div class="bg-muted mx-auto mt-4 hidden h-2 w-25 shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
+            <DrawerHandle class="hidden group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
             <slot />
         </DrawerContent>
     </DrawerPortal>

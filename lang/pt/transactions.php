@@ -45,6 +45,11 @@ return [
         'expected_income' => 'Receita prevista',
         'expected_expense' => 'Despesa prevista',
         'expected_total' => 'Total previsto',
+        'realized_group' => 'Realizado',
+        'expected_group' => 'Previsto',
+        'see_details' => 'Ver detalhes',
+        'drawer_title' => 'Período Selecionado',
+        'drawer_hint' => 'O saldo realizado quer dizer que já foi pago. O saldo previsto é o que se espera receber até o fim do período.',
     ],
 
     'actions' => [
@@ -54,11 +59,18 @@ return [
         'mark_paid' => 'Marcar como pago',
         'mark_unpaid' => 'Marcar como não pago',
         'remove_tag' => 'Remover :name',
+        'open_attachment' => 'Abrir anexo',
     ],
 
     'delete' => [
         'title' => 'Excluir Transação',
         'description' => 'Excluir “:label”? Esta ação não pode ser desfeita.',
+        'scope' => [
+            'title' => 'Esta é uma transação recorrente.',
+            'one' => 'Remover apenas esta transação',
+            'forward' => 'Remover esta e as próximas transações',
+            'all' => 'Remover todas as transações',
+        ],
     ],
 
     'modal' => [
@@ -82,6 +94,12 @@ return [
         'subtitle' => 'Informe a quantidade de parcelas e o período de cobrança.',
     ],
 
+    'attachment' => [
+        'choose' => 'Escolher arquivo ou arrastar aqui',
+        'replace' => 'Trocar arquivo',
+        'formats' => 'Imagem (JPG, PNG, WEBP) ou PDF, até 10 MB',
+    ],
+
     'fields' => [
         'type' => 'Tipo',
         'currency' => 'Moeda',
@@ -92,7 +110,8 @@ return [
         'amount' => 'Valor',
         'interest' => 'Juros da conta',
         'description' => 'Descrição',
-        'description_optional' => 'Descrição (opcional)',
+        'note' => 'Nota',
+        'observations' => 'Observações e comentários',
         'category' => 'Categoria',
         'tags' => 'Tags',
         'repeat_until' => 'Repetir até (opcional)',
@@ -104,6 +123,8 @@ return [
         'installment' => 'Parcela',
         'adjustment' => 'Ajuste',
         'attachment' => 'Adicionar anexo desta transação',
+        'attachment_label' => 'Anexo',
+        'paid' => 'Pago',
     ],
 
     'placeholders' => [
@@ -113,6 +134,8 @@ return [
         'destination_account' => 'Selecione a conta de destino',
         'amount' => '0,00',
         'description' => 'Descreva a transação',
+        'note' => 'Ex.: número do pedido, contrato',
+        'observations' => 'Detalhes que não cabem na descrição',
         'category' => 'Selecione a categoria',
         'no_categories' => 'Nenhuma categoria cadastrada',
         'tags' => 'Selecione tags',
@@ -125,6 +148,5 @@ return [
 
     'hints' => [
         'repeat_until' => 'Deixe em branco para uma recorrência sem fim.',
-        'attachment' => 'Imagem (JPG, PNG, WEBP) ou PDF, até 10 MB.',
     ],
 ];

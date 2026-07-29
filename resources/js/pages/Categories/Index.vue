@@ -34,10 +34,6 @@ function typeBadgeClass(type: string): string {
         return 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400';
     }
 
-    if (type === 'both') {
-        return 'border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-400';
-    }
-
     return 'border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400';
 }
 

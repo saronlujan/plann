@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\PlanSlug;
+use App\Enums\LabelColor;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Currency;
@@ -13,12 +13,10 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
 
+/** Any currency from the shared catalogue is available to every workspace. */
 function activateCurrency(User $user, string $code = 'BRL'): Currency
 {
-    $currency = Currency::query()->firstOrCreate(['code' => $code], ['name' => $code, 'symbol' => '$']);
-    $user->tenant()->first()->syncCurrencyActivations([$currency->id]);
-
-    return $currency;
+    return Currency::query()->firstOrCreate(['code' => $code], ['name' => $code, 'symbol' => '$']);
 }
 
 function settingsUser(string $email): User
@@ -44,17 +42,13 @@ test('each module has its own focused page', function () {
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Categories/Index')
             ->has('categories', 1)
-            ->has('categoryTypeOptions', 3));
+            ->has('categoryTypeOptions', 2));
 
     actingAs($user)->get('/tags')->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('Tags/Index')
             ->has('tags', 1));
 
-    actingAs($user)->get('/currencies')->assertSuccessful()
-        ->assertInertia(fn (Assert $page): Assert => $page
-            ->component('Currencies/Index')
-            ->has('currencies'));
 });
 
 test('users may create a category', function () {
@@ -69,14 +63,14 @@ test('users may create a category', function () {
     expect($category?->color->value)->toBe('green');
 });
 
-test('a category may be dual-use (both)', function () {
-    $user = settingsUser('cat-both@example.com');
+test('a category may be income', function () {
+    $user = settingsUser('cat-income@example.com');
 
     actingAs($user)
-        ->post('/categories', ['name' => 'Hospedagem', 'type' => 'both', 'color' => 'blue'])
+        ->post('/categories', ['name' => 'Hospedagem', 'type' => 'income', 'color' => 'blue'])
         ->assertRedirect();
 
-    expect(Category::query()->where('name', 'Hospedagem')->where('type', 'both')->exists())->toBeTrue();
+    expect(Category::query()->where('name', 'Hospedagem')->where('type', 'income')->exists())->toBeTrue();
 });
 
 test('duplicate category name and type is rejected', function () {
@@ -144,16 +138,17 @@ test('users may create, update and delete an account', function () {
     $user = settingsUser('acc-crud@example.com');
     $currency = activateCurrency($user, 'BRL');
 
+    // The form no longer asks for a starting balance: an account is created
+    // empty and the money already there is entered as a transaction.
     actingAs($user)
-        ->post('/accounts', ['name' => 'Conta A', 'currency_id' => $currency->id, 'balance' => 100.5])
+        ->post('/accounts', ['name' => 'Conta A', 'currency_id' => $currency->id])
         ->assertRedirect();
 
     $account = Account::query()->where('name', 'Conta A')->first();
     expect($account)->not->toBeNull();
-    expect($account?->balance)->toBe('100.50');
 
     actingAs($user)
-        ->patch('/accounts/'.$account->id, ['name' => 'Conta B', 'currency_id' => $currency->id, 'balance' => 0])
+        ->patch('/accounts/'.$account->id, ['name' => 'Conta B', 'currency_id' => $currency->id])
         ->assertRedirect();
 
     expect($account->fresh()?->name)->toBe('Conta B');
@@ -170,7 +165,6 @@ test('an account with transactions cannot be deleted', function () {
         'tenant_id' => $user->tenant_id,
         'currency_id' => $currency->id,
         'name' => 'Com lançamentos',
-        'balance' => 0,
     ]);
 
     Transaction::create([
@@ -189,34 +183,23 @@ test('an account with transactions cannot be deleted', function () {
     expect(Account::query()->whereKey($account->id)->exists())->toBeTrue();
 });
 
-test('account creation requires an active currency', function () {
-    $user = settingsUser('acc-inactive@example.com');
-    $currency = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
+test('account creation refuses a currency the workspace cannot see', function () {
+    $user = settingsUser('acc-foreign-currency@example.com');
+
+    // Another workspace's own currency is outside this one's catalogue.
+    $other = settingsUser('acc-currency-owner@example.com');
+    $foreign = Currency::query()->create([
+        'tenant_id' => $other->tenant_id,
+        'code' => 'XYZ',
+        'name' => 'Alheia',
+        'symbol' => 'X',
+    ]);
+
+    app(TenantContext::class)->setTenantId($user->tenant_id);
 
     actingAs($user)
-        ->post('/accounts', ['name' => 'Sem moeda ativa', 'currency_id' => $currency->id])
+        ->post('/accounts', ['name' => 'Moeda alheia', 'currency_id' => $foreign->id])
         ->assertSessionHasErrors('currency_id');
-});
-
-test('users may manage the active currencies', function () {
-    $user = settingsUser('cur-manage@example.com');
-    // Managing more than one currency is a Pro capability.
-    $user->tenant()->first()->update(['plan_slug' => PlanSlug::Pro->value]);
-    $brl = Currency::query()->firstOrCreate(['code' => 'BRL'], ['name' => 'Real', 'symbol' => 'R$']);
-    $usd = Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$']);
-
-    actingAs($user)
-        ->patch('/currencies', ['currency_ids' => [$brl->id, $usd->id]])
-        ->assertRedirect();
-
-    expect($user->tenant()->first()->activeCurrencies()->pluck('code')->sort()->values()->all())
-        ->toBe(['BRL', 'USD']);
-
-    actingAs($user)
-        ->patch('/currencies', ['currency_ids' => [$brl->id]])
-        ->assertRedirect();
-
-    expect($user->tenant()->first()->activeCurrencies()->pluck('code')->all())->toBe(['BRL']);
 });
 
 test('a tenant cannot modify another tenant account', function () {
@@ -226,7 +209,6 @@ test('a tenant cannot modify another tenant account', function () {
         'tenant_id' => $victim->tenant_id,
         'name' => 'Privada',
         'currency_id' => $currency->id,
-        'balance' => 0,
     ]);
 
     $attacker = settingsUser('attacker-acc@example.com');
@@ -239,53 +221,43 @@ test('a tenant cannot modify another tenant account', function () {
     expect($victimAccount->fresh())->not->toBeNull();
 });
 
-test('the currencies page flags an active currency with no account', function () {
-    $user = settingsUser('currency-warning@example.com');
-    $tenant = $user->tenant()->firstOrFail();
+test('the palette offers both tiers and the enum agrees with the frontend', function () {
+    $user = settingsUser('palette@example.com');
 
-    $brl = Currency::create(['code' => 'BRL', 'name' => 'Real', 'symbol' => 'R$']);
-    $usd = Currency::create(['code' => 'USD', 'name' => 'Dollar', 'symbol' => '$']);
-    $tenant->syncCurrencyActivations([$brl->id, $usd->id]);
+    // The picker renders from a TypeScript copy of this enum; a colour missing
+    // on either side is either invisible or rejected on save.
+    $options = LabelColor::options();
 
-    Account::create([
-        'tenant_id' => $tenant->id,
-        'currency_id' => $brl->id,
-        'name' => 'Conta BRL',
-        'balance' => 0,
-    ]);
+    expect($options)->toHaveCount(40);
 
-    // The page drives its warning off has_accounts, so USD must come back false.
-    actingAs($user)->get('/currencies')->assertSuccessful()
-        ->assertInertia(function (Assert $page) use ($brl, $usd): void {
-            $rows = collect($page->toArray()['props']['currencies'])->keyBy('id');
+    $values = collect($options)->pluck('value');
 
-            expect($rows[$brl->id]['has_accounts'])->toBeTrue();
-            expect($rows[$usd->id]['has_accounts'])->toBeFalse();
-        });
+    expect($values)->toContain('blue');
+    expect($values)->toContain('blue_dark');
+
+    // Every value must survive validation, dark tier included.
+    actingAs($user)
+        ->post('/tags', ['name' => 'Escura', 'color' => 'blue_dark'])
+        ->assertSessionHasNoErrors();
+
+    expect(Tag::query()->where('name', 'Escura')->value('color'))->toBe(LabelColor::BlueDark);
 });
 
-test('another workspace account does not clear the missing-account warning', function () {
-    $user = settingsUser('currency-warning-scope@example.com');
-    $tenant = $user->tenant()->firstOrFail();
+test('every colour carries a distinct hex', function () {
+    // Two entries sharing a hex would be indistinguishable in the picker and in
+    // the dashboard charts.
+    $hexes = collect(LabelColor::options())->pluck('hex');
 
-    $usd = Currency::create(['code' => 'USD', 'name' => 'Dollar', 'symbol' => '$']);
-    $tenant->syncCurrencyActivations([$usd->id]);
+    expect($hexes->unique())->toHaveCount($hexes->count());
+});
 
-    // A different workspace holds the only USD account.
-    $otherUser = settingsUser('currency-warning-other@example.com');
-    Account::create([
-        'tenant_id' => $otherUser->tenant_id,
-        'currency_id' => $usd->id,
-        'name' => 'Conta USD alheia',
-        'balance' => 0,
-    ]);
+test('the palette runs the colour wheel with each hue beside its darker tier', function () {
+    $values = collect(LabelColor::options())->pluck('value')->all();
 
-    app(TenantContext::class)->setTenantId($tenant->id);
+    // Grouped, not scattered: a hue and its dark tier sit next to each other so
+    // the picker reads as a gradient.
+    expect(array_slice($values, 0, 4))->toBe(['red', 'red_dark', 'orange', 'orange_dark']);
 
-    actingAs($user)->get('/currencies')->assertSuccessful()
-        ->assertInertia(function (Assert $page) use ($usd): void {
-            $rows = collect($page->toArray()['props']['currencies'])->keyBy('id');
-
-            expect($rows[$usd->id]['has_accounts'])->toBeFalse();
-        });
+    // Neutrals close the list rather than interrupting the spectrum.
+    expect(array_slice($values, -2))->toBe(['stone', 'stone_dark']);
 });

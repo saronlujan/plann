@@ -8,8 +8,6 @@ enum CategoryType: string
 
     case Expense = 'expense';
 
-    case Both = 'both';
-
     public function label(): string
     {
         return __('enums.category_type.'.$this->value);

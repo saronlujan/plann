@@ -33,6 +33,9 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(base_path('routes/dashboard.php'));
 
             Route::middleware(['web', 'auth', 'verified', 'subscribed'])
+                ->group(base_path('routes/onboarding.php'));
+
+            Route::middleware(['web', 'auth', 'verified', 'subscribed'])
                 ->group(base_path('routes/transactions.php'));
 
             Route::middleware(['web', 'auth', 'verified', 'subscribed'])
@@ -46,9 +49,6 @@ class RouteServiceProvider extends ServiceProvider
 
             Route::middleware(['web', 'auth', 'verified', 'subscribed'])
                 ->group(base_path('routes/tags.php'));
-
-            Route::middleware(['web', 'auth', 'verified', 'subscribed'])
-                ->group(base_path('routes/currencies.php'));
 
             Route::middleware(['web', 'auth', 'verified', 'subscribed'])
                 ->group(base_path('routes/reports.php'));

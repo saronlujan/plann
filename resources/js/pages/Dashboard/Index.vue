@@ -63,9 +63,9 @@ const greeting = computed(() => {
 
             <Card v-if="!ready || currencies.length === 0">
                 <CardContent class="flex flex-col gap-1 p-6 text-center">
-                    <span class="font-medium">{{ $t('dashboard.no_currency.title') }}</span>
+                    <span class="font-medium">{{ $t('dashboard.no_entries.title') }}</span>
                     <span class="text-sm text-muted-foreground">
-                        {{ $t('dashboard.no_currency.description') }}
+                        {{ $t('dashboard.no_entries.description') }}
                     </span>
                 </CardContent>
             </Card>

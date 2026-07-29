@@ -81,7 +81,14 @@ function remove(id: number): void {
             </div>
         </PopoverTrigger>
         <PopoverContent class="w-(--reka-popover-trigger-width) p-0" align="start">
-            <div class="border-b p-2">
+            <!--
+                A flex row sized by its input, not a padded block: an inline input
+                sits on a line box built from the popover's own font, and that
+                strut is taller than the small text — which showed up as dead
+                space above the field. No set height either, or the text centres
+                inside it and the slack comes straight back.
+            -->
+            <div class="flex items-center border-b px-2 py-1.5">
                 <input
                     v-model="search"
                     type="text"

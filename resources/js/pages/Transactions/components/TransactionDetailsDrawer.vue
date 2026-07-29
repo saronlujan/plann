@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { trans } from 'laravel-vue-i18n';
+import { Paperclip } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { colorHex } from '@/lib/labelColors';
+import transactions from '@/routes/transactions';
 import {
     amountClass,
     dueStatus,
@@ -31,6 +33,10 @@ const props = defineProps<{
     categoryOptions: CategoryOption[];
     tagOptions: TagOption[];
 }>();
+
+const attachmentUrl = computed(() =>
+    props.entry ? transactions.attachment(props.entry.transaction_id).url : '',
+);
 
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
@@ -162,6 +168,23 @@ const hasAdjustment = computed(
                             <span v-else class="text-muted-foreground">{{
                                 $t('common.state.none')
                             }}</span>
+                        </dd>
+                    </div>
+                    <div
+                        v-if="entry.attachment"
+                        class="flex items-center justify-between gap-4 py-2"
+                    >
+                        <dt class="text-muted-foreground">
+                            {{ $t('transactions.fields.attachment_label') }}
+                        </dt>
+                        <dd>
+                            <a
+                                :href="attachmentUrl"
+                                class="flex items-center gap-2 font-medium text-primary underline underline-offset-4"
+                            >
+                                <Paperclip class="size-4 shrink-0" />
+                                {{ $t('transactions.actions.open_attachment') }}
+                            </a>
                         </dd>
                     </div>
                     <div class="flex items-start justify-between gap-4 py-2">

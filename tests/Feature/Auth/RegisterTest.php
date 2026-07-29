@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PlanFeature;
 use App\Enums\PlanSlug;
 use App\Models\Currency;
 use App\Models\Tenant;
@@ -7,6 +8,7 @@ use App\Models\User;
 use App\Notifications\EmailVerificationPinNotification;
 use Database\Seeders\CountrySeeder;
 use Database\Seeders\CurrencySeeder;
+use Database\Seeders\PlanSeeder;
 use Illuminate\Support\Facades\Notification;
 
 test('guests may view the register page', function () {
@@ -17,6 +19,7 @@ test('users may register and create an initial tenant', function () {
     Notification::fake();
     app(CurrencySeeder::class)->run();
     app(CountrySeeder::class)->run();
+    app(PlanSeeder::class)->run();
 
     // A fresh signup lands on the verification step, not the dashboard.
     $this->post('/register', [
@@ -25,6 +28,7 @@ test('users may register and create an initial tenant', function () {
         'phone' => '+55 11987654321',
         'country_code' => 'BR',
         'currency_code' => 'BRL',
+        'plan_slug' => 'basic',
         'password' => 'password',
         'password_confirmation' => 'password',
     ])->assertRedirect(route('verification.notice'));
@@ -41,8 +45,9 @@ test('users may register and create an initial tenant', function () {
 
     expect($tenant)->not->toBeNull();
     expect(User::query()->where('email', 'novo@example.com')->exists())->toBeTrue();
-    expect($tenant?->activeCurrencies()->where('code', 'BRL')->exists())->toBeTrue();
-    expect($tenant?->currencies()->where('code', 'BRL')->exists())->toBeTrue();
+    // Signup activates nothing: a currency starts being used when the first
+    // account is opened in it.
+    expect($tenant?->activeCurrencies()->exists())->toBeFalse();
     expect($currency)->not->toBeNull();
 
     // A fresh signup starts on the Basic plan with a 14-day card-free trial.
@@ -50,4 +55,71 @@ test('users may register and create an initial tenant', function () {
     expect($tenant?->onTrial())->toBeTrue();
     expect($tenant?->trial_ends_at?->isFuture())->toBeTrue();
     expect(User::query()->where('email', 'novo@example.com')->value('locale'))->toBe('pt');
+});
+
+test('the register page offers the active plans with price and description', function () {
+    app(PlanSeeder::class)->run();
+    app(CurrencySeeder::class)->run();
+    app(CountrySeeder::class)->run();
+
+    // Name and description come from the enum, so they follow the visitor's
+    // language rather than whatever locale seeded the plans table.
+    $this->withHeaders(['Accept-Language' => 'pt-BR'])
+        ->get(route('register'))
+        ->assertSuccessful()
+        ->assertInertia(function ($page): void {
+            $plans = collect($page->toArray()['props']['planOptions'])->keyBy('value');
+
+            expect($plans)->toHaveCount(2);
+            expect($plans['basic']['monthly_price_cents'])->toBe(990);
+            expect($plans['pro']['monthly_price_cents'])->toBe(1990);
+            // The card advertises a monthly figure but the charge is yearly, so
+            // both numbers have to reach the page.
+            expect($plans['basic']['annual_price_cents'])->toBe(990 * 12);
+            expect($plans['pro']['annual_price_cents'])->toBe(1990 * 12);
+            expect($plans['pro']['description'])->toContain('empreendedores');
+        });
+});
+
+test('the chosen plan is the one the workspace starts its trial on', function () {
+    Notification::fake();
+    app(PlanSeeder::class)->run();
+    app(CurrencySeeder::class)->run();
+    app(CountrySeeder::class)->run();
+
+    $this->post('/register', [
+        'name' => 'Autônomo',
+        'email' => 'autonomo@example.com',
+        'country_code' => 'BR',
+        'currency_code' => 'BRL',
+        'plan_slug' => 'pro',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ])->assertRedirect(route('verification.notice'));
+
+    $tenant = Tenant::query()->where('name', 'Autônomo')->firstOrFail();
+
+    // Trialling the tier they picked is the whole point: on Basic they would
+    // never see multi-currency before deciding whether to pay for it.
+    expect($tenant->plan_slug)->toBe(PlanSlug::Pro);
+    expect($tenant->onTrial())->toBeTrue();
+    expect($tenant->hasFeature(PlanFeature::MultiCurrency))->toBeTrue();
+});
+
+test('registration refuses a plan that is not on offer', function () {
+    app(PlanSeeder::class)->run();
+    app(CurrencySeeder::class)->run();
+    app(CountrySeeder::class)->run();
+
+    $this->post('/register', [
+        'name' => 'Novo Usuario',
+        'email' => 'plano-invalido@example.com',
+        'country_code' => 'BR',
+        'currency_code' => 'BRL',
+        'plan_slug' => 'enterprise',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ])->assertSessionHasErrors('plan_slug');
+
+    expect(User::query()->where('email', 'plano-invalido@example.com')->exists())->toBeFalse();
 });

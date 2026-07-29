@@ -86,5 +86,7 @@ test('a google signup is verified without a pin round-trip', function (): void {
     expect($user->hasVerifiedEmail())->toBeTrue();
     Notification::assertNothingSent();
 
-    actingAs($user)->get('/')->assertSuccessful();
+    // Any page behind the paywall proves it: the dashboard sends a workspace
+    // with no account to the guided setup.
+    actingAs($user)->get(route('accounts'))->assertSuccessful();
 });

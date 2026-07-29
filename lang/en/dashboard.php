@@ -27,8 +27,8 @@ return [
     'recent' => 'Recent transactions',
     'empty_recent' => 'No transactions this month.',
 
-    'no_currency' => [
-        'title' => 'Activate a currency to get started',
-        'description' => 'Enable a currency and create accounts to see your dashboard.',
+    'no_entries' => [
+        'title' => 'Record your first entry',
+        'description' => 'As soon as there is movement, your summary shows up here.',
     ],
 ];

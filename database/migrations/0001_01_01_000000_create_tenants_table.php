@@ -18,6 +18,11 @@ return new class extends Migration
             // Drives country-specific behaviour and the starting currency.
             // Constrained in the countries migration, which runs later.
             $table->unsignedBigInteger('country_id')->nullable();
+            // The currency chosen at signup. Distinct from the currencies in use,
+            // which are derived from the accounts: this is what the workspace was
+            // opened with, and on a single-currency plan it is the only one
+            // allowed. Constrained in the currencies migration.
+            $table->unsignedBigInteger('currency_id')->nullable();
 
             // Laravel Cashier customer columns (billable model = Tenant).
             $table->string('stripe_id')->nullable()->index();

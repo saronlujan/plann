@@ -34,7 +34,6 @@ function tenantFixture(string $name): array
         'tenant_id' => $tenant->id,
         'currency_id' => $currency->id,
         'name' => 'Conta '.$name,
-        'balance' => 0,
     ]);
 
     $category = Category::create([
@@ -54,7 +53,7 @@ test('a transaction cannot point at another tenant account', function () {
     [$tenantB] = tenantFixture('B');
 
     // Written raw on purpose: this is the path the scope does not cover.
-    expect(fn () => DB::table('transactions')->insert([
+    expect(fn () => DB::transaction(fn () => DB::table('transactions')->insert([
         'tenant_id' => $tenantB->id,
         'account_id' => $accountA->id,
         'currency_id' => $currency->id,
@@ -66,14 +65,14 @@ test('a transaction cannot point at another tenant account', function () {
         'description' => 'Vazamento',
         'created_at' => now(),
         'updated_at' => now(),
-    ]))->toThrow(QueryException::class);
+    ])))->toThrow(QueryException::class);
 });
 
 test('a transaction cannot point at another tenant category', function () {
     [, , $categoryA, , $currency] = tenantFixture('A');
     [$tenantB, $accountB] = tenantFixture('B');
 
-    expect(fn () => DB::table('transactions')->insert([
+    expect(fn () => DB::transaction(fn () => DB::table('transactions')->insert([
         'tenant_id' => $tenantB->id,
         'account_id' => $accountB->id,
         'category_id' => $categoryA->id,
@@ -86,7 +85,7 @@ test('a transaction cannot point at another tenant category', function () {
         'description' => 'Vazamento',
         'created_at' => now(),
         'updated_at' => now(),
-    ]))->toThrow(QueryException::class);
+    ])))->toThrow(QueryException::class);
 });
 
 test('a transaction cannot be tagged with another tenant tag', function () {
@@ -109,11 +108,11 @@ test('a transaction cannot be tagged with another tenant tag', function () {
     // key rather than from a missing column.
     expect(DB::getSchemaBuilder()->hasColumn('tag_transaction', 'tenant_id'))->toBeTrue();
 
-    expect(fn () => DB::table('tag_transaction')->insert([
+    expect(fn () => DB::transaction(fn () => DB::table('tag_transaction')->insert([
         'tenant_id' => $tenantB->id,
         'transaction_id' => $transactionB->id,
         'tag_id' => $tagA->id,
-    ]))->toThrow(QueryException::class);
+    ])))->toThrow(QueryException::class);
 
     // Same tag id, owner's tenant: proves the id itself is fine and only the
     // cross-tenant pairing is refused.

@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'errors' => [
+        'currency_locked' => 'This account already has entries. Deal with them before changing the currency.',
+        'plan_limit' => 'Your plan allows a single currency. Subscribe to Pro to use more.',
+    ],
+
     'title' => 'Accounts',
     'subtitle' => 'Balances and statement of your accounts.',
     'empty' => 'No accounts yet. Create your first one with the button above.',
@@ -21,9 +26,8 @@ return [
         'name_placeholder' => 'E.g., Checking Account',
         'kind_label' => 'Type',
         'currency_label' => 'Currency',
+        'currency_locked' => 'The currency cannot be changed: the account already has entries.',
         'currency_placeholder' => 'Select the currency',
-        'balance_label' => 'Initial balance',
-        'balance_placeholder' => '0.00',
         'credit_limit_label' => 'Credit limit',
         'credit_limit_placeholder' => '0.00',
         'closing_day_label' => 'Closing day',

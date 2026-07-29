@@ -19,7 +19,7 @@ test('authenticated requests set the postgres tenant context', function () {
     ]);
 
     $this->actingAs($user)
-        ->get('/')
+        ->get(route('accounts'))
         ->assertSuccessful();
 
     expect(app(TenantContext::class)->tenantId())->toBe($tenant->id);

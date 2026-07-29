@@ -79,7 +79,9 @@ test('a correct pin verifies the account and unlocks the app', function () {
 
     Event::assertDispatched(Verified::class);
 
-    actingAs($user)->get('/')->assertSuccessful();
+    // Any page behind the paywall proves it: the dashboard sends a workspace
+    // with no account to the guided setup.
+    actingAs($user)->get(route('accounts'))->assertSuccessful();
 });
 
 test('a wrong pin is rejected and leaves the account unverified', function () {

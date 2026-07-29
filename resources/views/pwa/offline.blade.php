@@ -10,7 +10,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
         <title>{{ __('pwa.offline.title') }} · {{ config('app.name') }}</title>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/favicon.ico" media="(prefers-color-scheme: light)">
+        <link rel="icon" href="/favicon-white.ico" media="(prefers-color-scheme: dark)">
         <style>
             :root { color-scheme: light dark; }
             * { box-sizing: border-box; }
@@ -52,7 +53,10 @@
     </head>
     <body>
         <main>
-            <img src="/favicon.svg" alt="">
+            <picture>
+                <source srcset="/favicon-white.ico" media="(prefers-color-scheme: dark)">
+                <img src="/favicon.ico" alt="">
+            </picture>
             <h1>{{ __('pwa.offline.title') }}</h1>
             <p>{{ __('pwa.offline.description') }}</p>
             <button type="button" onclick="window.location.reload()">

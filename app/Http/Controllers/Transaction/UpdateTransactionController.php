@@ -24,17 +24,17 @@ class UpdateTransactionController extends Controller
         $validated = $request->validated();
 
         $newAttachment = $request->file('attachment');
-        $attachmentPath = $this->attachments->store($newAttachment) ?? $transaction->attachment_path;
+        $attachmentFile = $this->attachments->store($newAttachment) ?? $transaction->attachment;
 
         if ($transaction->type === TransactionType::Recurring) {
             $recurrenceScope = TransactionRecurrenceScope::from($validated['recurrence_scope'] ?? TransactionRecurrenceScope::All->value);
 
             if ($recurrenceScope === TransactionRecurrenceScope::One) {
-                return $this->updateSingleOccurrence($transaction, $validated, $attachmentPath);
+                return $this->updateSingleOccurrence($transaction, $validated, $attachmentFile);
             }
 
             if ($recurrenceScope === TransactionRecurrenceScope::Forward) {
-                return $this->updateCurrentAndFollowing($transaction, $validated, $attachmentPath);
+                return $this->updateCurrentAndFollowing($transaction, $validated, $attachmentFile);
             }
         }
 
@@ -42,17 +42,34 @@ class UpdateTransactionController extends Controller
             $this->unpairTransfer($transaction);
         }
 
-        $previousAttachment = $transaction->attachment_path;
+        $previousAttachment = $transaction->attachment;
 
-        $transaction->fill($this->payload($validated, $transaction, $attachmentPath));
+        $transaction->fill($this->payload($validated, $transaction, $attachmentFile));
         $transaction->save();
         $transaction->tags()->sync($validated['tags'] ?? []);
 
-        $this->attachments->discardReplaced($newAttachment, $previousAttachment, $attachmentPath);
+        $this->attachments->discardReplaced($newAttachment, $previousAttachment, $attachmentFile);
 
         return to_route('transactions.index', [
             'period' => $transaction->effective_date->format('Y-m'),
         ]);
+    }
+
+    /**
+     * When the entry was settled, from the form's yes/no.
+     *
+     * A request that omits the field leaves the existing state alone, so marking
+     * something paid from the list is not undone by an unrelated edit.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function paidAt(array $validated, Transaction $transaction): ?string
+    {
+        if (! array_key_exists('paid', $validated)) {
+            return $transaction->paid_at?->toDateString();
+        }
+
+        return $validated['paid'] ? $validated['effective_date'] : null;
     }
 
     /**
@@ -113,7 +130,7 @@ class UpdateTransactionController extends Controller
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    private function payload(array $validated, Transaction $transaction, ?string $attachmentPath): array
+    private function payload(array $validated, Transaction $transaction, ?string $attachmentFile): array
     {
         $scheduleType = $validated['type'];
 
@@ -127,26 +144,29 @@ class UpdateTransactionController extends Controller
             'installments_total' => $validated['installments_total'] ?? null,
             'installment_number' => $validated['installment_number'] ?? null,
             'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
-            'attachment_path' => $attachmentPath,
+            'attachment' => $attachmentFile,
             'series_uuid' => $this->resolveSeriesUuid($scheduleType, $transaction),
             'effective_date' => $validated['effective_date'],
             'effective_until' => $validated['effective_until'] ?? null,
             'adjustment_month' => $validated['adjustment_month'] ?? null,
+            'paid_at' => $this->paidAt($validated, $transaction),
             'amount' => $validated['amount'],
             'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
             'description' => $validated['description'] ?? $transaction->description,
+            'note' => $validated['note'] ?? $transaction->note,
+            'observations' => $validated['observations'] ?? $transaction->observations,
         ];
     }
 
     /**
      * @param  array<string, mixed>  $validated
      */
-    private function updateSingleOccurrence(Transaction $transaction, array $validated, ?string $attachmentPath): RedirectResponse
+    private function updateSingleOccurrence(Transaction $transaction, array $validated, ?string $attachmentFile): RedirectResponse
     {
         $occurrenceDate = CarbonImmutable::createFromFormat('Y-m-d', $validated['occurrence_date'] ?? $validated['effective_date']);
         $seriesUuid = $transaction->series_uuid ?? (string) Str::uuid();
 
-        DB::transaction(function () use ($transaction, $validated, $attachmentPath, $occurrenceDate, $seriesUuid): void {
+        DB::transaction(function () use ($transaction, $validated, $attachmentFile, $occurrenceDate, $seriesUuid): void {
             if ($transaction->series_uuid === null) {
                 $transaction->update(['series_uuid' => $seriesUuid]);
             }
@@ -162,14 +182,17 @@ class UpdateTransactionController extends Controller
                 'installments_total' => null,
                 'installment_number' => null,
                 'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
-                'attachment_path' => $attachmentPath,
+                'attachment' => $attachmentFile,
                 'series_uuid' => $seriesUuid,
                 'effective_date' => $transaction->effective_date->toDateString(),
                 'effective_until' => null,
                 'adjustment_month' => $occurrenceDate->toDateString(),
+                'paid_at' => $this->paidAt($validated, $transaction),
                 'amount' => $validated['amount'],
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
                 'description' => $validated['description'] ?? $transaction->description,
+                'note' => $validated['note'] ?? $transaction->note,
+                'observations' => $validated['observations'] ?? $transaction->observations,
             ]);
 
             $occurrence->tags()->sync($validated['tags'] ?? []);
@@ -183,13 +206,13 @@ class UpdateTransactionController extends Controller
     /**
      * @param  array<string, mixed>  $validated
      */
-    private function updateCurrentAndFollowing(Transaction $transaction, array $validated, ?string $attachmentPath): RedirectResponse
+    private function updateCurrentAndFollowing(Transaction $transaction, array $validated, ?string $attachmentFile): RedirectResponse
     {
         $occurrenceDate = CarbonImmutable::createFromFormat('Y-m-d', $validated['occurrence_date'] ?? $validated['effective_date']);
         $effectiveUntil = $occurrenceDate->subDay()->toDateString();
         $seriesUuid = $transaction->series_uuid ?? (string) Str::uuid();
 
-        $newSeries = DB::transaction(function () use ($transaction, $validated, $attachmentPath, $occurrenceDate, $effectiveUntil, $seriesUuid): Transaction {
+        $newSeries = DB::transaction(function () use ($transaction, $validated, $attachmentFile, $occurrenceDate, $effectiveUntil, $seriesUuid): Transaction {
             if ($transaction->series_uuid === null) {
                 $transaction->update(['series_uuid' => $seriesUuid]);
             }
@@ -209,14 +232,17 @@ class UpdateTransactionController extends Controller
                 'installments_total' => null,
                 'installment_number' => null,
                 'interest_amount' => $validated['interest_amount'] ?? $transaction->interest_amount,
-                'attachment_path' => $attachmentPath,
+                'attachment' => $attachmentFile,
                 'series_uuid' => $seriesUuid,
                 'effective_date' => $occurrenceDate->toDateString(),
                 'effective_until' => null,
                 'adjustment_month' => null,
+                'paid_at' => $this->paidAt($validated, $transaction),
                 'amount' => $validated['amount'],
                 'adjustment_amount' => $validated['adjustment_amount'] ?? 0,
                 'description' => $validated['description'] ?? $transaction->description,
+                'note' => $validated['note'] ?? $transaction->note,
+                'observations' => $validated['observations'] ?? $transaction->observations,
             ]);
 
             $following->tags()->sync($validated['tags'] ?? []);

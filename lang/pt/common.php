@@ -21,7 +21,6 @@ return [
         'categories' => 'Categorias',
         'tags' => 'Tags',
         'accounts' => 'Contas',
-        'currencies' => 'Moedas',
     ],
 
     'actions' => [
@@ -42,6 +41,8 @@ return [
         'empty' => 'Vazio',
         'none' => '—',
         'error' => 'Algo deu errado. Tente novamente.',
+        'yes' => 'Sim',
+        'no' => 'Não',
     ],
 
     'date' => [
