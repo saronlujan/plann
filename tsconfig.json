@@ -123,6 +123,6 @@
         "resources/js/**/*.vue"
     ],
     "exclude": [
-        "resources/js/pages/Transactions_Backup/**/*"
+        "resources/js/modules/Transactions_Backup/**/*"
     ]
 }

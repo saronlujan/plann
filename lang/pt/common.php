@@ -53,6 +53,8 @@ return [
     'date' => [
         'label' => 'Data',
         'placeholder' => 'Selecionar data',
+        'range_placeholder' => 'Selecionar período',
+        'clear_range' => 'Limpar período',
     ],
 
     'confirm' => [

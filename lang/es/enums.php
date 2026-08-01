@@ -41,6 +41,12 @@ return [
         'expense' => 'Gasto',
     ],
 
+    'transaction_period_scale' => [
+        'day' => 'Día',
+        'week' => 'Semana',
+        'month' => 'Mes',
+    ],
+
     'user_theme' => [
         'system' => 'Sistema',
         'light' => 'Claro',

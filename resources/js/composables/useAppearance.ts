@@ -4,7 +4,7 @@
  * Theme toggles the `.dark` class on <html> (shadcn dark variant). The color
  * palette overrides the shadcn `--primary` / `--primary-foreground` tokens, which
  * every accent detail already consumes. "zinc" is the default: it clears the
- * overrides so the theme-aware values from resources/css/app.css apply.
+ * overrides so the theme-aware values from resources/css/main.css apply.
  *
  * The accent is not limited to the palette — a plain `#rrggbb` is accepted too,
  * and its foreground is computed rather than assumed, since a colour picked by
@@ -118,7 +118,7 @@ export function applyAppearance(theme: ThemeValue = 'system', color: string = 'z
     watchSystemTheme(theme === 'system');
 
     // "zinc" maps to null: it clears the overrides so the theme-aware defaults
-    // from resources/css/app.css take over again.
+    // from resources/css/main.css take over again.
     const entry = isCustomColor(color) ? customEntry(color) : (palette[color as ColorValue] ?? null);
 
     if (entry) {

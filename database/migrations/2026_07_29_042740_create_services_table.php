@@ -29,6 +29,9 @@ return new class extends Migration
             $table->unique(['tenant_id', 'name']);
             // Target of the composite foreign keys that keep children in-tenant.
             $table->unique(['tenant_id', 'id']);
+            // Postgres does not index a foreign key column on its own, and
+            // tenant_id is already covered by the unique above.
+            $table->index('currency_id', 'services_currency_id_index');
         });
     }
 

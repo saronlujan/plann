@@ -46,8 +46,6 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $this->authUser($request),
             ],
-            // TEMPORARY: exposes dev-only UI (force trial expiry) in local only.
-            'dev' => app()->environment('local'),
         ];
     }
 

@@ -33,6 +33,36 @@ class TransactionProjector
     public const RELATIONS = ['currency', 'account', 'tags:id', 'lines'];
 
     /**
+     * Every occurrence falling between two days, inclusive.
+     *
+     * Expansion stays month-by-month — that is the unit a recurrence and an
+     * instalment are defined in — and the result is then cut to the days asked
+     * for. A range narrower than a month therefore costs exactly the same as the
+     * month containing it.
+     *
+     * @param  Collection<int, Transaction>  $transactions
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function entriesForRange(Collection $transactions, CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        $entries = collect();
+        $period = $from->startOfMonth();
+        $lastPeriod = $to->startOfMonth();
+
+        while ($period->lessThanOrEqualTo($lastPeriod)) {
+            $entries = $entries->merge($this->entriesForPeriod($transactions, $period));
+            $period = $period->addMonth();
+        }
+
+        $start = $from->toDateString();
+        $end = $to->toDateString();
+
+        return $entries
+            ->filter(fn (array $entry): bool => $entry['date'] >= $start && $entry['date'] <= $end)
+            ->values();
+    }
+
+    /**
      * Expand every transaction into the entries visible within the given period.
      *
      * @param  Collection<int, Transaction>  $transactions

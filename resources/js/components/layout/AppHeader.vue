@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import { Link, router, usePage } from '@inertiajs/vue3';
-import { SettingsIcon, TimerOffIcon } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { SettingsIcon, ShieldIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { clearServiceWorkerCaches } from '@/lib/pwa';
 import { accounts as accountsIndex, contacts, dashboard, logout, preferences } from '@/routes';
+import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as billing } from '@/routes/billing';
 import { index as categoriesIndex } from '@/routes/categories';
-import { expireTrial } from '@/routes/dev';
 import { edit as profile } from '@/routes/profile';
 import { index as reportsIndex } from '@/routes/reports';
 import { index as servicesIndex } from '@/routes/services';
@@ -21,15 +22,10 @@ import { index as tagsIndex } from '@/routes/tags';
 import transactions from '@/routes/transactions';
 
 const page = usePage<{
-    auth: { user: { name: string; avatar_url: string | null } | null };
-    dev: boolean;
+    auth: { user: { name: string; avatar_url: string | null; is_admin?: boolean } | null };
 }>();
 
-const isDev = computed(() => page.props.dev === true);
-
-function expireTrialNow(): void {
-    router.post(expireTrial().url);
-}
+const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
 
 const userName = computed(() => page.props.auth.user?.name ?? '');
 
@@ -47,36 +43,25 @@ const userInitials = computed(
 </script>
 
 <template>
-    <header class="w-full border-b border-border bg-background/95 backdrop-blur">
+    <header class="border-border bg-background/95 w-full border-b backdrop-blur">
         <div class="flex w-full items-center justify-between gap-4 px-4 py-4 lg:px-6 xl:px-8">
             <div class="relative z-20 flex items-center gap-3">
-                <!-- <div class="flex flex-col items-start">
-                    <p class="flex text-2xl text-primary">
-                        <strong class="tracking-widest">mercante</strong>
-                    </p>
-                    <span class="-mt-2 ml-2 opacity-50">money</span>
-                </div> -->
                 <Link
                     :href="dashboard().url"
                     class="relative inline-flex items-center gap-2"
                     aria-label="Mercante Money"
                 >
-                    <img src="/img/logo.png" alt="Mercante" class="h-7 w-auto dark:invert" />
-                    <span
-                        class="rounded-full bg-primary px-2 py-0.5 text-xs leading-none font-bold tracking-wide text-white"
-                    >
-                        money
-                    </span>
+                    <img src="/img/logo.png" alt="Mercante" class="h-8 w-auto dark:invert" />
                 </Link>
             </div>
             <div
-                class="absolute right-0 left-0 z-10 m-auto flex w-full items-center justify-center"
+                class="absolute left-0 right-0 z-10 m-auto flex w-full items-center justify-center"
             >
-                <ul class="flex items-center gap-5 text-sm font-medium text-foreground">
+                <ul class="text-foreground flex items-center gap-5 text-sm font-medium">
                     <li>
                         <Link
                             :href="dashboard().url"
-                            class="transition hover:text-muted-foreground"
+                            class="hover:text-muted-foreground transition"
                         >
                             {{ $t('common.navbar.dashboard') }}
                         </Link>
@@ -84,7 +69,7 @@ const userInitials = computed(
                     <li>
                         <Link
                             :href="transactions.index().url"
-                            class="transition hover:text-muted-foreground"
+                            class="hover:text-muted-foreground transition"
                         >
                             {{ $t('common.navbar.transactions') }}
                         </Link>
@@ -92,7 +77,7 @@ const userInitials = computed(
                     <li>
                         <Link
                             :href="accountsIndex().url"
-                            class="transition hover:text-muted-foreground"
+                            class="hover:text-muted-foreground transition"
                         >
                             {{ $t('common.navbar.accounts') }}
                         </Link>
@@ -100,7 +85,7 @@ const userInitials = computed(
                     <li>
                         <Link
                             :href="reportsIndex().url"
-                            class="transition hover:text-muted-foreground"
+                            class="hover:text-muted-foreground transition"
                         >
                             {{ $t('common.navbar.reports') }}
                         </Link>
@@ -111,7 +96,7 @@ const userInitials = computed(
                                 <button
                                     type="button"
                                     :aria-label="$t('common.navbar.settings')"
-                                    class="flex items-center gap-1 transition hover:text-muted-foreground"
+                                    class="hover:text-muted-foreground flex items-center gap-1 transition"
                                 >
                                     <SettingsIcon class="h-5 w-5" aria-hidden="true" />
                                 </button>
@@ -143,26 +128,33 @@ const userInitials = computed(
                 </ul>
             </div>
             <div class="relative z-20 flex items-center gap-2">
-                <button
-                    v-if="isDev"
-                    type="button"
-                    title="DEV: vencer o período de teste agora"
-                    class="flex items-center gap-1.5 rounded-full border border-dashed border-amber-500 px-3 py-1.5 text-xs font-medium text-amber-600 transition hover:bg-amber-500/10 dark:text-amber-400"
-                    @click="expireTrialNow"
-                >
-                    <TimerOffIcon class="size-3.5" aria-hidden="true" />
-                    Vencer trial
-                </button>
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <button type="button" :aria-label="userName" class="rounded-full">
-                            <Avatar class="size-10 border-3">
+                            <Avatar class="border-3 size-10">
                                 <AvatarImage v-if="avatarUrl" :src="avatarUrl" :alt="userName" />
                                 <AvatarFallback>{{ userInitials }}</AvatarFallback>
                             </Avatar>
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent class="w-52" align="end">
+                        <!--
+                            First, and only for the few who have it: whoever runs
+                            the platform is also a customer of it, so this is the
+                            one door between the two — not a separate login.
+                        -->
+                        <template v-if="isAdmin">
+                            <DropdownMenuItem as-child>
+                                <Link
+                                    :href="adminDashboard().url"
+                                    class="flex w-full items-center gap-2"
+                                >
+                                    <ShieldIcon class="size-4" aria-hidden="true" />
+                                    <span>{{ $t('admin.title') }}</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                        </template>
                         <DropdownMenuItem as-child>
                             <Link :href="profile().url" class="flex w-full items-center gap-2">
                                 <span>{{ $t('common.profile.profile') }}</span>

@@ -23,6 +23,9 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['tenant_id', 'type']);
+            // Target of the composite foreign key that keeps a transaction's
+            // contact inside its own workspace.
+            $table->unique(['tenant_id', 'id']);
         });
     }
 

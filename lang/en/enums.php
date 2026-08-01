@@ -41,6 +41,12 @@ return [
         'expense' => 'Expense',
     ],
 
+    'transaction_period_scale' => [
+        'day' => 'Day',
+        'week' => 'Week',
+        'month' => 'Month',
+    ],
+
     'user_theme' => [
         'system' => 'System',
         'light' => 'Light',

@@ -67,11 +67,10 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware(['web', 'auth', 'verified'])
                 ->group(base_path('routes/profile.php'));
 
-            // TEMPORARY: dev-only helpers (e.g. force trial expiry) for Stripe testing.
-            if (! $this->app->environment('production')) {
-                Route::middleware(['web', 'auth'])
-                    ->group(base_path('routes/dev.php'));
-            }
+            // No 'subscribed': whoever runs the platform is not a customer of it,
+            // and a lapsed card of their own must not lock them out of support.
+            Route::middleware(['web', 'auth', 'verified', 'admin'])
+                ->group(base_path('routes/admin.php'));
         });
     }
 }

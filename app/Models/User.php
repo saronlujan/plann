@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
+ * @property bool $is_admin Runs the platform. Absent from $fillable on purpose.
  * @property string|null $google_id
  * @property string|null $avatar_url
  * @property string|null $avatar
@@ -51,8 +52,14 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<string, mixed>
      */
     protected $attributes = [
+        // The header reads this to decide whether to offer the admin area, and it
+        // is shared on every response — absent, the door would simply not appear
+        // for the one person who needs it.
+        'is_admin' => false,
         'locale' => 'pt',
-        'theme' => 'light',
+        // Defer to the device until told otherwise: someone who has set their
+        // phone to dark did not ask this app to be the exception.
+        'theme' => 'system',
         'color' => 'zinc',
         'sound_enabled' => true,
         'sound_theme' => 'blip',
@@ -70,6 +77,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'password' => 'hashed',
             'email_verified_at' => 'datetime',
+            'is_admin' => 'boolean',
             'theme' => UserTheme::class,
             'sound_enabled' => 'boolean',
             'notifications_enabled' => 'boolean',

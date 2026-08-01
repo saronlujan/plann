@@ -1,7 +1,7 @@
 /**
  * Service worker registration.
  *
- * Kept out of app.ts so the entry stays about booting Inertia, and so the
+ * Kept out of main.ts so the entry stays about booting Inertia, and so the
  * cache-clearing helper has an obvious home for the logout flow to import.
  */
 

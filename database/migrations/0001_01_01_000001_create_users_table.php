@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('password');
             $table->string('locale', 5)->default('pt');
-            $table->string('theme')->default('light');
+            $table->string('theme')->default('system');
             $table->string('color')->default('zinc');
             $table->boolean('sound_enabled')->default(true);
             $table->string('sound_theme')->default('blip');
@@ -34,6 +34,11 @@ return new class extends Migration
             // migration, which is the first point where that table exists.
             $table->unsignedBigInteger('default_currency_id')->nullable();
             $table->rememberToken();
+            // Whoever runs the platform, as opposed to whoever pays for it. A
+            // plain flag rather than roles: there is exactly one privilege here —
+            // seeing across workspaces. Kept out of the model's fillable list, so
+            // it can only be set from the console.
+            $table->boolean('is_admin')->default(false);
             // The app is single-user by design: one workspace, one person. The
             // unique index is what actually guarantees it.
             $table->foreignId('tenant_id')->unique()->constrained()->cascadeOnDelete();

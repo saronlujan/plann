@@ -3,6 +3,7 @@
 use App\Console\Commands\SendDueTransactionNotifications;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantSubscribed;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Console\Scheduling\Schedule;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'admin' => EnsureUserIsAdmin::class,
             'subscribed' => EnsureTenantSubscribed::class,
             'verified' => EnsureEmailIsVerified::class,
         ]);

@@ -19,6 +19,9 @@ return new class extends Migration
             $table->unsignedBigInteger('account_id')->nullable();
             $table->foreignId('currency_id')->constrained()->restrictOnDelete();
             $table->unsignedBigInteger('category_id')->nullable();
+            // Who the money came from or went to: the client on an income, the
+            // provider on an expense.
+            $table->unsignedBigInteger('contact_id')->nullable();
             $table->string('movement_type')->nullable();
             $table->boolean('is_transfer')->default(false);
             $table->string('type');
@@ -53,10 +56,12 @@ return new class extends Migration
             // the models null these out explicitly on delete.
             $table->foreign(['tenant_id', 'account_id'])->references(['tenant_id', 'id'])->on('accounts');
             $table->foreign(['tenant_id', 'category_id'])->references(['tenant_id', 'id'])->on('categories');
+            $table->foreign(['tenant_id', 'contact_id'])->references(['tenant_id', 'id'])->on('contacts');
 
             $table->index(['tenant_id', 'series_uuid']);
             $table->index(['tenant_id', 'effective_date']);
             $table->index(['tenant_id', 'adjustment_month']);
+            $table->index(['tenant_id', 'contact_id']);
         });
     }
 

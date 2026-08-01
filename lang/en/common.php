@@ -53,6 +53,8 @@ return [
     'date' => [
         'label' => 'Date',
         'placeholder' => 'Select date',
+        'range_placeholder' => 'Select a range',
+        'clear_range' => 'Clear range',
     ],
 
     'confirm' => [

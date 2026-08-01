@@ -12,14 +12,15 @@ use Illuminate\Database\Seeder;
 class UserSeeder extends Seeder
 {
     /**
-     * Two workspaces, one per plan, so both tiers can be opened side by side.
+     * The three logins worth having on hand: the platform owner, and one
+     * customer on each plan so the tiers can be opened side by side.
      *
      * Nothing but the login: no account, no category, no entry. A seeded
      * workspace that already had them would never reach the guided setup, which
      * is exactly what this is here to exercise.
      *
-     * Same country and currency on purpose: the difference under test is the
-     * plan, and a second currency would only show up on one of them.
+     * Same country and currency throughout: a second currency would only show up
+     * on one of them and muddy the comparison.
      */
     public function run(): void
     {
@@ -27,14 +28,23 @@ class UserSeeder extends Seeder
             [
                 'email' => 'saronlujan@gmail.com',
                 'name' => 'Saron Lujan',
-                'tenant' => 'Workspace Pro',
+                'tenant' => 'Workspace Admin',
                 'plan' => PlanSlug::Pro,
+                'admin' => true,
             ],
             [
-                'email' => 'saronlujan@hotmail.com',
-                'name' => 'Saron Lujan',
+                'email' => 'pro@gmail.com',
+                'name' => 'Cliente Pro',
+                'tenant' => 'Workspace Pro',
+                'plan' => PlanSlug::Pro,
+                'admin' => false,
+            ],
+            [
+                'email' => 'basic@gmail.com',
+                'name' => 'Cliente Basic',
                 'tenant' => 'Workspace Basic',
                 'plan' => PlanSlug::Basic,
+                'admin' => false,
             ],
         ];
 
@@ -47,19 +57,26 @@ class UserSeeder extends Seeder
     }
 
     /**
-     * @param  array{email: string, name: string, tenant: string, plan: PlanSlug}  $workspace
+     * @param  array{email: string, name: string, tenant: string, plan: PlanSlug, admin: bool}  $workspace
      */
     private function seedWorkspace(array $workspace, Currency $currency, ?Country $country): void
     {
-        $tenant = Tenant::query()->firstOrCreate(
-            ['name' => $workspace['tenant']],
-            [
-                'plan_slug' => $workspace['plan']->value,
-                'country_id' => $country?->id,
-                'currency_id' => $currency->id,
-                'trial_ends_at' => now()->addDays(14),
-            ],
-        );
+        $user = User::query()->where('email', $workspace['email'])->first();
+
+        // Keyed on the account, never on the workspace name: users.tenant_id is
+        // unique, so looking a workspace up by name and handing it to a different
+        // address would collide the first time the pairing is rearranged here.
+        $tenant = $user === null ? new Tenant : $user->tenant;
+
+        $tenant->fill([
+            'name' => $workspace['tenant'],
+            'plan_slug' => $workspace['plan']->value,
+            'country_id' => $country?->id,
+            'currency_id' => $currency->id,
+        ]);
+
+        $tenant->trial_ends_at ??= now()->addDays(14);
+        $tenant->save();
 
         $user = User::query()->updateOrCreate(
             ['email' => $workspace['email']],
@@ -70,6 +87,10 @@ class UserSeeder extends Seeder
                 'locale' => 'pt',
             ],
         );
+
+        // forceFill, because is_admin is deliberately absent from the model's
+        // fillable list — nothing that takes user input may ever set it.
+        $user->forceFill(['is_admin' => $workspace['admin']])->save();
 
         // Verification is skipped so `migrate:fresh --seed` lands straight on the
         // guided setup instead of the confirmation screen.

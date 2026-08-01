@@ -55,7 +55,7 @@ test('authenticated users may view preferences', function () {
             ->has('themeOptions', 3)
             ->has('colorOptions', 10)
             ->has('soundOptions', 5)
-            ->where('preferences.theme', 'light')
+            ->where('preferences.theme', 'system')
             ->where('preferences.color', 'zinc')
             ->where('preferences.sound_theme', 'blip'));
 });
@@ -133,7 +133,7 @@ test('the header switcher may update only the locale', function () {
 
     expect($user->locale)->toBe('en');
     // Untouched preferences keep their defaults.
-    expect($user->theme)->toBe(UserTheme::Light);
+    expect($user->theme)->toBe(UserTheme::System);
     expect($user->color)->toBe(UserColor::Zinc->value);
 });
 
